@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { PawPrint, Shield, Building2, QrCode, ArrowRight } from 'lucide-react'
+import { Shield, Building2, QrCode, ArrowRight } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
+import BrandLogo from './BrandLogo'
 import { useTheme } from '../theme/ThemeProvider'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -95,10 +96,8 @@ export default function LandingPage() {
       }`}
     >
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5">
-        <div className={`flex items-center gap-2 font-display text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-cyan-900'}`}>
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500 text-white">
-            <PawPrint size={20} />
-          </span>
+        <div className={`flex items-center gap-2.5 font-display text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-cyan-900'}`}>
+          <BrandLogo className="h-10 w-10" />
           Profipaws
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -149,6 +148,12 @@ export default function LandingPage() {
         >
           <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl animate-pulse-soft" />
           <div className="relative space-y-4">
+            <div className="mb-2 flex items-center gap-3">
+              <BrandLogo className="h-14 w-14 shadow-md shadow-cyan-900/30" />
+              <span className={`font-display text-2xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-cyan-950'}`}>
+                Profipaws
+              </span>
+            </div>
             <Feature dark={isDark} icon={Shield} title={t('landing.featureClinical')} desc={t('landing.featureClinicalDesc')} />
             <Feature dark={isDark} icon={QrCode} title={t('landing.featureVet')} desc={t('landing.featureVetDesc')} />
             <Feature dark={isDark} icon={Building2} title={t('landing.featureB2b')} desc={t('landing.featureB2bDesc')} />

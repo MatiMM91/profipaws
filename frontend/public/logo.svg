@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Profipaws">
+  <defs>
+    <linearGradient id="badge" x1="16" y1="10" x2="112" y2="118" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#164e63"/>
+      <stop offset="0.45" stop-color="#0e7490"/>
+      <stop offset="1" stop-color="#155e75"/>
+    </linearGradient>
+    <linearGradient id="pawCyan" x1="30" y1="28" x2="90" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#67e8f9"/>
+      <stop offset="0.5" stop-color="#22d3ee"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="pawTeal" x1="48" y1="40" x2="108" y2="108" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="6" y="6" width="116" height="116" rx="30" fill="url(#badge)"/>
+  <rect x="14" y="14" width="100" height="100" rx="24" fill="none" stroke="#67e8f9" stroke-opacity="0.18" stroke-width="2"/>
+
+  <!-- Larger dog-leaning print -->
+  <g fill="url(#pawCyan)">
+    <ellipse cx="50" cy="74" rx="19" ry="16" transform="rotate(-20 50 74)"/>
+    <circle cx="32" cy="51" r="7"/>
+    <circle cx="45.5" cy="43.5" r="7.4"/>
+    <circle cx="60.5" cy="46" r="7.1"/>
+    <circle cx="70.5" cy="58" r="6.4"/>
+  </g>
+
+  <!-- Overlapping cat-leaning print -->
+  <g fill="url(#pawTeal)" opacity="0.92">
+    <ellipse cx="80" cy="80" rx="15.5" ry="13.2" transform="rotate(24 80 80)"/>
+    <ellipse cx="67" cy="58" rx="5.6" ry="6.5" transform="rotate(-6 67 58)"/>
+    <ellipse cx="78.5" cy="51.5" rx="5.8" ry="6.7"/>
+    <ellipse cx="90.5" cy="55.5" rx="5.5" ry="6.4" transform="rotate(12 90.5 55.5)"/>
+    <ellipse cx="97.5" cy="67" rx="5.1" ry="5.9" transform="rotate(22 97.5 67)"/>
+  </g>
+
+  <!-- Trail accent print -->
+  <g fill="#a5f3fc" opacity="0.55">
+    <ellipse cx="97" cy="36" rx="5.8" ry="4.8" transform="rotate(30 97 36)"/>
+    <circle cx="91.2" cy="28.8" r="2.2"/>
+    <circle cx="97.2" cy="26.2" r="2.35"/>
+    <circle cx="102.8" cy="28.6" r="2.15"/>
+  </g>
+</svg>
