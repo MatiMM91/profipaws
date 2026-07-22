@@ -12,6 +12,8 @@ import {
   Syringe,
   FileText,
   Trash2,
+  Check,
+  X,
   Activity,
 } from 'lucide-react'
 
