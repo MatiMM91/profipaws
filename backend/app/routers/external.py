@@ -7,6 +7,9 @@ from app.models import (
     Vaccine,
     MedicalRecord,
     ClinicApiKey,
+    CalendarEvent,
+    DailyLog,
+    ChronicCondition,
 )
 from app.schemas import (
     VaccineOut,
@@ -18,7 +21,6 @@ from app.schemas import (
     ClinicApiKeyCreate,
     ClinicApiKeyOut,
 )
-from app.models import CalendarEvent, DailyLog
 from app.services.auth import get_current_user, get_clinic_from_api_key, generate_api_key
 
 router = APIRouter(tags=["External / B2B"])
@@ -79,6 +81,9 @@ def get_pet_records_by_chip(
         medical_records=db.query(MedicalRecord).filter(MedicalRecord.pet_id == pet.id).all(),
         calendar_events=db.query(CalendarEvent).filter(CalendarEvent.pet_id == pet.id).all(),
         daily_logs=db.query(DailyLog).filter(DailyLog.pet_id == pet.id).all(),
+        chronic_conditions=db.query(ChronicCondition)
+        .filter(ChronicCondition.pet_id == pet.id)
+        .all(),
     )
 
 
@@ -154,5 +159,8 @@ def export_pet_json(
             .filter(CalendarEvent.pet_id == pet.id)
             .all(),
             daily_logs=db.query(DailyLog).filter(DailyLog.pet_id == pet.id).all(),
+            chronic_conditions=db.query(ChronicCondition)
+            .filter(ChronicCondition.pet_id == pet.id)
+            .all(),
         ).model_dump(mode="json"),
     }

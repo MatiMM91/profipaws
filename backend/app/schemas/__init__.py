@@ -215,6 +215,28 @@ class DailyLogOut(BaseModel):
     logged_at: datetime
 
 
+class ChronicConditionCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=120)
+    notes: Optional[str] = None
+    diagnosed_at: Optional[date] = None
+
+
+class ChronicConditionUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    notes: Optional[str] = None
+    diagnosed_at: Optional[date] = None
+
+
+class ChronicConditionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    pet_id: int
+    name: str
+    notes: Optional[str] = None
+    diagnosed_at: Optional[date] = None
+
+
 # --- External API ---
 class ExternalVaccineCreate(BaseModel):
     name: str
@@ -241,6 +263,7 @@ class PetExportOut(BaseModel):
     medical_records: list[MedicalRecordOut]
     calendar_events: list[CalendarEventOut]
     daily_logs: list[DailyLogOut]
+    chronic_conditions: list[ChronicConditionOut] = []
 
 
 class ClinicApiKeyCreate(BaseModel):

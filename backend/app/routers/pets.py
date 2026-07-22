@@ -9,6 +9,7 @@ from app.models import (
     MedicalRecord,
     CalendarEvent,
     DailyLog,
+    ChronicCondition,
     Subscription,
     SubscriptionTier,
 )
@@ -29,6 +30,9 @@ from app.schemas import (
     DailyLogCreate,
     DailyLogUpdate,
     DailyLogOut,
+    ChronicConditionCreate,
+    ChronicConditionUpdate,
+    ChronicConditionOut,
     PetExportOut,
 )
 from app.services.auth import get_current_user, generate_access_pin
@@ -85,6 +89,20 @@ def _get_owned_log(db: Session, pet_id: int, log_id: int, user: User) -> DailyLo
     if not log:
         raise HTTPException(status_code=404, detail="Daily log not found")
     return log
+
+
+def _get_owned_condition(
+    db: Session, pet_id: int, condition_id: int, user: User
+) -> ChronicCondition:
+    _get_owned_pet(db, pet_id, user)
+    condition = (
+        db.query(ChronicCondition)
+        .filter(ChronicCondition.id == condition_id, ChronicCondition.pet_id == pet_id)
+        .first()
+    )
+    if not condition:
+        raise HTTPException(status_code=404, detail="Chronic condition not found")
+    return condition
 
 
 @router.get("/access/{pin}", response_model=PetExportOut)
@@ -434,6 +452,68 @@ def delete_log(
     db.commit()
 
 
+@router.get("/{pet_id}/conditions", response_model=list[ChronicConditionOut])
+def list_conditions(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_owned_pet(db, pet_id, current_user)
+    return (
+        db.query(ChronicCondition)
+        .filter(ChronicCondition.pet_id == pet_id)
+        .order_by(ChronicCondition.name.asc())
+        .all()
+    )
+
+
+@router.post(
+    "/{pet_id}/conditions",
+    response_model=ChronicConditionOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_condition(
+    pet_id: int,
+    payload: ChronicConditionCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    pet = _get_owned_pet(db, pet_id, current_user)
+    condition = ChronicCondition(pet_id=pet.id, **payload.model_dump())
+    db.add(condition)
+    db.commit()
+    db.refresh(condition)
+    return condition
+
+
+@router.patch("/{pet_id}/conditions/{condition_id}", response_model=ChronicConditionOut)
+def update_condition(
+    pet_id: int,
+    condition_id: int,
+    payload: ChronicConditionUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    condition = _get_owned_condition(db, pet_id, condition_id, current_user)
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(condition, key, value)
+    db.commit()
+    db.refresh(condition)
+    return condition
+
+
+@router.delete("/{pet_id}/conditions/{condition_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_condition(
+    pet_id: int,
+    condition_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    condition = _get_owned_condition(db, pet_id, condition_id, current_user)
+    db.delete(condition)
+    db.commit()
+
+
 @router.get("/{pet_id}/export", response_model=PetExportOut)
 def export_pet(
     pet_id: int,
@@ -451,4 +531,7 @@ def _export_pet(db: Session, pet: Pet) -> PetExportOut:
         medical_records=db.query(MedicalRecord).filter(MedicalRecord.pet_id == pet.id).all(),
         calendar_events=db.query(CalendarEvent).filter(CalendarEvent.pet_id == pet.id).all(),
         daily_logs=db.query(DailyLog).filter(DailyLog.pet_id == pet.id).all(),
+        chronic_conditions=db.query(ChronicCondition)
+        .filter(ChronicCondition.pet_id == pet.id)
+        .all(),
     )

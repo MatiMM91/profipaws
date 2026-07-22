@@ -81,7 +81,13 @@
     "breed": "Raza",
     "weight": "Peso (kg)",
     "allergies": "Alergias",
-    "chipPlaceholder": "Nº chip"
+    "chipPlaceholder": "Nº chip",
+    "chronic": "Enfermedades crónicas",
+    "chronicPlaceholder": "Ej. diabetes, insuficiencia renal…",
+    "chronicNotes": "Notas (opcional)",
+    "chronicEmpty": "Ninguna registrada",
+    "chronicAdd": "Añadir",
+    "deleteChronic": "¿Borrar esta enfermedad crónica?"
   },
   "log": {
     "back": "Volver al perfil",

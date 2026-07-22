@@ -81,7 +81,13 @@
     "breed": "Breed",
     "weight": "Weight (kg)",
     "allergies": "Allergies",
-    "chipPlaceholder": "Chip ID"
+    "chipPlaceholder": "Chip ID",
+    "chronic": "Chronic conditions",
+    "chronicPlaceholder": "E.g. diabetes, kidney disease…",
+    "chronicNotes": "Notes (optional)",
+    "chronicEmpty": "None registered",
+    "chronicAdd": "Add",
+    "deleteChronic": "Delete this chronic condition?"
   },
   "log": {
     "back": "Back to profile",

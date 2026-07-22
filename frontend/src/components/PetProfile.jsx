@@ -12,8 +12,7 @@ import {
   Syringe,
   FileText,
   Trash2,
-  Check,
-  X,
+  Activity,
 } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -50,6 +49,7 @@ export default function PetProfile() {
   const [vaccines, setVaccines] = useState([])
   const [records, setRecords] = useState([])
   const [events, setEvents] = useState([])
+  const [conditions, setConditions] = useState([])
   const [editingPet, setEditingPet] = useState(false)
   const [form, setForm] = useState(emptyPetEdit)
   const [saving, setSaving] = useState(false)
@@ -66,20 +66,25 @@ export default function PetProfile() {
     title: '',
     scheduled_at: '',
   })
+  const [conditionForm, setConditionForm] = useState({ name: '', notes: '' })
+  const [showConditionForm, setShowConditionForm] = useState(false)
 
   const [editingVaccineId, setEditingVaccineId] = useState(null)
   const [editingRecordId, setEditingRecordId] = useState(null)
   const [editingEventId, setEditingEventId] = useState(null)
+  const [editingConditionId, setEditingConditionId] = useState(null)
   const [vaccineEdit, setVaccineEdit] = useState({})
   const [recordEdit, setRecordEdit] = useState({})
   const [eventEdit, setEventEdit] = useState({})
+  const [conditionEdit, setConditionEdit] = useState({})
 
   async function load() {
-    const [petRes, vacRes, recRes, evRes] = await Promise.all([
+    const [petRes, vacRes, recRes, evRes, condRes] = await Promise.all([
       fetch(`${API_URL}/api/pets/${id}`, { headers: authHeaders() }),
       fetch(`${API_URL}/api/pets/${id}/vaccines`, { headers: authHeaders() }),
       fetch(`${API_URL}/api/pets/${id}/records`, { headers: authHeaders() }),
       fetch(`${API_URL}/api/pets/${id}/events`, { headers: authHeaders() }),
+      fetch(`${API_URL}/api/pets/${id}/conditions`, { headers: authHeaders() }),
     ])
     if (petRes.ok) {
       const data = await petRes.json()
@@ -97,6 +102,7 @@ export default function PetProfile() {
     if (vacRes.ok) setVaccines(await vacRes.json())
     if (recRes.ok) setRecords(await recRes.json())
     if (evRes.ok) setEvents(await evRes.json())
+    if (condRes.ok) setConditions(await condRes.json())
   }
 
   useEffect(() => {
@@ -246,6 +252,46 @@ export default function PetProfile() {
     await load()
   }
 
+  async function addCondition(e) {
+    e.preventDefault()
+    const res = await fetch(`${API_URL}/api/pets/${id}/conditions`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        name: conditionForm.name.trim(),
+        notes: conditionForm.notes.trim() || null,
+      }),
+    })
+    if (!res.ok) return alert('No se pudo añadir')
+    setConditionForm({ name: '', notes: '' })
+    setShowConditionForm(false)
+    await load()
+  }
+
+  async function saveCondition(conditionId) {
+    const res = await fetch(`${API_URL}/api/pets/${id}/conditions/${conditionId}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        name: conditionEdit.name.trim(),
+        notes: (conditionEdit.notes || '').trim() || null,
+      }),
+    })
+    if (!res.ok) return alert('No se pudo actualizar')
+    setEditingConditionId(null)
+    await load()
+  }
+
+  async function deleteCondition(conditionId) {
+    if (!confirm(t('pet.deleteChronic'))) return
+    const res = await fetch(`${API_URL}/api/pets/${id}/conditions/${conditionId}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
+    if (!res.ok) return alert('No se pudo borrar')
+    await load()
+  }
+
   if (!pet) return <p className="text-cyan-700 dark:text-cyan-300">{t('pet.loading')}</p>
 
   return (
@@ -277,7 +323,7 @@ export default function PetProfile() {
         </div>
 
         {!editingPet && (
-          <div className="mt-4 flex flex-wrap gap-4 text-sm text-cyan-800">
+          <div className="mt-4 flex flex-wrap gap-4 text-sm text-cyan-800 dark:text-cyan-200">
             {pet.weight_kg != null && (
               <span className="inline-flex items-center gap-1.5">
                 <Weight size={14} /> {pet.weight_kg} kg
@@ -293,7 +339,7 @@ export default function PetProfile() {
               </span>
             )}
             {pet.allergies && (
-              <span className="inline-flex items-center gap-1.5 text-amber-700">
+              <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
                 <AlertTriangle size={14} /> {pet.allergies}
               </span>
             )}
@@ -317,6 +363,116 @@ export default function PetProfile() {
             <button type="submit" className="btn-primary sm:col-span-2" disabled={saving}>{saving ? t('pet.saving') : t('pet.saveChanges')}</button>
           </form>
         )}
+
+        {/* Chronic conditions — compact chips inside profile card */}
+        <div className="mt-5 border-t border-cyan-100 pt-4 dark:border-cyan-800">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-rose-700/80 dark:text-rose-300/90">
+              <Activity size={13} /> {t('pet.chronic')}
+            </p>
+            {!showConditionForm && editingConditionId == null && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
+                onClick={() => setShowConditionForm(true)}
+              >
+                <Plus size={12} /> {t('pet.chronicAdd')}
+              </button>
+            )}
+          </div>
+
+          {showConditionForm && (
+            <form onSubmit={addCondition} className="mb-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+              <input
+                className="field px-3 py-1.5 text-sm"
+                placeholder={t('pet.chronicPlaceholder')}
+                value={conditionForm.name}
+                onChange={(e) => setConditionForm({ ...conditionForm, name: e.target.value })}
+                required
+                autoFocus
+              />
+              <input
+                className="field px-3 py-1.5 text-sm"
+                placeholder={t('pet.chronicNotes')}
+                value={conditionForm.notes}
+                onChange={(e) => setConditionForm({ ...conditionForm, notes: e.target.value })}
+              />
+              <div className="flex gap-1.5">
+                <button type="submit" className="btn-primary px-3 py-1.5 text-xs">{t('pet.chronicAdd')}</button>
+                <button
+                  type="button"
+                  className="btn-secondary px-3 py-1.5 text-xs"
+                  onClick={() => {
+                    setShowConditionForm(false)
+                    setConditionForm({ name: '', notes: '' })
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            </form>
+          )}
+
+          {conditions.length === 0 && !showConditionForm ? (
+            <p className="text-xs text-cyan-500 dark:text-cyan-500">{t('pet.chronicEmpty')}</p>
+          ) : (
+            <ul className="flex flex-wrap gap-2">
+              {conditions.map((c) => (
+                <li key={c.id}>
+                  {editingConditionId === c.id ? (
+                    <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50/80 p-2 dark:border-rose-900 dark:bg-rose-950/40">
+                      <input
+                        className="field !min-w-[8rem] px-2 py-1 text-xs"
+                        value={conditionEdit.name}
+                        onChange={(e) => setConditionEdit({ ...conditionEdit, name: e.target.value })}
+                      />
+                      <input
+                        className="field !min-w-[8rem] px-2 py-1 text-xs"
+                        placeholder={t('pet.chronicNotes')}
+                        value={conditionEdit.notes || ''}
+                        onChange={(e) => setConditionEdit({ ...conditionEdit, notes: e.target.value })}
+                      />
+                      <button type="button" className="rounded-md bg-cyan-600 px-2 py-1 text-xs text-white" onClick={() => saveCondition(c.id)}>
+                        <Check size={12} />
+                      </button>
+                      <button type="button" className="rounded-md bg-white px-2 py-1 text-xs dark:bg-cyan-950" onClick={() => setEditingConditionId(null)}>
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <span
+                      className="group inline-flex max-w-full items-center gap-1.5 rounded-full border border-rose-200/80 bg-rose-50 px-3 py-1 text-xs text-rose-900 dark:border-rose-900/70 dark:bg-rose-950/50 dark:text-rose-100"
+                      title={c.notes || undefined}
+                    >
+                      <span className="truncate font-medium">{c.name}</span>
+                      {c.notes && <span className="hidden max-w-[10rem] truncate text-rose-700/70 dark:text-rose-300/70 sm:inline">· {c.notes}</span>}
+                      <button
+                        type="button"
+                        className="rounded-full p-0.5 text-rose-600 opacity-70 hover:bg-rose-100 hover:opacity-100 dark:text-rose-300 dark:hover:bg-rose-900"
+                        onClick={() => {
+                          setEditingConditionId(c.id)
+                          setConditionEdit({ name: c.name, notes: c.notes || '' })
+                          setShowConditionForm(false)
+                        }}
+                        aria-label={t('pet.edit')}
+                      >
+                        <Pencil size={11} />
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-full p-0.5 text-rose-600 opacity-70 hover:bg-rose-100 hover:opacity-100 dark:text-rose-300 dark:hover:bg-rose-900"
+                        onClick={() => deleteCondition(c.id)}
+                        aria-label={t('pet.delete')}
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
           <Link to={`/pets/${id}/log`} className="btn-secondary text-sm">{t('pet.diary')}</Link>

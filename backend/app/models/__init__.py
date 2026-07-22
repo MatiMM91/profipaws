@@ -122,6 +122,22 @@ class Pet(Base):
     daily_logs: Mapped[list["DailyLog"]] = relationship(
         back_populates="pet", cascade="all, delete-orphan"
     )
+    chronic_conditions: Mapped[list["ChronicCondition"]] = relationship(
+        back_populates="pet", cascade="all, delete-orphan"
+    )
+
+
+class ChronicCondition(Base):
+    __tablename__ = "chronic_conditions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    diagnosed_at: Mapped[date | None] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    pet: Mapped["Pet"] = relationship(back_populates="chronic_conditions")
 
 
 class Vaccine(Base):
