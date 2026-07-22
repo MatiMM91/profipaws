@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
   Weight,
@@ -43,6 +44,7 @@ const emptyPetEdit = {
 }
 
 export default function PetProfile() {
+  const { t, i18n } = useTranslation()
   const { id } = useParams()
   const [pet, setPet] = useState(null)
   const [vaccines, setVaccines] = useState([])
@@ -160,7 +162,7 @@ export default function PetProfile() {
   }
 
   async function deleteVaccine(vaccineId) {
-    if (!confirm('¿Borrar esta vacuna?')) return
+    if (!confirm(t('pet.deleteVaccine'))) return
     const res = await fetch(`${API_URL}/api/pets/${id}/vaccines/${vaccineId}`, {
       method: 'DELETE',
       headers: authHeaders(),
@@ -193,7 +195,7 @@ export default function PetProfile() {
   }
 
   async function deleteRecord(recordId) {
-    if (!confirm('¿Borrar este registro médico?')) return
+    if (!confirm(t('pet.deleteRecord'))) return
     const res = await fetch(`${API_URL}/api/pets/${id}/records/${recordId}`, {
       method: 'DELETE',
       headers: authHeaders(),
@@ -235,7 +237,7 @@ export default function PetProfile() {
   }
 
   async function deleteEvent(eventId) {
-    if (!confirm('¿Borrar este recordatorio?')) return
+    if (!confirm(t('pet.deleteEvent'))) return
     const res = await fetch(`${API_URL}/api/pets/${id}/events/${eventId}`, {
       method: 'DELETE',
       headers: authHeaders(),
@@ -244,22 +246,22 @@ export default function PetProfile() {
     await load()
   }
 
-  if (!pet) return <p className="text-cyan-700">Cargando perfil…</p>
+  if (!pet) return <p className="text-cyan-700 dark:text-cyan-300">{t('pet.loading')}</p>
 
   return (
     <div className="space-y-8">
-      <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-cyan-700 hover:text-cyan-900">
+      <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-cyan-700 hover:text-cyan-900 dark:text-cyan-100 dark:text-cyan-300 dark:hover:text-cyan-100">
         <ArrowLeft size={14} /> Volver
       </Link>
 
-      <div className="rounded-2xl border border-cyan-100 bg-white p-6">
+      <div className="surface p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="font-display text-3xl font-bold text-cyan-950">{pet.name}</h1>
+            <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">{pet.name}</h1>
             <p className="mt-1 text-cyan-700">
               {pet.species}
               {pet.breed ? ` · ${pet.breed}` : ''}
-              {pet.birth_date ? ` · nacido ${pet.birth_date}` : ''}
+              {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
             </p>
           </div>
           <button
@@ -270,7 +272,7 @@ export default function PetProfile() {
               setError('')
             }}
           >
-            <Pencil size={14} /> {editingPet ? 'Cancelar' : 'Editar datos'}
+            <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
           </button>
         </div>
 
@@ -283,11 +285,11 @@ export default function PetProfile() {
             )}
             {pet.chip_id ? (
               <span className="inline-flex items-center gap-1.5">
-                <Cpu size={14} /> Chip {pet.chip_id}
+                <Cpu size={14} /> {t('pet.chip')} {pet.chip_id}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5 text-cyan-500">
-                <Cpu size={14} /> Sin chip (puedes añadirlo al editar)
+                <Cpu size={14} /> {t('pet.noChip')}
               </span>
             )}
             {pet.allergies && (
@@ -300,66 +302,66 @@ export default function PetProfile() {
 
         {editingPet && (
           <form onSubmit={savePet} className="mt-5 grid gap-3 sm:grid-cols-2">
-            <input className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <select className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
-              <option value="dog">Perro</option>
-              <option value="cat">Gato</option>
-              <option value="other">Otro</option>
+            <input className="field px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <select className="field px-3 py-2 text-sm" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
+              <option value="dog">{t('dashboard.dog')}</option>
+              <option value="cat">{t('dashboard.cat')}</option>
+              <option value="other">{t('pet.other')}</option>
             </select>
-            <input className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" placeholder="Raza" value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
-            <input type="date" className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
-            <input className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" placeholder="Nº chip" value={form.chip_id} onChange={(e) => setForm({ ...form, chip_id: e.target.value })} />
-            <input type="number" step="0.1" className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" placeholder="Peso (kg)" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
-            <textarea className="rounded-lg border border-cyan-200 px-3 py-2 text-sm sm:col-span-2" placeholder="Alergias" rows={2} value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} />
+            <input className="field px-3 py-2 text-sm" placeholder={t('pet.breed')} value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
+            <input type="date" className="field px-3 py-2 text-sm" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
+            <input className="field px-3 py-2 text-sm" placeholder={t('pet.chipPlaceholder')} value={form.chip_id} onChange={(e) => setForm({ ...form, chip_id: e.target.value })} />
+            <input type="number" step="0.1" className="field px-3 py-2 text-sm" placeholder={t('pet.weight')} value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
+            <textarea className="field px-3 py-2 text-sm sm:col-span-2" placeholder={t('pet.allergies')} rows={2} value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} />
             {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
-            <button type="submit" className="btn-primary sm:col-span-2" disabled={saving}>{saving ? 'Guardando…' : 'Guardar cambios'}</button>
+            <button type="submit" className="btn-primary sm:col-span-2" disabled={saving}>{saving ? t('pet.saving') : t('pet.saveChanges')}</button>
           </form>
         )}
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <Link to={`/pets/${id}/log`} className="btn-secondary text-sm">Diario</Link>
-          <Link to={`/pets/${id}/vet-access`} className="btn-primary text-sm">Acceso vet (QR/PIN)</Link>
+          <Link to={`/pets/${id}/log`} className="btn-secondary text-sm">{t('pet.diary')}</Link>
+          <Link to={`/pets/${id}/vet-access`} className="btn-primary text-sm">{t('pet.vetAccess')}</Link>
         </div>
       </div>
 
       {/* Vaccines */}
       <section className="space-y-3">
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950">
-          <Syringe size={18} /> Vacunas
+        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
+          <Syringe size={18} /> {t('pet.vaccines')}
         </h2>
-        <form onSubmit={addVaccine} className="grid gap-2 rounded-xl border border-cyan-100 bg-white p-4 sm:grid-cols-4">
-          <input className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" placeholder="Nombre vacuna" value={vaccineForm.name} onChange={(e) => setVaccineForm({ ...vaccineForm, name: e.target.value })} required />
-          <input type="date" className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" value={vaccineForm.administered_at} onChange={(e) => setVaccineForm({ ...vaccineForm, administered_at: e.target.value })} required />
-          <input type="date" className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" value={vaccineForm.next_due_at} onChange={(e) => setVaccineForm({ ...vaccineForm, next_due_at: e.target.value })} />
-          <button type="submit" className="btn-primary text-sm"><Plus size={14} /> Añadir</button>
+        <form onSubmit={addVaccine} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
+          <input className="field px-3 py-2 text-sm" placeholder={t('pet.vaccineName')} value={vaccineForm.name} onChange={(e) => setVaccineForm({ ...vaccineForm, name: e.target.value })} required />
+          <input type="date" className="field px-3 py-2 text-sm" value={vaccineForm.administered_at} onChange={(e) => setVaccineForm({ ...vaccineForm, administered_at: e.target.value })} required />
+          <input type="date" className="field px-3 py-2 text-sm" value={vaccineForm.next_due_at} onChange={(e) => setVaccineForm({ ...vaccineForm, next_due_at: e.target.value })} />
+          <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
         </form>
         <ul className="space-y-2">
-          {vaccines.length === 0 && <li className="text-sm text-cyan-600">Sin vacunas registradas.</li>}
+          {vaccines.length === 0 && <li className="text-sm text-cyan-600">{t('pet.noVaccines')}</li>}
           {vaccines.map((v) => (
-            <li key={v.id} className="rounded-xl border border-cyan-100 bg-white px-4 py-3 text-sm">
+            <li key={v.id} className="rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 px-4 py-3 text-sm">
               {editingVaccineId === v.id ? (
                 <div className="grid gap-2 sm:grid-cols-4">
-                  <input className="rounded-lg border border-cyan-200 px-2 py-1.5" value={vaccineEdit.name} onChange={(e) => setVaccineEdit({ ...vaccineEdit, name: e.target.value })} />
-                  <input type="date" className="rounded-lg border border-cyan-200 px-2 py-1.5" value={vaccineEdit.administered_at} onChange={(e) => setVaccineEdit({ ...vaccineEdit, administered_at: e.target.value })} />
-                  <input type="date" className="rounded-lg border border-cyan-200 px-2 py-1.5" value={vaccineEdit.next_due_at || ''} onChange={(e) => setVaccineEdit({ ...vaccineEdit, next_due_at: e.target.value })} />
+                  <input className="field px-2 py-1.5" value={vaccineEdit.name} onChange={(e) => setVaccineEdit({ ...vaccineEdit, name: e.target.value })} />
+                  <input type="date" className="field px-2 py-1.5" value={vaccineEdit.administered_at} onChange={(e) => setVaccineEdit({ ...vaccineEdit, administered_at: e.target.value })} />
+                  <input type="date" className="field px-2 py-1.5" value={vaccineEdit.next_due_at || ''} onChange={(e) => setVaccineEdit({ ...vaccineEdit, next_due_at: e.target.value })} />
                   <div className="flex gap-2">
-                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveVaccine(v.id)}><Check size={12} /> Guardar</button>
+                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveVaccine(v.id)}><Check size={12} /> {t('common.save')}</button>
                     <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={() => setEditingVaccineId(null)}><X size={12} /></button>
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <strong className="text-cyan-900">{v.name}</strong>
+                    <strong className="text-cyan-900 dark:text-cyan-100">{v.name}</strong>
                     <span className="text-cyan-600"> · {v.administered_at}</span>
-                    {v.next_due_at && <span className="text-cyan-500"> · próxima {v.next_due_at}</span>}
+                    {v.next_due_at && <span className="text-cyan-500"> · {t('pet.next')} {v.next_due_at}</span>}
                   </div>
                   <div className="flex gap-2">
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingVaccineId(v.id); setVaccineEdit({ name: v.name, administered_at: v.administered_at, next_due_at: v.next_due_at || '' }) }}>
-                      <Pencil size={12} /> Editar
+                      <Pencil size={12} /> {t('pet.edit')}
                     </button>
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs text-red-700" onClick={() => deleteVaccine(v.id)}>
-                      <Trash2 size={12} /> Borrar
+                      <Trash2 size={12} /> {t('pet.delete')}
                     </button>
                   </div>
                 </div>
@@ -371,38 +373,38 @@ export default function PetProfile() {
 
       {/* Records */}
       <section className="space-y-3">
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950">
-          <FileText size={18} /> Historial médico
+        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
+          <FileText size={18} /> {t('pet.records')}
         </h2>
-        <form onSubmit={addRecord} className="grid gap-2 rounded-xl border border-cyan-100 bg-white p-4 sm:grid-cols-4">
-          <select className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" value={recordForm.record_type} onChange={(e) => setRecordForm({ ...recordForm, record_type: e.target.value })}>
-            <option value="exam">Examen</option>
-            <option value="disease">Enfermedad</option>
-            <option value="surgery">Cirugía</option>
-            <option value="treatment">Tratamiento</option>
-            <option value="other">Otro</option>
+        <form onSubmit={addRecord} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
+          <select className="field px-3 py-2 text-sm" value={recordForm.record_type} onChange={(e) => setRecordForm({ ...recordForm, record_type: e.target.value })}>
+            <option value="exam">{t('pet.exam')}</option>
+            <option value="disease">{t('pet.disease')}</option>
+            <option value="surgery">{t('pet.surgery')}</option>
+            <option value="treatment">{t('pet.treatment')}</option>
+            <option value="other">{t('pet.other')}</option>
           </select>
-          <input className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" placeholder="Título" value={recordForm.title} onChange={(e) => setRecordForm({ ...recordForm, title: e.target.value })} required />
-          <input type="date" className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" value={recordForm.occurred_at} onChange={(e) => setRecordForm({ ...recordForm, occurred_at: e.target.value })} required />
-          <button type="submit" className="btn-primary text-sm"><Plus size={14} /> Añadir</button>
+          <input className="field px-3 py-2 text-sm" placeholder={t('pet.title')} value={recordForm.title} onChange={(e) => setRecordForm({ ...recordForm, title: e.target.value })} required />
+          <input type="date" className="field px-3 py-2 text-sm" value={recordForm.occurred_at} onChange={(e) => setRecordForm({ ...recordForm, occurred_at: e.target.value })} required />
+          <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
         </form>
         <ul className="space-y-2">
-          {records.length === 0 && <li className="text-sm text-cyan-600">Sin registros médicos.</li>}
+          {records.length === 0 && <li className="text-sm text-cyan-600">{t('pet.noRecords')}</li>}
           {records.map((r) => (
-            <li key={r.id} className="rounded-xl border border-cyan-100 bg-white px-4 py-3 text-sm">
+            <li key={r.id} className="rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 px-4 py-3 text-sm">
               {editingRecordId === r.id ? (
                 <div className="grid gap-2 sm:grid-cols-4">
-                  <select className="rounded-lg border border-cyan-200 px-2 py-1.5" value={recordEdit.record_type} onChange={(e) => setRecordEdit({ ...recordEdit, record_type: e.target.value })}>
-                    <option value="exam">Examen</option>
-                    <option value="disease">Enfermedad</option>
-                    <option value="surgery">Cirugía</option>
-                    <option value="treatment">Tratamiento</option>
-                    <option value="other">Otro</option>
+                  <select className="field px-2 py-1.5" value={recordEdit.record_type} onChange={(e) => setRecordEdit({ ...recordEdit, record_type: e.target.value })}>
+                    <option value="exam">{t('pet.exam')}</option>
+                    <option value="disease">{t('pet.disease')}</option>
+                    <option value="surgery">{t('pet.surgery')}</option>
+                    <option value="treatment">{t('pet.treatment')}</option>
+                    <option value="other">{t('pet.other')}</option>
                   </select>
-                  <input className="rounded-lg border border-cyan-200 px-2 py-1.5" value={recordEdit.title} onChange={(e) => setRecordEdit({ ...recordEdit, title: e.target.value })} />
-                  <input type="date" className="rounded-lg border border-cyan-200 px-2 py-1.5" value={recordEdit.occurred_at} onChange={(e) => setRecordEdit({ ...recordEdit, occurred_at: e.target.value })} />
+                  <input className="field px-2 py-1.5" value={recordEdit.title} onChange={(e) => setRecordEdit({ ...recordEdit, title: e.target.value })} />
+                  <input type="date" className="field px-2 py-1.5" value={recordEdit.occurred_at} onChange={(e) => setRecordEdit({ ...recordEdit, occurred_at: e.target.value })} />
                   <div className="flex gap-2">
-                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveRecord(r.id)}><Check size={12} /> Guardar</button>
+                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveRecord(r.id)}><Check size={12} /> {t('common.save')}</button>
                     <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={() => setEditingRecordId(null)}><X size={12} /></button>
                   </div>
                 </div>
@@ -410,15 +412,15 @@ export default function PetProfile() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <span className="rounded bg-cyan-100 px-2 py-0.5 text-xs font-medium uppercase text-cyan-800">{r.record_type}</span>
-                    <strong className="ml-2 text-cyan-900">{r.title}</strong>
+                    <strong className="ml-2 text-cyan-900 dark:text-cyan-100">{r.title}</strong>
                     <span className="text-cyan-600"> · {r.occurred_at}</span>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingRecordId(r.id); setRecordEdit({ record_type: r.record_type, title: r.title, occurred_at: r.occurred_at }) }}>
-                      <Pencil size={12} /> Editar
+                      <Pencil size={12} /> {t('pet.edit')}
                     </button>
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs text-red-700" onClick={() => deleteRecord(r.id)}>
-                      <Trash2 size={12} /> Borrar
+                      <Trash2 size={12} /> {t('pet.delete')}
                     </button>
                   </div>
                 </div>
@@ -430,36 +432,37 @@ export default function PetProfile() {
 
       {/* Calendar */}
       <section className="space-y-3">
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950">
-          <CalendarDays size={18} /> Calendario / recordatorios
+        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
+          <CalendarDays size={18} /> {t('pet.calendar')}
         </h2>
-        <form onSubmit={addEvent} className="grid gap-2 rounded-xl border border-cyan-100 bg-white p-4 sm:grid-cols-4">
-          <select className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" value={eventForm.event_type} onChange={(e) => setEventForm({ ...eventForm, event_type: e.target.value })}>
-            <option value="appointment">Cita</option>
-            <option value="vaccine">Vacuna</option>
-            <option value="medicine">Medicina</option>
-            <option value="other">Otro</option>
+        <p className="text-sm text-cyan-700/80 dark:text-cyan-300/80">{t('pet.calendarHint')}</p>
+        <form onSubmit={addEvent} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
+          <select className="field px-3 py-2 text-sm" value={eventForm.event_type} onChange={(e) => setEventForm({ ...eventForm, event_type: e.target.value })}>
+            <option value="appointment">{t('pet.appointment')}</option>
+            <option value="vaccine">{t('pet.vaccine')}</option>
+            <option value="medicine">{t('pet.medicine')}</option>
+            <option value="other">{t('pet.other')}</option>
           </select>
-          <input className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" placeholder="Título" value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} required />
-          <input type="datetime-local" className="rounded-lg border border-cyan-200 px-3 py-2 text-sm" value={eventForm.scheduled_at} onChange={(e) => setEventForm({ ...eventForm, scheduled_at: e.target.value })} required />
-          <button type="submit" className="btn-primary text-sm"><Plus size={14} /> Añadir</button>
+          <input className="field px-3 py-2 text-sm" placeholder={t('pet.title')} value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} required />
+          <input type="datetime-local" className="field px-3 py-2 text-sm" value={eventForm.scheduled_at} onChange={(e) => setEventForm({ ...eventForm, scheduled_at: e.target.value })} required />
+          <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
         </form>
         <ul className="space-y-2">
-          {events.length === 0 && <li className="text-sm text-cyan-600">Sin recordatorios todavía.</li>}
+          {events.length === 0 && <li className="text-sm text-cyan-600">{t('pet.noEvents')}</li>}
           {events.map((ev) => (
-            <li key={ev.id} className="rounded-xl border border-cyan-100 bg-white px-4 py-3 text-sm">
+            <li key={ev.id} className="rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 px-4 py-3 text-sm">
               {editingEventId === ev.id ? (
                 <div className="grid gap-2 sm:grid-cols-4">
-                  <select className="rounded-lg border border-cyan-200 px-2 py-1.5" value={eventEdit.event_type} onChange={(e) => setEventEdit({ ...eventEdit, event_type: e.target.value })}>
-                    <option value="appointment">Cita</option>
-                    <option value="vaccine">Vacuna</option>
-                    <option value="medicine">Medicina</option>
-                    <option value="other">Otro</option>
+                  <select className="field px-2 py-1.5" value={eventEdit.event_type} onChange={(e) => setEventEdit({ ...eventEdit, event_type: e.target.value })}>
+                    <option value="appointment">{t('pet.appointment')}</option>
+                    <option value="vaccine">{t('pet.vaccine')}</option>
+                    <option value="medicine">{t('pet.medicine')}</option>
+                    <option value="other">{t('pet.other')}</option>
                   </select>
-                  <input className="rounded-lg border border-cyan-200 px-2 py-1.5" value={eventEdit.title} onChange={(e) => setEventEdit({ ...eventEdit, title: e.target.value })} />
-                  <input type="datetime-local" className="rounded-lg border border-cyan-200 px-2 py-1.5" value={eventEdit.scheduled_at} onChange={(e) => setEventEdit({ ...eventEdit, scheduled_at: e.target.value })} />
+                  <input className="field px-2 py-1.5" value={eventEdit.title} onChange={(e) => setEventEdit({ ...eventEdit, title: e.target.value })} />
+                  <input type="datetime-local" className="field px-2 py-1.5" value={eventEdit.scheduled_at} onChange={(e) => setEventEdit({ ...eventEdit, scheduled_at: e.target.value })} />
                   <div className="flex gap-2">
-                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveEvent(ev.id)}><Check size={12} /> Guardar</button>
+                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveEvent(ev.id)}><Check size={12} /> {t('common.save')}</button>
                     <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={() => setEditingEventId(null)}><X size={12} /></button>
                   </div>
                 </div>
@@ -467,15 +470,15 @@ export default function PetProfile() {
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-medium uppercase text-teal-800">{ev.event_type}</span>
-                    <strong className="ml-2 text-cyan-900">{ev.title}</strong>
-                    <span className="text-cyan-600"> · {new Date(ev.scheduled_at).toLocaleString()}</span>
+                    <strong className="ml-2 text-cyan-900 dark:text-cyan-100">{ev.title}</strong>
+                    <span className="text-cyan-600"> · {new Date(ev.scheduled_at).toLocaleString(i18n.language)}</span>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingEventId(ev.id); setEventEdit({ event_type: ev.event_type, title: ev.title, scheduled_at: toLocalInput(ev.scheduled_at), completed: ev.completed }) }}>
-                      <Pencil size={12} /> Editar
+                      <Pencil size={12} /> {t('pet.edit')}
                     </button>
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs text-red-700" onClick={() => deleteEvent(ev.id)}>
-                      <Trash2 size={12} /> Borrar
+                      <Trash2 size={12} /> {t('pet.delete')}
                     </button>
                   </div>
                 </div>
