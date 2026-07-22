@@ -107,6 +107,15 @@ class VaccineCreate(BaseModel):
     notes: Optional[str] = None
 
 
+class VaccineUpdate(BaseModel):
+    name: Optional[str] = None
+    administered_at: Optional[date] = None
+    next_due_at: Optional[date] = None
+    veterinarian: Optional[str] = None
+    clinic_name: Optional[str] = None
+    notes: Optional[str] = None
+
+
 class VaccineOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -125,6 +134,16 @@ class MedicalRecordCreate(BaseModel):
     title: str
     description: Optional[str] = None
     occurred_at: date
+    document_url: Optional[str] = None
+    veterinarian: Optional[str] = None
+    clinic_name: Optional[str] = None
+
+
+class MedicalRecordUpdate(BaseModel):
+    record_type: Optional[RecordType] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    occurred_at: Optional[date] = None
     document_url: Optional[str] = None
     veterinarian: Optional[str] = None
     clinic_name: Optional[str] = None
@@ -151,6 +170,14 @@ class CalendarEventCreate(BaseModel):
     scheduled_at: datetime
 
 
+class CalendarEventUpdate(BaseModel):
+    event_type: Optional[EventType] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+    scheduled_at: Optional[datetime] = None
+    completed: Optional[bool] = None
+
+
 class CalendarEventOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -165,6 +192,13 @@ class CalendarEventOut(BaseModel):
 
 class DailyLogCreate(BaseModel):
     note: str
+    mood: Optional[str] = None
+    appetite: Optional[str] = None
+    logged_at: Optional[datetime] = None
+
+
+class DailyLogUpdate(BaseModel):
+    note: Optional[str] = None
     mood: Optional[str] = None
     appetite: Optional[str] = None
     logged_at: Optional[datetime] = None

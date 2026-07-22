@@ -18,12 +18,16 @@ from app.schemas import (
     PetOut,
     AccessPinResponse,
     VaccineCreate,
+    VaccineUpdate,
     VaccineOut,
     MedicalRecordCreate,
+    MedicalRecordUpdate,
     MedicalRecordOut,
     CalendarEventCreate,
+    CalendarEventUpdate,
     CalendarEventOut,
     DailyLogCreate,
+    DailyLogUpdate,
     DailyLogOut,
     PetExportOut,
 )
@@ -39,6 +43,48 @@ def _get_owned_pet(db: Session, pet_id: int, user: User) -> Pet:
     if not pet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pet not found")
     return pet
+
+
+def _get_owned_vaccine(db: Session, pet_id: int, vaccine_id: int, user: User) -> Vaccine:
+    _get_owned_pet(db, pet_id, user)
+    vaccine = (
+        db.query(Vaccine).filter(Vaccine.id == vaccine_id, Vaccine.pet_id == pet_id).first()
+    )
+    if not vaccine:
+        raise HTTPException(status_code=404, detail="Vaccine not found")
+    return vaccine
+
+
+def _get_owned_record(db: Session, pet_id: int, record_id: int, user: User) -> MedicalRecord:
+    _get_owned_pet(db, pet_id, user)
+    record = (
+        db.query(MedicalRecord)
+        .filter(MedicalRecord.id == record_id, MedicalRecord.pet_id == pet_id)
+        .first()
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="Medical record not found")
+    return record
+
+
+def _get_owned_event(db: Session, pet_id: int, event_id: int, user: User) -> CalendarEvent:
+    _get_owned_pet(db, pet_id, user)
+    event = (
+        db.query(CalendarEvent)
+        .filter(CalendarEvent.id == event_id, CalendarEvent.pet_id == pet_id)
+        .first()
+    )
+    if not event:
+        raise HTTPException(status_code=404, detail="Calendar event not found")
+    return event
+
+
+def _get_owned_log(db: Session, pet_id: int, log_id: int, user: User) -> DailyLog:
+    _get_owned_pet(db, pet_id, user)
+    log = db.query(DailyLog).filter(DailyLog.id == log_id, DailyLog.pet_id == pet_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Daily log not found")
+    return log
 
 
 @router.get("/access/{pin}", response_model=PetExportOut)
@@ -193,6 +239,34 @@ def list_vaccines(
     return db.query(Vaccine).filter(Vaccine.pet_id == pet_id).all()
 
 
+@router.patch("/{pet_id}/vaccines/{vaccine_id}", response_model=VaccineOut)
+def update_vaccine(
+    pet_id: int,
+    vaccine_id: int,
+    payload: VaccineUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    vaccine = _get_owned_vaccine(db, pet_id, vaccine_id, current_user)
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(vaccine, key, value)
+    db.commit()
+    db.refresh(vaccine)
+    return vaccine
+
+
+@router.delete("/{pet_id}/vaccines/{vaccine_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_vaccine(
+    pet_id: int,
+    vaccine_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    vaccine = _get_owned_vaccine(db, pet_id, vaccine_id, current_user)
+    db.delete(vaccine)
+    db.commit()
+
+
 @router.post("/{pet_id}/records", response_model=MedicalRecordOut, status_code=201)
 def add_record(
     pet_id: int,
@@ -218,6 +292,34 @@ def list_records(
     return db.query(MedicalRecord).filter(MedicalRecord.pet_id == pet_id).all()
 
 
+@router.patch("/{pet_id}/records/{record_id}", response_model=MedicalRecordOut)
+def update_record(
+    pet_id: int,
+    record_id: int,
+    payload: MedicalRecordUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = _get_owned_record(db, pet_id, record_id, current_user)
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(record, key, value)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+@router.delete("/{pet_id}/records/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_record(
+    pet_id: int,
+    record_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = _get_owned_record(db, pet_id, record_id, current_user)
+    db.delete(record)
+    db.commit()
+
+
 @router.post("/{pet_id}/events", response_model=CalendarEventOut, status_code=201)
 def add_event(
     pet_id: int,
@@ -241,6 +343,34 @@ def list_events(
 ):
     _get_owned_pet(db, pet_id, current_user)
     return db.query(CalendarEvent).filter(CalendarEvent.pet_id == pet_id).all()
+
+
+@router.patch("/{pet_id}/events/{event_id}", response_model=CalendarEventOut)
+def update_event(
+    pet_id: int,
+    event_id: int,
+    payload: CalendarEventUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    event = _get_owned_event(db, pet_id, event_id, current_user)
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(event, key, value)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@router.delete("/{pet_id}/events/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_event(
+    pet_id: int,
+    event_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    event = _get_owned_event(db, pet_id, event_id, current_user)
+    db.delete(event)
+    db.commit()
 
 
 @router.post("/{pet_id}/logs", response_model=DailyLogOut, status_code=201)
@@ -274,6 +404,34 @@ def list_logs(
         .order_by(DailyLog.logged_at.desc())
         .all()
     )
+
+
+@router.patch("/{pet_id}/logs/{log_id}", response_model=DailyLogOut)
+def update_log(
+    pet_id: int,
+    log_id: int,
+    payload: DailyLogUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    log = _get_owned_log(db, pet_id, log_id, current_user)
+    for key, value in payload.model_dump(exclude_unset=True).items():
+        setattr(log, key, value)
+    db.commit()
+    db.refresh(log)
+    return log
+
+
+@router.delete("/{pet_id}/logs/{log_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_log(
+    pet_id: int,
+    log_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    log = _get_owned_log(db, pet_id, log_id, current_user)
+    db.delete(log)
+    db.commit()
 
 
 @router.get("/{pet_id}/export", response_model=PetExportOut)
