@@ -110,7 +110,26 @@ def update_pet(
     db: Session = Depends(get_db),
 ):
     pet = _get_owned_pet(db, pet_id, current_user)
-    for key, value in payload.model_dump(exclude_unset=True).items():
+    data = payload.model_dump(exclude_unset=True)
+
+    if "chip_id" in data:
+        chip = (data["chip_id"] or "").strip() or None
+        data["chip_id"] = chip
+        if chip:
+            existing = (
+                db.query(Pet)
+                .filter(Pet.chip_id == chip, Pet.id != pet_id)
+                .first()
+            )
+            if existing:
+                raise HTTPException(status_code=400, detail="Chip ID already registered")
+
+    if "breed" in data and data["breed"] is not None:
+        data["breed"] = data["breed"].strip() or None
+    if "allergies" in data and data["allergies"] is not None:
+        data["allergies"] = data["allergies"].strip() or None
+
+    for key, value in data.items():
         setattr(pet, key, value)
     db.commit()
     db.refresh(pet)
