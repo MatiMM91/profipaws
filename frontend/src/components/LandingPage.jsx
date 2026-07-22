@@ -1,19 +1,19 @@
+import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { PawPrint, Shield, Building2, QrCode, ArrowRight } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
-async function loginWithGoogle() {
-  // Dev flow: use stub token until Google OAuth is wired
-  const email = prompt('Dev login — introduce tu email:') || 'demo@profipaws.com'
+async function exchangeGoogleToken(idToken) {
   const res = await fetch(`${API_URL}/api/auth/google`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id_token: `dev:${email}` }),
+    body: JSON.stringify({ id_token: idToken }),
   })
   if (!res.ok) {
-    alert('Error al iniciar sesión')
-    return
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.detail || 'Error al iniciar sesión')
   }
   const data = await res.json()
   localStorage.setItem('profipaws_token', data.access_token)
@@ -21,7 +21,69 @@ async function loginWithGoogle() {
   window.location.href = '/dashboard'
 }
 
+async function loginWithGoogle() {
+  if (GOOGLE_CLIENT_ID && window.google?.accounts?.id) {
+    window.google.accounts.id.prompt()
+    return
+  }
+
+  // Fallback local si aún no hay Client ID
+  const email = prompt('Dev login — introduce tu email:') || 'demo@profipaws.com'
+  try {
+    await exchangeGoogleToken(`dev:${email}`)
+  } catch (e) {
+    alert(e.message)
+  }
+}
+
 export default function LandingPage() {
+  const googleBtnRef = useRef(null)
+
+  useEffect(() => {
+    if (!GOOGLE_CLIENT_ID) return undefined
+
+    const initGoogle = () => {
+      if (!window.google?.accounts?.id) return
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          try {
+            await exchangeGoogleToken(response.credential)
+          } catch (e) {
+            alert(e.message)
+          }
+        },
+        auto_select: false,
+        ux_mode: 'popup',
+      })
+      if (googleBtnRef.current) {
+        googleBtnRef.current.innerHTML = ''
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: 'outline',
+          size: 'large',
+          text: 'signin_with',
+          shape: 'pill',
+          width: 260,
+        })
+      }
+    }
+
+    if (window.google?.accounts?.id) {
+      initGoogle()
+      return undefined
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.onload = initGoogle
+    document.body.appendChild(script)
+    return () => {
+      script.remove()
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-hero-glow bg-cyan-950 text-white">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-4 py-5">
@@ -35,9 +97,13 @@ export default function LandingPage() {
           <Link to="/pricing" className="hidden text-sm text-cyan-100/80 hover:text-white sm:inline">
             Planes
           </Link>
-          <button type="button" onClick={loginWithGoogle} className="btn-primary bg-cyan-500 hover:bg-cyan-400">
-            Iniciar sesión con Google
-          </button>
+          {GOOGLE_CLIENT_ID ? (
+            <div ref={googleBtnRef} className="min-h-10" />
+          ) : (
+            <button type="button" onClick={loginWithGoogle} className="btn-primary bg-cyan-500 hover:bg-cyan-400">
+              Iniciar sesión con Google
+            </button>
+          )}
         </div>
       </nav>
 
@@ -53,10 +119,16 @@ export default function LandingPage() {
             Historial médico de tu mascota siempre a mano — para dueños y clínicas veterinarias,
             con acceso seguro por PIN/QR y API B2B.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <button type="button" onClick={loginWithGoogle} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
-              Empezar gratis <ArrowRight size={16} />
-            </button>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            {GOOGLE_CLIENT_ID ? (
+              <button type="button" onClick={loginWithGoogle} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
+                Empezar gratis <ArrowRight size={16} />
+              </button>
+            ) : (
+              <button type="button" onClick={loginWithGoogle} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
+                Empezar gratis <ArrowRight size={16} />
+              </button>
+            )}
             <Link to="/pricing" className="btn-secondary border-cyan-400/40 bg-transparent text-cyan-50 hover:bg-cyan-900/50">
               Ver planes Pro
             </Link>
