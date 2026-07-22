@@ -64,6 +64,8 @@ class SubscriptionOut(BaseModel):
 class CheckoutSessionRequest(BaseModel):
     success_url: Optional[str] = None
     cancel_url: Optional[str] = None
+    # monthly → 6.99 €/mo · yearly → 59 €/yr
+    interval: Optional[str] = Field(default="yearly", pattern="^(monthly|yearly)$")
 
 
 class CheckoutSessionResponse(BaseModel):

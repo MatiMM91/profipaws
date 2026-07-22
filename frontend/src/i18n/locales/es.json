@@ -124,28 +124,44 @@
     "error": "No se pudo generar el PIN"
   },
   "pricing": {
-    "title": "Planes de suscripción",
-    "subtitle": "Empieza gratis con una mascota. Pasa a Pro cuando necesites historiales ilimitados y alertas.",
-    "free": "Gratuito",
+    "title": "Planes simples y claros",
+    "subtitle": "Empieza gratis con una mascota. Pasa a Pro cuando quieras ilimitado y alertas.",
+    "free": "Gratis",
+    "freePrice": "0 €",
     "forever": "para siempre",
-    "pro": "Pro / Premium",
+    "freeNote": "Ideal para probar Profipaws con tu primera mascota.",
+    "pro": "Pro",
+    "proPriceMonthly": "6,99 €",
+    "proPriceYearly": "59 €",
     "perMonth": "/ mes",
-    "recommended": "Recomendado",
-    "currentPlan": "Plan actual",
-    "upgrade": "Mejorar a Pro",
+    "perYear": "/ año",
+    "monthly": "Mensual",
+    "yearly": "Anual",
+    "billingToggle": "Facturación",
+    "saveBadge": "−30%",
+    "yearlyNote": "Equivalente a 4,92 €/mes · ahorras ~25 € al año",
+    "monthlyNote": "Facturación mensual flexible",
+    "recommended": "Más popular",
+    "currentPlan": "Incluido al registrarte",
+    "upgrade": "Pasar a Pro",
+    "redirecting": "Redirigiendo…",
+    "cancelAnytime": "Cancela cuando quieras. Sin permanencia.",
+    "vatNote": "Precios en euros. Impuestos pueden aplicarse según tu país en el checkout de Stripe.",
     "freeFeatures": [
-      "1 mascota registrada",
-      "Historial médico básico",
-      "Acceso PIN/QR temporal",
-      "Diario de seguimiento"
+      "1 mascota",
+      "Historial médico, vacunas y diario",
+      "Calendario de recordatorios",
+      "Acceso temporal PIN/QR para el vet",
+      "Foto de perfil de la mascota"
     ],
     "proFeatures": [
       "Mascotas ilimitadas",
-      "Alertas automatizadas",
+      "Alertas automatizadas (email/push)",
       "Exportación de reportes (JSON/PDF)",
-      "Prioridad en integración clínica"
+      "Todo lo del plan Gratis",
+      "Prioridad en nuevas funciones clínicas"
     ],
-    "stripeMissing": "Stripe aún no está configurado. Revisa STRIPE_* en el backend."
+    "stripeMissing": "El pago aún no está configurado. Vuelve en unos minutos o contacta soporte."
   },
   "common": {
     "save": "Guardar",

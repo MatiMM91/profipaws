@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_publishable_key: str = ""
     stripe_webhook_secret: str = ""
-    stripe_price_id_pro: str = ""
+    stripe_price_id_pro: str = ""  # monthly 6.99 EUR
+    stripe_price_id_pro_yearly: str = ""  # yearly 59 EUR
     frontend_url: str = "http://localhost:5173"
 
     # CORS

@@ -124,28 +124,44 @@
     "error": "Could not generate the PIN"
   },
   "pricing": {
-    "title": "Subscription plans",
+    "title": "Simple, clear plans",
     "subtitle": "Start free with one pet. Upgrade to Pro for unlimited pets and alerts.",
     "free": "Free",
+    "freePrice": "€0",
     "forever": "forever",
-    "pro": "Pro / Premium",
+    "freeNote": "Perfect to try Profipaws with your first pet.",
+    "pro": "Pro",
+    "proPriceMonthly": "€6.99",
+    "proPriceYearly": "€59",
     "perMonth": "/ month",
-    "recommended": "Recommended",
-    "currentPlan": "Current plan",
+    "perYear": "/ year",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "billingToggle": "Billing",
+    "saveBadge": "−30%",
+    "yearlyNote": "About €4.92/month · save ~€25 a year",
+    "monthlyNote": "Flexible month-to-month billing",
+    "recommended": "Most popular",
+    "currentPlan": "Included when you sign up",
     "upgrade": "Upgrade to Pro",
+    "redirecting": "Redirecting…",
+    "cancelAnytime": "Cancel anytime. No lock-in.",
+    "vatNote": "Prices in EUR. Taxes may apply at Stripe checkout depending on your country.",
     "freeFeatures": [
-      "1 registered pet",
-      "Basic medical history",
-      "Temporary PIN/QR access",
-      "Follow-up diary"
+      "1 pet",
+      "Medical history, vaccines & diary",
+      "Reminder calendar",
+      "Temporary vet PIN/QR access",
+      "Pet profile photo"
     ],
     "proFeatures": [
       "Unlimited pets",
-      "Automated alerts",
+      "Automated alerts (email/push)",
       "Report export (JSON/PDF)",
-      "Priority clinic integration"
+      "Everything in Free",
+      "Priority access to clinic features"
     ],
-    "stripeMissing": "Stripe is not configured yet. Check STRIPE_* on the backend."
+    "stripeMissing": "Payments are not configured yet. Try again shortly or contact support."
   },
   "common": {
     "save": "Save",

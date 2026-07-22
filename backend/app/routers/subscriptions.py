@@ -47,8 +47,18 @@ def create_checkout_session(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Create a Stripe Checkout session for the Pro plan (€5–10/mo)."""
-    if not settings.stripe_secret_key or not settings.stripe_price_id_pro:
+    """Create a Stripe Checkout session for Pro (6.99 €/mo or 59 €/yr)."""
+    interval = payload.interval or "yearly"
+    price_id = (
+        settings.stripe_price_id_pro_yearly
+        if interval == "yearly"
+        else settings.stripe_price_id_pro
+    )
+    # Fall back to monthly price if yearly ID is not configured yet
+    if interval == "yearly" and not price_id:
+        price_id = settings.stripe_price_id_pro
+
+    if not settings.stripe_secret_key or not price_id:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_PRICE_ID_PRO.",
@@ -75,10 +85,10 @@ def create_checkout_session(
     session = stripe.checkout.Session.create(
         customer=customer_id,
         mode="subscription",
-        line_items=[{"price": settings.stripe_price_id_pro, "quantity": 1}],
+        line_items=[{"price": price_id, "quantity": 1}],
         success_url=success,
         cancel_url=cancel,
-        metadata={"user_id": str(current_user.id)},
+        metadata={"user_id": str(current_user.id), "interval": interval},
     )
     return CheckoutSessionResponse(checkout_url=session.url, session_id=session.id)
 
