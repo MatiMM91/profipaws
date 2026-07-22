@@ -17,6 +17,11 @@ async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)
     Exchange a Google ID token for a Profipaws JWT.
     In production, validate against Google's tokeninfo / certs endpoint.
     """
+    if settings.maintenance_mode:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Profipaws is under development. Login is temporarily disabled.",
+        )
     google_user = await _verify_google_token(payload.id_token)
 
     user = db.query(User).filter(User.google_id == google_user["sub"]).first()

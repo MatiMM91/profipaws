@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     stripe_price_id_pro_yearly: str = ""  # yearly 59 EUR
     frontend_url: str = "http://localhost:5173"
 
+    # When true: reject login and authenticated API calls (public landing only)
+    maintenance_mode: bool = False
+
+
     # CORS
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 

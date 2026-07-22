@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Shield, Building2, QrCode, ArrowRight } from 'lucide-react'
+import { Shield, Building2, QrCode, ArrowRight, Construction } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import { useTheme } from '../theme/ThemeProvider'
+import { MAINTENANCE_MODE } from '../config'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
@@ -31,7 +32,18 @@ export default function LandingPage() {
   const googleBtnRef = useRef(null)
   const isDark = theme === 'dark'
 
+  useEffect(() => {
+    if (!MAINTENANCE_MODE) return
+    try {
+      localStorage.removeItem('profipaws_token')
+      localStorage.removeItem('profipaws_user')
+    } catch {
+      // ignore
+    }
+  }, [])
+
   async function loginWithGoogle() {
+    if (MAINTENANCE_MODE) return
     if (GOOGLE_CLIENT_ID && window.google?.accounts?.id) {
       window.google.accounts.id.prompt()
       return
@@ -45,7 +57,7 @@ export default function LandingPage() {
   }
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return undefined
+    if (MAINTENANCE_MODE || !GOOGLE_CLIENT_ID) return undefined
 
     const initGoogle = () => {
       if (!window.google?.accounts?.id) return
@@ -95,6 +107,22 @@ export default function LandingPage() {
           : 'bg-gradient-to-br from-cyan-50 via-white to-teal-100 text-cyan-950'
       }`}
     >
+      {MAINTENANCE_MODE && (
+        <div
+          className={`border-b px-4 py-2.5 text-center text-sm font-medium ${
+            isDark
+              ? 'border-amber-500/30 bg-amber-500/15 text-amber-100'
+              : 'border-amber-200 bg-amber-50 text-amber-900'
+          }`}
+          role="status"
+        >
+          <span className="inline-flex items-center justify-center gap-2">
+            <Construction size={16} />
+            {t('landing.maintenanceBanner')}
+          </span>
+        </div>
+      )}
+
       <nav className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5">
         <div className={`flex items-center gap-2.5 font-display text-xl font-bold tracking-tight ${isDark ? 'text-white' : 'text-cyan-900'}`}>
           <BrandLogo className="h-10 w-10" />
@@ -102,15 +130,19 @@ export default function LandingPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <PreferenceControls variant={isDark ? 'landing' : 'app'} />
-          <Link to="/pricing" className={`hidden text-sm sm:inline ${isDark ? 'text-cyan-100/80 hover:text-white' : 'text-cyan-700 hover:text-cyan-900'}`}>
-            {t('nav.plans')}
-          </Link>
-          {GOOGLE_CLIENT_ID ? (
-            <div ref={googleBtnRef} className="min-h-10" />
-          ) : (
-            <button type="button" onClick={loginWithGoogle} className="btn-primary bg-cyan-500 hover:bg-cyan-400">
-              {t('nav.signInGoogle')}
-            </button>
+          {!MAINTENANCE_MODE && (
+            <>
+              <Link to="/pricing" className={`hidden text-sm sm:inline ${isDark ? 'text-cyan-100/80 hover:text-white' : 'text-cyan-700 hover:text-cyan-900'}`}>
+                {t('nav.plans')}
+              </Link>
+              {GOOGLE_CLIENT_ID ? (
+                <div ref={googleBtnRef} className="min-h-10" />
+              ) : (
+                <button type="button" onClick={loginWithGoogle} className="btn-primary bg-cyan-500 hover:bg-cyan-400">
+                  {t('nav.signInGoogle')}
+                </button>
+              )}
+            </>
           )}
         </div>
       </nav>
@@ -118,24 +150,39 @@ export default function LandingPage() {
       <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-24 pt-10 lg:grid-cols-2 lg:pt-16">
         <div className="animate-fade-up">
           <p className={`mb-3 font-display text-sm font-semibold uppercase tracking-[0.2em] ${isDark ? 'text-cyan-300' : 'text-cyan-600'}`}>
-            {t('landing.eyebrow')}
+            {MAINTENANCE_MODE ? t('landing.maintenanceEyebrow') : t('landing.eyebrow')}
           </p>
           <h1 className={`font-display text-4xl font-bold leading-tight tracking-tight sm:text-5xl lg:text-6xl ${isDark ? 'text-white' : 'text-cyan-950'}`}>
             {t('landing.headline')}
           </h1>
           <p className={`mt-5 max-w-lg text-lg ${isDark ? 'text-cyan-100/85' : 'text-cyan-800/90'}`}>
-            {t('landing.subtitle')}
+            {MAINTENANCE_MODE ? t('landing.maintenanceSubtitle') : t('landing.subtitle')}
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <button type="button" onClick={loginWithGoogle} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
-              {t('landing.ctaStart')} <ArrowRight size={16} />
-            </button>
-            <Link
-              to="/pricing"
-              className={`btn-secondary ${isDark ? 'border-cyan-400/40 bg-transparent text-cyan-50 hover:bg-cyan-900/50' : ''}`}
-            >
-              {t('landing.ctaPlans')}
-            </Link>
+            {MAINTENANCE_MODE ? (
+              <div
+                className={`inline-flex items-center gap-2 rounded-lg border px-5 py-2.5 text-sm font-semibold ${
+                  isDark
+                    ? 'border-cyan-400/30 bg-cyan-900/40 text-cyan-100'
+                    : 'border-cyan-200 bg-white text-cyan-800'
+                }`}
+              >
+                <Construction size={16} />
+                {t('landing.maintenanceCta')}
+              </div>
+            ) : (
+              <>
+                <button type="button" onClick={loginWithGoogle} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
+                  {t('landing.ctaStart')} <ArrowRight size={16} />
+                </button>
+                <Link
+                  to="/pricing"
+                  className={`btn-secondary ${isDark ? 'border-cyan-400/40 bg-transparent text-cyan-50 hover:bg-cyan-900/50' : ''}`}
+                >
+                  {t('landing.ctaPlans')}
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
