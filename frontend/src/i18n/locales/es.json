@@ -87,7 +87,14 @@
     "chronicNotes": "Notas (opcional)",
     "chronicEmpty": "Ninguna registrada",
     "chronicAdd": "Añadir",
-    "deleteChronic": "¿Borrar esta enfermedad crónica?"
+    "deleteChronic": "¿Borrar esta enfermedad crónica?",
+    "addPhoto": "Añadir foto",
+    "changePhoto": "Cambiar foto",
+    "removePhoto": "Quitar foto",
+    "removePhotoConfirm": "¿Quitar la foto de la mascota?",
+    "photoHint": "Opcional · se comprime automáticamente",
+    "photoUploading": "Subiendo foto…",
+    "photoError": "No se pudo procesar la foto. Prueba con otra imagen."
   },
   "log": {
     "back": "Volver al perfil",

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, PawPrint, Syringe, BookOpen, QrCode } from 'lucide-react'
+import { Plus, PawPrint, Syringe, BookOpen, QrCode, Camera } from 'lucide-react'
+import { compressImage } from '../utils/compressImage'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -19,7 +20,9 @@ export default function Dashboard() {
   const [subscription, setSubscription] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ name: '', species: 'dog', breed: '', chip_id: '' })
+  const [form, setForm] = useState({ name: '', species: 'dog', breed: '', chip_id: '', photo_url: null })
+  const [photoPreview, setPhotoPreview] = useState(null)
+  const createPhotoRef = useRef(null)
   const user = JSON.parse(localStorage.getItem('profipaws_user') || 'null')
 
   useEffect(() => {
@@ -38,12 +41,32 @@ export default function Dashboard() {
     load()
   }, [])
 
+  async function onCreatePhoto(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const dataUrl = await compressImage(file)
+      setForm((prev) => ({ ...prev, photo_url: dataUrl }))
+      setPhotoPreview(dataUrl)
+    } catch {
+      alert(t('pet.photoError'))
+    }
+  }
+
   async function createPet(e) {
     e.preventDefault()
+    const payload = {
+      name: form.name,
+      species: form.species,
+      breed: form.breed || null,
+      chip_id: form.chip_id || null,
+      photo_url: form.photo_url || null,
+    }
     const res = await fetch(`${API_URL}/api/pets`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify(form),
+      body: JSON.stringify(payload),
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({}))
@@ -53,7 +76,8 @@ export default function Dashboard() {
     const pet = await res.json()
     setPets((prev) => [...prev, pet])
     setShowForm(false)
-    setForm({ name: '', species: 'dog', breed: '', chip_id: '' })
+    setForm({ name: '', species: 'dog', breed: '', chip_id: '', photo_url: null })
+    setPhotoPreview(null)
   }
 
   if (loading) {
@@ -82,6 +106,37 @@ export default function Dashboard() {
 
       {showForm && (
         <form onSubmit={createPet} className="surface grid gap-3 p-5 sm:grid-cols-2">
+          <div className="flex items-center gap-3 sm:col-span-2">
+            <button
+              type="button"
+              className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100"
+              onClick={() => createPhotoRef.current?.click()}
+              title={t('pet.addPhoto')}
+            >
+              {photoPreview ? (
+                <img src={photoPreview} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Camera size={22} />
+              )}
+            </button>
+            <input ref={createPhotoRef} type="file" accept="image/*" className="hidden" onChange={onCreatePhoto} />
+            <div className="text-sm text-cyan-700 dark:text-cyan-300">
+              <p className="font-medium">{t('pet.addPhoto')}</p>
+              <p className="text-xs text-cyan-600/80 dark:text-cyan-400/80">{t('pet.photoHint')}</p>
+              {photoPreview && (
+                <button
+                  type="button"
+                  className="mt-1 text-xs underline"
+                  onClick={() => {
+                    setPhotoPreview(null)
+                    setForm((prev) => ({ ...prev, photo_url: null }))
+                  }}
+                >
+                  {t('pet.removePhoto')}
+                </button>
+              )}
+            </div>
+          </div>
           <input className="field" placeholder={t('dashboard.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <select className="field" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
             <option value="dog">{t('dashboard.dog')}</option>
@@ -104,9 +159,17 @@ export default function Dashboard() {
           {pets.map((pet) => (
             <li key={pet.id} className="surface p-5 shadow-sm shadow-cyan-900/5">
               <div className="flex items-start gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
-                  <PawPrint size={22} />
-                </span>
+                {pet.photo_url ? (
+                  <img
+                    src={pet.photo_url}
+                    alt={pet.name}
+                    className="h-12 w-12 rounded-xl object-cover"
+                  />
+                ) : (
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
+                    <PawPrint size={22} />
+                  </span>
+                )}
                 <div>
                   <h2 className="font-display text-lg font-semibold text-cyan-950 dark:text-cyan-50">{pet.name}</h2>
                   <p className="text-sm text-cyan-700/70 dark:text-cyan-300/70">

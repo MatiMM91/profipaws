@@ -87,7 +87,14 @@
     "chronicNotes": "Notes (optional)",
     "chronicEmpty": "None registered",
     "chronicAdd": "Add",
-    "deleteChronic": "Delete this chronic condition?"
+    "deleteChronic": "Delete this chronic condition?",
+    "addPhoto": "Add photo",
+    "changePhoto": "Change photo",
+    "removePhoto": "Remove photo",
+    "removePhotoConfirm": "Remove this pet's photo?",
+    "photoHint": "Optional · compressed automatically",
+    "photoUploading": "Uploading photo…",
+    "photoError": "Could not process the photo. Try another image."
   },
   "log": {
     "back": "Back to profile",

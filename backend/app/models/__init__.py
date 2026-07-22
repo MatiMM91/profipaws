@@ -99,7 +99,7 @@ class Pet(Base):
     breed: Mapped[str | None] = mapped_column(String(120), nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     chip_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True, index=True)
-    photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
     allergies: Mapped[str | None] = mapped_column(Text, nullable=True)
     access_pin: Mapped[str | None] = mapped_column(String(6), nullable=True, index=True)

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -15,7 +15,10 @@ import {
   Check,
   X,
   Activity,
+  Camera,
+  PawPrint,
 } from 'lucide-react'
+import { compressImage } from '../utils/compressImage'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -79,6 +82,8 @@ export default function PetProfile() {
   const [recordEdit, setRecordEdit] = useState({})
   const [eventEdit, setEventEdit] = useState({})
   const [conditionEdit, setConditionEdit] = useState({})
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const photoInputRef = useRef(null)
 
   async function load() {
     const [petRes, vacRes, recRes, evRes, condRes] = await Promise.all([
@@ -136,6 +141,47 @@ export default function PetProfile() {
     }
     setPet(await res.json())
     setEditingPet(false)
+  }
+
+  async function patchPhoto(photo_url) {
+    setPhotoBusy(true)
+    setError('')
+    const res = await fetch(`${API_URL}/api/pets/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ photo_url }),
+    })
+    setPhotoBusy(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      const detail = err.detail
+      const msg =
+        typeof detail === 'string'
+          ? detail
+          : Array.isArray(detail)
+            ? detail.map((d) => d.msg || d).join(', ')
+            : t('pet.photoError')
+      setError(msg)
+      return
+    }
+    setPet(await res.json())
+  }
+
+  async function onPhotoSelected(e) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const dataUrl = await compressImage(file)
+      await patchPhoto(dataUrl)
+    } catch {
+      setError(t('pet.photoError'))
+    }
+  }
+
+  async function removePhoto() {
+    if (!confirm(t('pet.removePhotoConfirm'))) return
+    await patchPhoto(null)
   }
 
   async function addVaccine(e) {
@@ -304,13 +350,57 @@ export default function PetProfile() {
 
       <div className="surface p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">{pet.name}</h1>
-            <p className="mt-1 text-cyan-700">
-              {pet.species}
-              {pet.breed ? ` · ${pet.breed}` : ''}
-              {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
-            </p>
+          <div className="flex items-start gap-4">
+            <div className="relative shrink-0">
+              {pet.photo_url ? (
+                <img
+                  src={pet.photo_url}
+                  alt={pet.name}
+                  className="h-20 w-20 rounded-2xl object-cover ring-2 ring-cyan-100 dark:ring-cyan-800"
+                />
+              ) : (
+                <span className="flex h-20 w-20 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
+                  <PawPrint size={32} />
+                </span>
+              )}
+              <input
+                ref={photoInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onPhotoSelected}
+              />
+              <button
+                type="button"
+                disabled={photoBusy}
+                title={t('pet.changePhoto')}
+                className="absolute -bottom-1 -right-1 inline-flex h-8 w-8 items-center justify-center rounded-full bg-cyan-700 text-white shadow hover:bg-cyan-800 disabled:opacity-60"
+                onClick={() => photoInputRef.current?.click()}
+              >
+                <Camera size={14} />
+              </button>
+            </div>
+            <div>
+              <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">{pet.name}</h1>
+              <p className="mt-1 text-cyan-700 dark:text-cyan-300">
+                {pet.species}
+                {pet.breed ? ` · ${pet.breed}` : ''}
+                {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
+              </p>
+              {pet.photo_url && (
+                <button
+                  type="button"
+                  className="mt-1 text-xs text-cyan-600 underline-offset-2 hover:underline dark:text-cyan-400"
+                  disabled={photoBusy}
+                  onClick={removePhoto}
+                >
+                  {t('pet.removePhoto')}
+                </button>
+              )}
+              {photoBusy && (
+                <p className="mt-1 text-xs text-cyan-600 dark:text-cyan-400">{t('pet.photoUploading')}</p>
+              )}
+            </div>
           </div>
           <button
             type="button"
@@ -323,6 +413,7 @@ export default function PetProfile() {
             <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
           </button>
         </div>
+        {error && !editingPet && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
         {!editingPet && (
           <div className="mt-4 flex flex-wrap gap-4 text-sm text-cyan-800 dark:text-cyan-200">

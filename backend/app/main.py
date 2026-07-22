@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.config import get_settings
 from app.database import engine, Base
 from app.models import (  # noqa: F401 — ensure models are registered
@@ -19,10 +20,26 @@ from app.routers import auth, pets, subscriptions, external
 settings = get_settings()
 
 
+def _ensure_schema_updates() -> None:
+    """Lightweight column upgrades until Alembic is wired."""
+    with engine.begin() as conn:
+        dialect = engine.dialect.name
+        if dialect == "postgresql":
+            conn.execute(text("ALTER TABLE pets ALTER COLUMN photo_url TYPE TEXT"))
+        elif dialect == "sqlite":
+            # SQLite string affinity already accepts long values; no-op.
+            pass
+
+
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     # Create tables on startup (use Alembic migrations in production)
     Base.metadata.create_all(bind=engine)
+    try:
+        _ensure_schema_updates()
+    except Exception:
+        # Column may already be TEXT or table not ready yet.
+        pass
     yield
 
 
