@@ -29,8 +29,10 @@ class Settings(BaseSettings):
     stripe_price_id_pro_yearly: str = ""  # yearly 59 EUR
     frontend_url: str = "http://localhost:5173"
 
-    # When true: reject login and authenticated API calls (public landing only)
+    # When true: public site locked; only emails in maintenance_allowlist can log in
     maintenance_mode: bool = False
+    # Comma-separated emails allowed during maintenance (e.g. you@gmail.com)
+    maintenance_allowlist: str = ""
 
     # Email alerts — prefer Resend; SMTP is fallback
     resend_api_key: str = ""

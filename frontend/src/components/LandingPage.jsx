@@ -32,20 +32,13 @@ export default function LandingPage() {
   const googleBtnRef = useRef(null)
   const isDark = theme === 'dark'
 
-  useEffect(() => {
-    if (!MAINTENANCE_MODE) return
-    try {
-      localStorage.removeItem('profipaws_token')
-      localStorage.removeItem('profipaws_user')
-    } catch {
-      // ignore
-    }
-  }, [])
-
   async function loginWithGoogle() {
-    if (MAINTENANCE_MODE) return
     if (GOOGLE_CLIENT_ID && window.google?.accounts?.id) {
       window.google.accounts.id.prompt()
+      return
+    }
+    if (MAINTENANCE_MODE) {
+      alert(t('landing.maintenanceLoginDenied'))
       return
     }
     const email = prompt('Dev login — email:') || 'demo@profipaws.com'
@@ -57,7 +50,7 @@ export default function LandingPage() {
   }
 
   useEffect(() => {
-    if (MAINTENANCE_MODE || !GOOGLE_CLIENT_ID) return undefined
+    if (!GOOGLE_CLIENT_ID) return undefined
 
     const initGoogle = () => {
       if (!window.google?.accounts?.id) return
@@ -67,7 +60,7 @@ export default function LandingPage() {
           try {
             await exchangeGoogleToken(response.credential)
           } catch (e) {
-            alert(e.message)
+            alert(e.message || t('landing.maintenanceLoginDenied'))
           }
         },
         auto_select: false,
@@ -87,16 +80,16 @@ export default function LandingPage() {
 
     if (window.google?.accounts?.id) {
       initGoogle()
-      return undefined
+    } else {
+      const script = document.createElement('script')
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.defer = true
+      script.onload = initGoogle
+      document.body.appendChild(script)
+      return () => script.remove()
     }
-
-    const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
-    script.async = true
-    script.defer = true
-    script.onload = initGoogle
-    document.body.appendChild(script)
-    return () => script.remove()
+    return undefined
   }, [isDark, t])
 
   return (
@@ -131,18 +124,18 @@ export default function LandingPage() {
         <div className="flex flex-wrap items-center gap-3">
           <PreferenceControls variant={isDark ? 'landing' : 'app'} />
           {!MAINTENANCE_MODE && (
-            <>
-              <Link to="/pricing" className={`hidden text-sm sm:inline ${isDark ? 'text-cyan-100/80 hover:text-white' : 'text-cyan-700 hover:text-cyan-900'}`}>
-                {t('nav.plans')}
-              </Link>
-              {GOOGLE_CLIENT_ID ? (
-                <div ref={googleBtnRef} className="min-h-10" />
-              ) : (
-                <button type="button" onClick={loginWithGoogle} className="btn-primary bg-cyan-500 hover:bg-cyan-400">
-                  {t('nav.signInGoogle')}
-                </button>
-              )}
-            </>
+            <Link to="/pricing" className={`hidden text-sm sm:inline ${isDark ? 'text-cyan-100/80 hover:text-white' : 'text-cyan-700 hover:text-cyan-900'}`}>
+              {t('nav.plans')}
+            </Link>
+          )}
+          {GOOGLE_CLIENT_ID ? (
+            <div ref={googleBtnRef} className="min-h-10" />
+          ) : (
+            !MAINTENANCE_MODE && (
+              <button type="button" onClick={loginWithGoogle} className="btn-primary bg-cyan-500 hover:bg-cyan-400">
+                {t('nav.signInGoogle')}
+              </button>
+            )
           )}
         </div>
       </nav>

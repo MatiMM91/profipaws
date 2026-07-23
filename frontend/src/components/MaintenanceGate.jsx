@@ -1,18 +1,14 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { MAINTENANCE_MODE } from '../config'
 
-/** Clears sessions and blocks app routes while the site is under development. */
+/** Blocks app routes during maintenance unless the user already has a session
+ *  (backend allowlist enforces who can obtain/keep a valid JWT). */
 export default function MaintenanceGate() {
   const location = useLocation()
 
   if (MAINTENANCE_MODE) {
-    try {
-      localStorage.removeItem('profipaws_token')
-      localStorage.removeItem('profipaws_user')
-    } catch {
-      // ignore
-    }
-    if (location.pathname !== '/') {
+    const token = localStorage.getItem('profipaws_token')
+    if (!token && location.pathname !== '/') {
       return <Navigate to="/" replace />
     }
   }

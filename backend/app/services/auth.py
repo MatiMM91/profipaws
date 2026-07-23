@@ -14,6 +14,20 @@ settings = get_settings()
 security = HTTPBearer(auto_error=False)
 
 
+def maintenance_allowed_emails() -> set[str]:
+    raw = settings.maintenance_allowlist or ""
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
+def is_allowed_during_maintenance(email: str | None) -> bool:
+    """Outside maintenance everyone is allowed; inside, only the allowlist."""
+    if not settings.maintenance_mode:
+        return True
+    if not email:
+        return False
+    return email.strip().lower() in maintenance_allowed_emails()
+
+
 def create_access_token(user_id: int, email: str) -> str:
     expire = datetime.utcnow() + timedelta(minutes=settings.jwt_expire_minutes)
     payload = {"sub": str(user_id), "email": email, "exp": expire}
@@ -37,11 +51,6 @@ def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
 ) -> User:
-    if settings.maintenance_mode:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Profipaws is under development. Login is temporarily disabled.",
-        )
     if not credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     payload = decode_access_token(credentials.credentials)
@@ -51,6 +60,11 @@ def get_current_user(
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if not is_allowed_during_maintenance(user.email):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Profipaws is under development. Access is temporarily limited.",
+        )
     return user
 
 

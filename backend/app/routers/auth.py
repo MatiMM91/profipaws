@@ -4,7 +4,7 @@ import httpx
 from app.database import get_db
 from app.models import User, Subscription, SubscriptionTier, SubscriptionStatus
 from app.schemas import GoogleAuthRequest, TokenResponse, UserOut
-from app.services.auth import create_access_token, get_current_user
+from app.services.auth import create_access_token, get_current_user, is_allowed_during_maintenance
 from app.config import get_settings
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -17,12 +17,12 @@ async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)
     Exchange a Google ID token for a Profipaws JWT.
     In production, validate against Google's tokeninfo / certs endpoint.
     """
-    if settings.maintenance_mode:
+    google_user = await _verify_google_token(payload.id_token)
+    if not is_allowed_during_maintenance(google_user.get("email")):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Profipaws is under development. Login is temporarily disabled.",
+            detail="Profipaws is under development. Access is temporarily limited.",
         )
-    google_user = await _verify_google_token(payload.id_token)
 
     user = db.query(User).filter(User.google_id == google_user["sub"]).first()
     if not user:
