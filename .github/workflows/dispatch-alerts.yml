@@ -1,0 +1,30 @@
+name: Dispatch Pro alerts
+
+on:
+  schedule:
+    # Every day at 08:00 UTC
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Profipaws alerts dispatch
+        env:
+          API_URL: https://profipaws-api-production.up.railway.app
+          ALERTS_CRON_SECRET: ${{ secrets.ALERTS_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ALERTS_CRON_SECRET}" ]; then
+            echo "ALERTS_CRON_SECRET is not set in GitHub secrets"
+            exit 1
+          fi
+          curl -fsS -X POST \
+            -H "X-Alerts-Secret: ${ALERTS_CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            "${API_URL}/api/alerts/dispatch" \
+            -o response.json
+          echo "Dispatch response:"
+          cat response.json
+          echo

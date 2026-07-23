@@ -1,4 +1,4 @@
-"""Upcoming reminders and optional email dispatch for Pro subscribers."""
+"""Upcoming reminders and email dispatch for Pro subscribers."""
 from __future__ import annotations
 
 import logging
@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from email.message import EmailMessage
 from typing import Any
 
+import httpx
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -21,6 +22,12 @@ from app.models import (
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
+
+
+def email_configured() -> bool:
+    if settings.resend_api_key:
+        return True
+    return bool(settings.smtp_host and (settings.smtp_from or settings.resend_from))
 
 
 def _pro_user_ids(db: Session) -> set[int]:
@@ -91,7 +98,9 @@ def upcoming_for_owner(db: Session, user: User, days: int = 14) -> list[dict[str
                 "title": ev.title,
                 "due_at": ev.scheduled_at.isoformat(),
                 "id": ev.id,
-                "event_type": ev.event_type.value if hasattr(ev.event_type, "value") else ev.event_type,
+                "event_type": ev.event_type.value
+                if hasattr(ev.event_type, "value")
+                else ev.event_type,
             }
         )
 
@@ -99,13 +108,39 @@ def upcoming_for_owner(db: Session, user: User, days: int = 14) -> list[dict[str
     return items
 
 
-def _send_email(to_email: str, subject: str, body: str) -> bool:
-    if not settings.smtp_host or not settings.smtp_from:
-        logger.info("SMTP not configured; skip email to %s (%s)", to_email, subject)
+def _send_via_resend(to_email: str, subject: str, body: str) -> bool:
+    from_addr = settings.resend_from or "Profipaws <onboarding@resend.dev>"
+    try:
+        res = httpx.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {settings.resend_api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "from": from_addr,
+                "to": [to_email],
+                "subject": subject,
+                "text": body,
+            },
+            timeout=20,
+        )
+        if res.status_code >= 400:
+            logger.warning("Resend error %s: %s", res.status_code, res.text[:300])
+            return False
+        return True
+    except Exception:
+        logger.exception("Resend request failed")
+        return False
+
+
+def _send_via_smtp(to_email: str, subject: str, body: str) -> bool:
+    from_addr = settings.smtp_from or settings.resend_from
+    if not settings.smtp_host or not from_addr:
         return False
     msg = EmailMessage()
     msg["Subject"] = subject
-    msg["From"] = settings.smtp_from
+    msg["From"] = from_addr
     msg["To"] = to_email
     msg.set_content(body)
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
@@ -117,6 +152,19 @@ def _send_email(to_email: str, subject: str, body: str) -> bool:
     return True
 
 
+def _send_email(to_email: str, subject: str, body: str) -> bool:
+    if settings.resend_api_key:
+        return _send_via_resend(to_email, subject, body)
+    if settings.smtp_host:
+        try:
+            return _send_via_smtp(to_email, subject, body)
+        except Exception:
+            logger.exception("SMTP send failed")
+            return False
+    logger.info("No email provider configured; skip %s (%s)", to_email, subject)
+    return False
+
+
 def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any]:
     """
     Email Pro owners about calendar events due soon (and not yet reminded).
@@ -124,7 +172,12 @@ def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any
     """
     pro_ids = _pro_user_ids(db)
     if not pro_ids:
-        return {"sent": 0, "skipped": 0, "candidates": 0}
+        return {
+            "sent": 0,
+            "skipped": 0,
+            "candidates": 0,
+            "email_configured": email_configured(),
+        }
 
     now = datetime.utcnow()
     until = now + timedelta(hours=within_hours)
@@ -156,7 +209,7 @@ def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any
             f"Hola{(' ' + owner.full_name) if owner.full_name else ''},\n\n"
             f"Tienes un recordatorio próximo para {pet.name}:\n"
             f"  · {ev.title}\n"
-            f"  · Fecha: {when}\n\n"
+            f"  · Fecha: {when} UTC\n\n"
             f"Abre Profipaws: {settings.frontend_url}/pets/{pet.id}\n\n"
             f"— Profipaws\n"
         )
@@ -165,8 +218,6 @@ def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any
             ev.reminder_sent = True
             sent += 1
         else:
-            # Still mark so we don't loop forever without SMTP; cron can re-run after SMTP is set
-            # Only mark if SMTP missing? Better: mark only on success.
             skipped += 1
 
     db.commit()
@@ -174,5 +225,8 @@ def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any
         "sent": sent,
         "skipped": skipped,
         "candidates": len(events),
-        "smtp_configured": bool(settings.smtp_host and settings.smtp_from),
+        "email_configured": email_configured(),
+        "provider": "resend"
+        if settings.resend_api_key
+        else ("smtp" if settings.smtp_host else "none"),
     }

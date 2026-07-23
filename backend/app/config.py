@@ -32,7 +32,9 @@ class Settings(BaseSettings):
     # When true: reject login and authenticated API calls (public landing only)
     maintenance_mode: bool = False
 
-    # Email alerts (optional — dispatch marks skipped if SMTP unset)
+    # Email alerts — prefer Resend; SMTP is fallback
+    resend_api_key: str = ""
+    resend_from: str = "Profipaws <onboarding@resend.dev>"
     smtp_host: str = ""
     smtp_port: int = 587
     smtp_user: str = ""
