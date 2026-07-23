@@ -391,7 +391,7 @@ export default function PetProfile() {
           <div>
             <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">{pet.name}</h1>
             <p className="mt-1 text-cyan-700 dark:text-cyan-300">
-              {pet.species}
+              {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
               {pet.breed ? ` · ${pet.breed}` : ''}
               {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
             </p>
@@ -496,7 +496,7 @@ export default function PetProfile() {
             <select className="field px-3 py-2 text-sm" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
               <option value="dog">{t('dashboard.dog')}</option>
               <option value="cat">{t('dashboard.cat')}</option>
-              <option value="other">{t('pet.other')}</option>
+              <option value="other">{t('dashboard.other')}</option>
             </select>
             <input className="field px-3 py-2 text-sm" placeholder={t('pet.breed')} value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
             <input type="date" className="field px-3 py-2 text-sm" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />

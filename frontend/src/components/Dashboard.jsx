@@ -116,7 +116,7 @@ export default function Dashboard() {
                 <div>
                   <h2 className="font-display text-lg font-semibold text-cyan-950 dark:text-cyan-50">{pet.name}</h2>
                   <p className="text-sm text-cyan-700/70 dark:text-cyan-300/70">
-                    {pet.species}{pet.breed ? ` · ${pet.breed}` : ''}
+                    {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}{pet.breed ? ` · ${pet.breed}` : ''}
                   </p>
                 </div>
               </div>
