@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
@@ -64,6 +64,7 @@ const emptyPetEdit = {
 export default function PetProfile() {
   const { t, i18n } = useTranslation()
   const { id } = useParams()
+  const location = useLocation()
   const [pet, setPet] = useState(null)
   const [vaccines, setVaccines] = useState([])
   const [records, setRecords] = useState([])
@@ -153,6 +154,12 @@ export default function PetProfile() {
   useEffect(() => {
     load()
   }, [id])
+
+  useEffect(() => {
+    if (!pet || location.hash !== '#historial') return
+    const el = document.getElementById('historial')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [pet, location.hash])
 
   async function savePet(e) {
     e.preventDefault()
@@ -665,7 +672,7 @@ export default function PetProfile() {
       </section>
 
       {/* Records */}
-      <section className="space-y-3">
+      <section id="historial" className="scroll-mt-24 space-y-3">
         <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
           <FileText size={18} /> {t('pet.records')}
         </h2>

@@ -128,9 +128,9 @@ export default function Dashboard() {
                 <Link to={`/pets/${pet.id}/vet-access`} className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-3 py-1.5 text-teal-800 dark:bg-teal-900/50 dark:text-teal-100">
                   <QrCode size={12} /> {t('dashboard.vetPin')}
                 </Link>
-                <span className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-1.5 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-200">
+                <Link to={`/pets/${pet.id}#historial`} className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-1.5 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100">
                   <Syringe size={12} /> {t('dashboard.history')}
-                </span>
+                </Link>
               </div>
             </li>
           ))}
