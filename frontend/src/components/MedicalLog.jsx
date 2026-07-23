@@ -105,13 +105,13 @@ export default function MedicalLog() {
         <div className="grid gap-3 sm:grid-cols-2">
           <input
             className="field px-3 py-2 text-sm"
-            placeholder="{t('log.mood')}"
+            placeholder={t('log.mood')}
             value={mood}
             onChange={(e) => setMood(e.target.value)}
           />
           <input
             className="field px-3 py-2 text-sm"
-            placeholder="{t('log.appetite')}"
+            placeholder={t('log.appetite')}
             value={appetite}
             onChange={(e) => setAppetite(e.target.value)}
           />
@@ -161,8 +161,8 @@ export default function MedicalLog() {
                   <p className="text-sm text-cyan-950 dark:text-cyan-50">{log.note}</p>
                   <p className="mt-1 text-xs text-cyan-600">
                     {new Date(log.logged_at).toLocaleString(i18n.language)}
-                    {log.mood ? ` · {t('log.moodLabel')}: ${log.mood}` : ''}
-                    {log.appetite ? ` · {t('log.appetiteLabel')}: ${log.appetite}` : ''}
+                    {log.mood ? ` · ${t('log.moodLabel')}: ${log.mood}` : ''}
+                    {log.appetite ? ` · ${t('log.appetiteLabel')}: ${log.appetite}` : ''}
                   </p>
                 </div>
                 <div className="flex gap-2">
