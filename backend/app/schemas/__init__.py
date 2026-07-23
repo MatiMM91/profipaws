@@ -1,31 +1,12 @@
 from datetime import date, datetime
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from app.models import (
     SubscriptionTier,
     SubscriptionStatus,
     EventType,
     RecordType,
 )
-
-MAX_PHOTO_CHARS = 400_000
-
-
-def _normalize_photo_url(value: Optional[str]) -> Optional[str]:
-    if value is None or value == "":
-        return None
-    if len(value) > MAX_PHOTO_CHARS:
-        raise ValueError("Photo too large (compress and try again)")
-    allowed = (
-        value.startswith("data:image/jpeg;base64,")
-        or value.startswith("data:image/png;base64,")
-        or value.startswith("data:image/webp;base64,")
-        or value.startswith("https://")
-        or value.startswith("http://")
-    )
-    if not allowed:
-        raise ValueError("Invalid photo format")
-    return value
 
 
 # --- Auth ---
@@ -80,14 +61,8 @@ class PetCreate(BaseModel):
     breed: Optional[str] = None
     birth_date: Optional[date] = None
     chip_id: Optional[str] = None
-    photo_url: Optional[str] = None
     weight_kg: Optional[float] = None
     allergies: Optional[str] = None
-
-    @field_validator("photo_url")
-    @classmethod
-    def validate_photo_url(cls, value: Optional[str]) -> Optional[str]:
-        return _normalize_photo_url(value)
 
 
 class PetUpdate(BaseModel):
@@ -96,14 +71,8 @@ class PetUpdate(BaseModel):
     breed: Optional[str] = None
     birth_date: Optional[date] = None
     chip_id: Optional[str] = None
-    photo_url: Optional[str] = None
     weight_kg: Optional[float] = None
     allergies: Optional[str] = None
-
-    @field_validator("photo_url")
-    @classmethod
-    def validate_photo_url(cls, value: Optional[str]) -> Optional[str]:
-        return _normalize_photo_url(value)
 
 
 class PetOut(BaseModel):
@@ -116,7 +85,6 @@ class PetOut(BaseModel):
     breed: Optional[str] = None
     birth_date: Optional[date] = None
     chip_id: Optional[str] = None
-    photo_url: Optional[str] = None
     weight_kg: Optional[float] = None
     allergies: Optional[str] = None
     created_at: datetime

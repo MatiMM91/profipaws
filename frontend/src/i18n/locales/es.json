@@ -91,14 +91,7 @@
     "chronicNotes": "Notas (opcional)",
     "chronicEmpty": "Ninguna registrada",
     "chronicAdd": "Añadir",
-    "deleteChronic": "¿Borrar esta enfermedad crónica?",
-    "addPhoto": "Añadir foto",
-    "changePhoto": "Cambiar foto",
-    "removePhoto": "Quitar foto",
-    "removePhotoConfirm": "¿Quitar la foto de la mascota?",
-    "photoHint": "Opcional · se comprime automáticamente",
-    "photoUploading": "Subiendo foto…",
-    "photoError": "No se pudo procesar la foto. Prueba con otra imagen."
+    "deleteChronic": "¿Borrar esta enfermedad crónica?"
   },
   "log": {
     "back": "Volver al perfil",
@@ -155,8 +148,7 @@
       "1 mascota",
       "Historial médico, vacunas y diario",
       "Calendario de recordatorios",
-      "Acceso temporal PIN/QR para el vet",
-      "Foto de perfil de la mascota"
+      "Acceso temporal PIN/QR para el vet"
     ],
     "proFeatures": [
       "Mascotas ilimitadas",

@@ -23,11 +23,10 @@ settings = get_settings()
 def _ensure_schema_updates() -> None:
     """Lightweight column upgrades until Alembic is wired."""
     with engine.begin() as conn:
-        dialect = engine.dialect.name
-        if dialect == "postgresql":
-            conn.execute(text("ALTER TABLE pets ALTER COLUMN photo_url TYPE TEXT"))
-        elif dialect == "sqlite":
-            # SQLite string affinity already accepts long values; no-op.
+        # Drop stored pet photos (no longer part of the product; frees DB space).
+        try:
+            conn.execute(text("UPDATE pets SET photo_url = NULL WHERE photo_url IS NOT NULL"))
+        except Exception:
             pass
 
 

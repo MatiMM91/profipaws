@@ -91,14 +91,7 @@
     "chronicNotes": "Notes (optional)",
     "chronicEmpty": "None registered",
     "chronicAdd": "Add",
-    "deleteChronic": "Delete this chronic condition?",
-    "addPhoto": "Add photo",
-    "changePhoto": "Change photo",
-    "removePhoto": "Remove photo",
-    "removePhotoConfirm": "Remove this pet's photo?",
-    "photoHint": "Optional · compressed automatically",
-    "photoUploading": "Uploading photo…",
-    "photoError": "Could not process the photo. Try another image."
+    "deleteChronic": "Delete this chronic condition?"
   },
   "log": {
     "back": "Back to profile",
@@ -155,8 +148,7 @@
       "1 pet",
       "Medical history, vaccines & diary",
       "Reminder calendar",
-      "Temporary vet PIN/QR access",
-      "Pet profile photo"
+      "Temporary vet PIN/QR access"
     ],
     "proFeatures": [
       "Unlimited pets",
