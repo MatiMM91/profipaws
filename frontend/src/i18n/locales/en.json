@@ -102,7 +102,7 @@
     "proRequired": "This is a Pro feature. Upgrade your plan to use it.",
     "upcomingAlerts": "Upcoming alerts (14 days)",
     "noUpcomingAlerts": "Nothing due in the next 14 days.",
-    "alertsHint": "Calendar reminders can also be emailed (Pro) when SMTP is configured."
+    "alertsHint": "Calendar reminders can also be emailed (Pro) when Resend is configured."
   },
   "log": {
     "back": "Back to profile",

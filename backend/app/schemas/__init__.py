@@ -1,12 +1,26 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
+from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_serializer, field_validator
 from app.models import (
     SubscriptionTier,
     SubscriptionStatus,
     EventType,
     RecordType,
 )
+
+
+def _as_utc_iso(value: datetime) -> str:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    else:
+        value = value.astimezone(timezone.utc)
+    return value.isoformat().replace("+00:00", "Z")
+
+
+def _to_utc_naive(value: datetime) -> datetime:
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value
 
 
 # --- Auth ---
@@ -168,6 +182,11 @@ class CalendarEventCreate(BaseModel):
     description: Optional[str] = None
     scheduled_at: datetime
 
+    @field_validator("scheduled_at")
+    @classmethod
+    def utc_naive_scheduled_at(cls, value: datetime) -> datetime:
+        return _to_utc_naive(value)
+
 
 class CalendarEventUpdate(BaseModel):
     event_type: Optional[EventType] = None
@@ -175,6 +194,11 @@ class CalendarEventUpdate(BaseModel):
     description: Optional[str] = None
     scheduled_at: Optional[datetime] = None
     completed: Optional[bool] = None
+
+    @field_validator("scheduled_at")
+    @classmethod
+    def utc_naive_scheduled_at(cls, value: Optional[datetime]) -> Optional[datetime]:
+        return _to_utc_naive(value) if value is not None else None
 
 
 class CalendarEventOut(BaseModel):
@@ -187,6 +211,10 @@ class CalendarEventOut(BaseModel):
     description: Optional[str] = None
     scheduled_at: datetime
     completed: bool
+
+    @field_serializer("scheduled_at")
+    def serialize_scheduled_at(self, value: datetime) -> str:
+        return _as_utc_iso(value)
 
 
 class DailyLogCreate(BaseModel):

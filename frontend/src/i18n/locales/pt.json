@@ -102,7 +102,7 @@
     "proRequired": "Esta função é Pro. Melhore o plano para a usar.",
     "upcomingAlerts": "Alertas próximas (14 dias)",
     "noUpcomingAlerts": "Nada pendente nos próximos 14 dias.",
-    "alertsHint": "Os lembretes do calendário também podem ser enviados por email (Pro) quando o SMTP estiver configurado."
+    "alertsHint": "Os lembretes do calendário também podem ser enviados por email (Pro) com Resend configurado."
   },
   "log": {
     "back": "Voltar ao perfil",

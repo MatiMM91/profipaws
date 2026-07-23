@@ -30,11 +30,25 @@ function authHeaders() {
   }
 }
 
+function parseApiDate(iso) {
+  if (!iso) return null
+  // Backend stores UTC as naive datetimes; treat missing TZ as UTC.
+  const s = /Z$|[+-]\d{2}:?\d{2}$/.test(iso) ? iso : `${iso}Z`
+  return new Date(s)
+}
+
 function toLocalInput(iso) {
   if (!iso) return ''
-  const d = new Date(iso)
+  const d = parseApiDate(iso)
+  if (!d || Number.isNaN(d.getTime())) return ''
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function formatLocalDateTime(iso, locale) {
+  const d = parseApiDate(iso)
+  if (!d || Number.isNaN(d.getTime())) return ''
+  return d.toLocaleString(locale)
 }
 
 const emptyPetEdit = {
@@ -432,7 +446,7 @@ export default function PetProfile() {
                     <li key={`${a.kind}-${a.id}`} className="text-xs text-cyan-900 dark:text-cyan-100">
                       <span className="font-medium">{a.title}</span>
                       <span className="text-cyan-600 dark:text-cyan-400">
-                        {' '}· {a.kind === 'vaccine' ? t('pet.vaccine') : t('pet.appointment')} · {String(a.due_at).slice(0, 10)}
+                        {' '}· {a.kind === 'vaccine' ? t('pet.vaccine') : t('pet.appointment')} · {formatLocalDateTime(a.due_at, i18n.language) || String(a.due_at).slice(0, 16)}
                       </span>
                     </li>
                   ))}
@@ -750,7 +764,7 @@ export default function PetProfile() {
                   <div>
                     <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-medium uppercase text-teal-800">{ev.event_type}</span>
                     <strong className="ml-2 text-cyan-900 dark:text-cyan-100">{ev.title}</strong>
-                    <span className="text-cyan-600"> · {new Date(ev.scheduled_at).toLocaleString(i18n.language)}</span>
+                    <span className="text-cyan-600"> · {formatLocalDateTime(ev.scheduled_at, i18n.language)}</span>
                   </div>
                   <div className="flex gap-2">
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingEventId(ev.id); setEventEdit({ event_type: ev.event_type, title: ev.title, scheduled_at: toLocalInput(ev.scheduled_at), completed: ev.completed }) }}>
