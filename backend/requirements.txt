@@ -12,4 +12,5 @@ pydantic[email]==2.11.3
 pydantic-settings==2.9.1
 passlib[bcrypt]==1.7.4
 qrcode[pil]==8.2
+reportlab==4.4.0
 alembic==1.15.2

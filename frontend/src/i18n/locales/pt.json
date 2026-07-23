@@ -66,7 +66,7 @@
     "records": "Histórico médico",
     "noRecords": "Sem registos médicos.",
     "calendar": "Calendário / lembretes",
-    "calendarHint": "Disponível no Free e no Pro. Os alertas automatizados por email/push fazem parte do plano Pro.",
+    "calendarHint": "Calendário disponível no Free e no Pro. Alertas próximas e emails são Pro.",
     "noEvents": "Ainda sem lembretes.",
     "title": "Título",
     "exam": "Exame",
@@ -91,7 +91,18 @@
     "chronicNotes": "Notas (opcional)",
     "chronicEmpty": "Nenhuma registada",
     "chronicAdd": "Adicionar",
-    "deleteChronic": "Apagar esta doença crónica?"
+    "deleteChronic": "Apagar esta doença crónica?",
+    "proTools": "Ferramentas Pro",
+    "upgradeForPro": "Passar a Pro",
+    "proToolsHint": "Exportação JSON/PDF e alertas próximas estão incluídas no Pro.",
+    "exportJson": "Exportar JSON",
+    "exportPdf": "Exportar PDF",
+    "exporting": "A exportar…",
+    "exportError": "Não foi possível exportar",
+    "proRequired": "Esta função é Pro. Melhore o plano para a usar.",
+    "upcomingAlerts": "Alertas próximas (14 dias)",
+    "noUpcomingAlerts": "Nada pendente nos próximos 14 dias.",
+    "alertsHint": "Os lembretes do calendário também podem ser enviados por email (Pro) quando o SMTP estiver configurado."
   },
   "log": {
     "back": "Voltar ao perfil",
@@ -152,9 +163,9 @@
     ],
     "proFeatures": [
       "Pets ilimitados",
-      "Alertas automatizados (email/push)",
-      "Exportação de relatórios (JSON/PDF)",
-      "Tudo do plano Grátis",
+      "Alertas próximas na app (vacinas e consultas)",
+      "Emails de lembrete (com SMTP)",
+      "Exportação JSON e PDF do passaporte",
       "Prioridade em novas funções clínicas"
     ],
     "stripeMissing": "O pagamento ainda não está configurado. Tente mais tarde ou contacte o suporte."

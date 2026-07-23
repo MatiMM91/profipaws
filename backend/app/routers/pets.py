@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import (
@@ -36,6 +36,8 @@ from app.schemas import (
     PetExportOut,
 )
 from app.services.auth import get_current_user, generate_access_pin
+from app.services.billing import require_pro
+from app.services.pdf_export import build_pet_passport_pdf
 
 router = APIRouter(prefix="/pets", tags=["Pets"])
 
@@ -517,11 +519,31 @@ def delete_condition(
 @router.get("/{pet_id}/export", response_model=PetExportOut)
 def export_pet(
     pet_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_pro),
     db: Session = Depends(get_db),
 ):
+    """Pro: JSON medical passport export."""
     pet = _get_owned_pet(db, pet_id, current_user)
     return _export_pet(db, pet)
+
+
+@router.get("/{pet_id}/export/pdf")
+def export_pet_pdf(
+    pet_id: int,
+    current_user: User = Depends(require_pro),
+    db: Session = Depends(get_db),
+):
+    """Pro: PDF medical passport export."""
+    pet = _get_owned_pet(db, pet_id, current_user)
+    dossier = _export_pet(db, pet)
+    payload = dossier.model_dump(mode="json")
+    pdf_bytes = build_pet_passport_pdf(payload)
+    filename = f"profipaws-{pet.name.lower().replace(' ', '-')}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 def _export_pet(db: Session, pet: Pet) -> PetExportOut:

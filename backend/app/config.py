@@ -32,6 +32,14 @@ class Settings(BaseSettings):
     # When true: reject login and authenticated API calls (public landing only)
     maintenance_mode: bool = False
 
+    # Email alerts (optional — dispatch marks skipped if SMTP unset)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
+    alerts_cron_secret: str = ""
 
     # CORS
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"

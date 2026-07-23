@@ -15,7 +15,8 @@ from app.models import (  # noqa: F401 — ensure models are registered
     ChronicCondition,
     ClinicApiKey,
 )
-from app.routers import auth, pets, subscriptions, external
+from app.routers import auth, pets, subscriptions, external, alerts
+
 
 settings = get_settings()
 
@@ -63,6 +64,7 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(pets.router, prefix="/api")
 app.include_router(subscriptions.router, prefix="/api")
+app.include_router(alerts.router, prefix="/api")
 app.include_router(external.router)
 app.include_router(external.external)
 

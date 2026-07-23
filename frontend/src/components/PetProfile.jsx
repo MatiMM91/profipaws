@@ -15,6 +15,9 @@ import {
   Check,
   X,
   Activity,
+  Download,
+  Bell,
+  Sparkles,
 } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -52,6 +55,9 @@ export default function PetProfile() {
   const [records, setRecords] = useState([])
   const [events, setEvents] = useState([])
   const [conditions, setConditions] = useState([])
+  const [isPro, setIsPro] = useState(false)
+  const [alerts, setAlerts] = useState([])
+  const [exportBusy, setExportBusy] = useState('')
   const [editingPet, setEditingPet] = useState(false)
   const [form, setForm] = useState(emptyPetEdit)
   const [saving, setSaving] = useState(false)
@@ -81,12 +87,13 @@ export default function PetProfile() {
   const [conditionEdit, setConditionEdit] = useState({})
 
   async function load() {
-    const [petRes, vacRes, recRes, evRes, condRes] = await Promise.all([
+    const [petRes, vacRes, recRes, evRes, condRes, subRes] = await Promise.all([
       fetch(`${API_URL}/api/pets/${id}`, { headers: authHeaders() }),
       fetch(`${API_URL}/api/pets/${id}/vaccines`, { headers: authHeaders() }),
       fetch(`${API_URL}/api/pets/${id}/records`, { headers: authHeaders() }),
       fetch(`${API_URL}/api/pets/${id}/events`, { headers: authHeaders() }),
       fetch(`${API_URL}/api/pets/${id}/conditions`, { headers: authHeaders() }),
+      fetch(`${API_URL}/api/subscriptions/me`, { headers: authHeaders() }),
     ])
     if (petRes.ok) {
       const data = await petRes.json()
@@ -105,6 +112,28 @@ export default function PetProfile() {
     if (recRes.ok) setRecords(await recRes.json())
     if (evRes.ok) setEvents(await evRes.json())
     if (condRes.ok) setConditions(await condRes.json())
+
+    let pro = false
+    if (subRes.ok) {
+      const sub = await subRes.json()
+      pro = sub.tier === 'pro' || sub.tier === 'PRO'
+      setIsPro(pro)
+    } else {
+      setIsPro(false)
+    }
+
+    if (pro) {
+      const alertRes = await fetch(`${API_URL}/api/alerts/upcoming?days=14`, { headers: authHeaders() })
+      if (alertRes.ok) {
+        const data = await alertRes.json()
+        const mine = (data.items || []).filter((a) => String(a.pet_id) === String(id))
+        setAlerts(mine)
+      } else {
+        setAlerts([])
+      }
+    } else {
+      setAlerts([])
+    }
   }
 
   useEffect(() => {
@@ -136,6 +165,40 @@ export default function PetProfile() {
     }
     setPet(await res.json())
     setEditingPet(false)
+  }
+
+  async function downloadExport(format) {
+    setExportBusy(format)
+    setError('')
+    const path = format === 'pdf' ? 'export/pdf' : 'export'
+    const res = await fetch(`${API_URL}/api/pets/${id}/${path}`, { headers: authHeaders() })
+    setExportBusy('')
+    if (res.status === 402) {
+      setError(t('pet.proRequired'))
+      return
+    }
+    if (!res.ok) {
+      setError(t('pet.exportError'))
+      return
+    }
+    if (format === 'pdf') {
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `profipaws-${pet?.name || id}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+      return
+    }
+    const data = await res.json()
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `profipaws-${pet?.name || id}.json`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function addVaccine(e) {
@@ -322,6 +385,64 @@ export default function PetProfile() {
           >
             <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
           </button>
+        </div>
+
+        {error && !editingPet && <p className="mt-3 text-sm text-red-600">{error}</p>}
+
+        {/* Pro tools: export + upcoming alerts */}
+        <div className="mt-5 rounded-xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-800 dark:bg-cyan-950/40">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
+              <Sparkles size={13} /> {t('pet.proTools')}
+            </p>
+            {!isPro && (
+              <Link to="/pricing" className="text-xs font-medium text-cyan-700 underline-offset-2 hover:underline dark:text-cyan-300">
+                {t('pet.upgradeForPro')}
+              </Link>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn-secondary px-3 py-1.5 text-xs"
+              disabled={!isPro || !!exportBusy}
+              onClick={() => downloadExport('json')}
+            >
+              <Download size={12} /> {exportBusy === 'json' ? t('pet.exporting') : t('pet.exportJson')}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary px-3 py-1.5 text-xs"
+              disabled={!isPro || !!exportBusy}
+              onClick={() => downloadExport('pdf')}
+            >
+              <FileText size={12} /> {exportBusy === 'pdf' ? t('pet.exporting') : t('pet.exportPdf')}
+            </button>
+          </div>
+          {isPro ? (
+            <div className="mt-4 border-t border-cyan-100 pt-3 dark:border-cyan-800">
+              <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-800 dark:text-cyan-200">
+                <Bell size={13} /> {t('pet.upcomingAlerts')}
+              </p>
+              {alerts.length === 0 ? (
+                <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('pet.noUpcomingAlerts')}</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {alerts.map((a) => (
+                    <li key={`${a.kind}-${a.id}`} className="text-xs text-cyan-900 dark:text-cyan-100">
+                      <span className="font-medium">{a.title}</span>
+                      <span className="text-cyan-600 dark:text-cyan-400">
+                        {' '}· {a.kind === 'vaccine' ? t('pet.vaccine') : t('pet.appointment')} · {String(a.due_at).slice(0, 10)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-2 text-[11px] text-cyan-600/80 dark:text-cyan-400/80">{t('pet.alertsHint')}</p>
+            </div>
+          ) : (
+            <p className="mt-3 text-xs text-cyan-700 dark:text-cyan-300">{t('pet.proToolsHint')}</p>
+          )}
         </div>
 
         {!editingPet && (

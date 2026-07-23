@@ -66,7 +66,7 @@
     "records": "Medical history",
     "noRecords": "No medical records.",
     "calendar": "Calendar / reminders",
-    "calendarHint": "Available on Free and Pro. Automated email/push alerts are part of Pro.",
+    "calendarHint": "Calendar available on Free and Pro. Upcoming alerts and emails are Pro.",
     "noEvents": "No reminders yet.",
     "title": "Title",
     "exam": "Exam",
@@ -91,7 +91,18 @@
     "chronicNotes": "Notes (optional)",
     "chronicEmpty": "None registered",
     "chronicAdd": "Add",
-    "deleteChronic": "Delete this chronic condition?"
+    "deleteChronic": "Delete this chronic condition?",
+    "proTools": "Pro tools",
+    "upgradeForPro": "Upgrade to Pro",
+    "proToolsHint": "JSON/PDF export and upcoming alerts are included with Pro.",
+    "exportJson": "Export JSON",
+    "exportPdf": "Export PDF",
+    "exporting": "Exporting…",
+    "exportError": "Could not export",
+    "proRequired": "This is a Pro feature. Upgrade your plan to use it.",
+    "upcomingAlerts": "Upcoming alerts (14 days)",
+    "noUpcomingAlerts": "Nothing due in the next 14 days.",
+    "alertsHint": "Calendar reminders can also be emailed (Pro) when SMTP is configured."
   },
   "log": {
     "back": "Back to profile",
@@ -152,9 +163,9 @@
     ],
     "proFeatures": [
       "Unlimited pets",
-      "Automated alerts (email/push)",
-      "Report export (JSON/PDF)",
-      "Everything in Free",
+      "Upcoming alerts in-app (vaccines & appointments)",
+      "Reminder emails (with SMTP)",
+      "JSON and PDF passport export",
       "Priority access to clinic features"
     ],
     "stripeMissing": "Payments are not configured yet. Try again shortly or contact support."
