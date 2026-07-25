@@ -43,6 +43,13 @@
     "history": "Histórico",
     "dog": "Cão",
     "cat": "Gato",
+    "bird": "Ave",
+    "rabbit": "Coelho",
+    "hamster": "Hamster",
+    "guinea_pig": "Porquinho-da-índia",
+    "fish": "Peixe",
+    "turtle": "Tartaruga",
+    "ferret": "Furão",
     "other": "Outro",
     "loading": "A carregar dashboard…",
     "createError": "Não foi possível criar o pet"

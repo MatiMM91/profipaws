@@ -20,7 +20,7 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react'
-import SpeciesIcon from './SpeciesIcon'
+import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 import PetSharePanel from './PetSharePanel'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -516,9 +516,9 @@ export default function PetProfile() {
           <form onSubmit={savePet} className="mt-5 grid gap-3 sm:grid-cols-2">
             <input className="field px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
             <select className="field px-3 py-2 text-sm" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
-              <option value="dog">{t('dashboard.dog')}</option>
-              <option value="cat">{t('dashboard.cat')}</option>
-              <option value="other">{t('dashboard.other')}</option>
+              {SPECIES_OPTIONS.map((key) => (
+                <option key={key} value={key}>{t(`dashboard.${key}`)}</option>
+              ))}
             </select>
             <input className="field px-3 py-2 text-sm" placeholder={t('pet.breed')} value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
             <input type="date" className="field px-3 py-2 text-sm" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />

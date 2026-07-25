@@ -43,6 +43,13 @@
     "history": "Historial",
     "dog": "Perro",
     "cat": "Gato",
+    "bird": "Ave",
+    "rabbit": "Conejo",
+    "hamster": "Hámster",
+    "guinea_pig": "Cobaya",
+    "fish": "Pez",
+    "turtle": "Tortuga",
+    "ferret": "Hurón",
     "other": "Otro",
     "loading": "Cargando dashboard…",
     "createError": "No se pudo crear la mascota"

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, PawPrint, Syringe, BookOpen, QrCode, Users } from 'lucide-react'
-import SpeciesIcon from './SpeciesIcon'
+import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -92,9 +92,9 @@ export default function Dashboard() {
         <form onSubmit={createPet} className="surface grid gap-3 p-5 sm:grid-cols-2">
           <input className="field" placeholder={t('dashboard.name')} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
           <select className="field" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
-            <option value="dog">{t('dashboard.dog')}</option>
-            <option value="cat">{t('dashboard.cat')}</option>
-            <option value="other">{t('dashboard.other')}</option>
+            {SPECIES_OPTIONS.map((key) => (
+              <option key={key} value={key}>{t(`dashboard.${key}`)}</option>
+            ))}
           </select>
           <input className="field" placeholder={t('dashboard.breed')} value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
           <input className="field" placeholder={t('dashboard.chip')} value={form.chip_id} onChange={(e) => setForm({ ...form, chip_id: e.target.value })} />

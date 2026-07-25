@@ -43,6 +43,13 @@
     "history": "History",
     "dog": "Dog",
     "cat": "Cat",
+    "bird": "Bird",
+    "rabbit": "Rabbit",
+    "hamster": "Hamster",
+    "guinea_pig": "Guinea pig",
+    "fish": "Fish",
+    "turtle": "Turtle",
+    "ferret": "Ferret",
     "other": "Other",
     "loading": "Loading dashboard…",
     "createError": "Could not create the pet"
