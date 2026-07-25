@@ -110,7 +110,7 @@
     "upgradeForPro": "Pasar a Pro",
     "proToolsHint": "Exportación JSON/PDF y alertas próximas están incluidas en Pro.",
     "exportProHint": "Exportar PDF y JSON requiere plan Pro.",
-    "alertsProHint": "Las alertas próximas están una función Pro.",
+    "alertsProHint": "Las alertas próximas son una función Pro.",
     "exportJson": "Exportar JSON",
     "exportPdf": "Exportar PDF",
     "exporting": "Exportando…",
