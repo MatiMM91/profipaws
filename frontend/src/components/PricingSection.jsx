@@ -1,13 +1,48 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, Sparkles } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
+function authHeaders() {
+  const token = localStorage.getItem('profipaws_token')
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  }
+}
+
 export default function PricingSection() {
   const { t } = useTranslation()
   const [billing, setBilling] = useState('yearly') // yearly default = better perceived value
   const [busy, setBusy] = useState(false)
+  const [tier, setTier] = useState(null) // null while loading / logged out
+
+  useEffect(() => {
+    const token = localStorage.getItem('profipaws_token')
+    if (!token) {
+      setTier('guest')
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/subscriptions/me`, { headers: authHeaders() })
+        if (!res.ok) {
+          if (!cancelled) setTier('free')
+          return
+        }
+        const data = await res.json()
+        const value = String(data.tier || 'free').toLowerCase()
+        if (!cancelled) setTier(value === 'pro' ? 'pro' : 'free')
+      } catch {
+        if (!cancelled) setTier('free')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function startCheckout() {
     const token = localStorage.getItem('profipaws_token')
@@ -38,6 +73,8 @@ export default function PricingSection() {
   }
 
   const isYearly = billing === 'yearly'
+  const isPro = tier === 'pro'
+  const isFree = tier === 'free'
   const proPrice = isYearly ? t('pricing.proPriceYearly') : t('pricing.proPriceMonthly')
   const proPeriod = isYearly ? t('pricing.perYear') : t('pricing.perMonth')
   const proNote = isYearly ? t('pricing.yearlyNote') : t('pricing.monthlyNote')
@@ -87,7 +124,18 @@ export default function PricingSection() {
 
       <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
         {/* Free */}
-        <article className="rounded-2xl border border-cyan-100 bg-white p-7 text-cyan-950 dark:border-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-50">
+        <article
+          className={`rounded-2xl border bg-white p-7 text-cyan-950 dark:bg-cyan-900/40 dark:text-cyan-50 ${
+            isFree
+              ? 'border-cyan-500 ring-2 ring-cyan-400/40 dark:border-cyan-400'
+              : 'border-cyan-100 dark:border-cyan-800'
+          }`}
+        >
+          {isFree && (
+            <span className="mb-3 inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-800 dark:bg-cyan-800 dark:text-cyan-100">
+              {t('pricing.yourPlan')}
+            </span>
+          )}
           <h2 className="font-display text-2xl font-bold">{t('pricing.free')}</h2>
           <p className="mt-2">
             <span className="text-4xl font-bold">{t('pricing.freePrice')}</span>
@@ -102,15 +150,31 @@ export default function PricingSection() {
               </li>
             ))}
           </ul>
-          <div className="mt-8 w-full rounded-lg border border-cyan-200 px-4 py-2.5 text-center text-sm font-semibold text-cyan-700 dark:border-cyan-700 dark:text-cyan-200">
-            {t('pricing.currentPlan')}
+          <div
+            className={`mt-8 w-full rounded-lg border px-4 py-2.5 text-center text-sm font-semibold ${
+              isFree
+                ? 'border-cyan-500 bg-cyan-50 text-cyan-800 dark:border-cyan-400 dark:bg-cyan-950/60 dark:text-cyan-100'
+                : 'border-cyan-200 text-cyan-700 dark:border-cyan-700 dark:text-cyan-200'
+            }`}
+          >
+            {isFree ? t('pricing.currentPlan') : t('pricing.freeIncluded')}
           </div>
         </article>
 
         {/* Pro */}
-        <article className="rounded-2xl border border-cyan-500 bg-gradient-to-b from-cyan-600 to-cyan-800 p-7 text-white shadow-lg shadow-cyan-900/20">
+        <article
+          className={`rounded-2xl border bg-gradient-to-b from-cyan-600 to-cyan-800 p-7 text-white shadow-lg shadow-cyan-900/20 ${
+            isPro ? 'border-white ring-2 ring-white/50' : 'border-cyan-500'
+          }`}
+        >
           <span className="mb-3 inline-flex items-center gap-1 rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-semibold text-cyan-100">
-            <Sparkles size={12} /> {t('pricing.recommended')}
+            {isPro ? (
+              t('pricing.yourPlan')
+            ) : (
+              <>
+                <Sparkles size={12} /> {t('pricing.recommended')}
+              </>
+            )}
           </span>
           <h2 className="font-display text-2xl font-bold">{t('pricing.pro')}</h2>
           <p className="mt-2">
@@ -126,15 +190,23 @@ export default function PricingSection() {
               </li>
             ))}
           </ul>
-          <button
-            type="button"
-            onClick={startCheckout}
-            disabled={busy}
-            className="mt-8 w-full rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-50 disabled:opacity-60"
-          >
-            {busy ? t('pricing.redirecting') : t('pricing.upgrade')}
-          </button>
-          <p className="mt-3 text-center text-xs text-cyan-100/70">{t('pricing.cancelAnytime')}</p>
+          {isPro ? (
+            <div className="mt-8 w-full rounded-lg border border-white/40 bg-white/15 px-4 py-2.5 text-center text-sm font-semibold text-white">
+              {t('pricing.currentPlan')}
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={startCheckout}
+                disabled={busy || tier === null}
+                className="mt-8 w-full rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-50 disabled:opacity-60"
+              >
+                {busy ? t('pricing.redirecting') : t('pricing.upgrade')}
+              </button>
+              <p className="mt-3 text-center text-xs text-cyan-100/70">{t('pricing.cancelAnytime')}</p>
+            </>
+          )}
         </article>
       </div>
 
