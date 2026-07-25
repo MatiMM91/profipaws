@@ -18,6 +18,7 @@ import {
   Bell,
   Sparkles,
   Users,
+  QrCode,
 } from 'lucide-react'
 import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 import PetSharePanel from './PetSharePanel'
@@ -410,61 +411,22 @@ export default function PetProfile() {
 
         {error && !editingPet && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
-        {/* Pro tools: export + upcoming alerts */}
-        <div className="mt-5 rounded-xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-800 dark:bg-cyan-950/40">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
-              <Sparkles size={13} /> {t('pet.proTools')}
-            </p>
-            {!isPro && (
-              <Link to="/pricing" className="text-xs font-medium text-cyan-700 underline-offset-2 hover:underline dark:text-cyan-300">
-                {t('pet.upgradeForPro')}
-              </Link>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="btn-secondary px-3 py-1.5 text-xs"
-              disabled={!isPro || !!exportBusy}
-              onClick={() => downloadExport('json')}
-            >
-              <Download size={12} /> {exportBusy === 'json' ? t('pet.exporting') : t('pet.exportJson')}
-            </button>
-            <button
-              type="button"
-              className="btn-secondary px-3 py-1.5 text-xs"
-              disabled={!isPro || !!exportBusy}
-              onClick={() => downloadExport('pdf')}
-            >
-              <FileText size={12} /> {exportBusy === 'pdf' ? t('pet.exporting') : t('pet.exportPdf')}
-            </button>
-          </div>
-          {isPro ? (
-            <div className="mt-4 border-t border-cyan-100 pt-3 dark:border-cyan-800">
-              <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-800 dark:text-cyan-200">
-                <Bell size={13} /> {t('pet.upcomingAlerts')}
-              </p>
-              {alerts.length === 0 ? (
-                <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('pet.noUpcomingAlerts')}</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {alerts.map((a) => (
-                    <li key={`${a.kind}-${a.id}`} className="text-xs text-cyan-900 dark:text-cyan-100">
-                      <span className="font-medium">{a.title}</span>
-                      <span className="text-cyan-600 dark:text-cyan-400">
-                        {' '}· {a.kind === 'vaccine' ? t('pet.vaccine') : t('pet.appointment')} · {formatLocalDateTime(a.due_at, i18n.language) || String(a.due_at).slice(0, 16)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-2 text-[11px] text-cyan-600/80 dark:text-cyan-400/80">{t('pet.alertsHint')}</p>
-            </div>
-          ) : (
-            <p className="mt-3 text-xs text-cyan-700 dark:text-cyan-300">{t('pet.proToolsHint')}</p>
-          )}
-        </div>
+        {editingPet && (
+          <form onSubmit={savePet} className="mt-5 grid gap-3 sm:grid-cols-2">
+            <input className="field px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+            <select className="field px-3 py-2 text-sm" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
+              {SPECIES_OPTIONS.map((key) => (
+                <option key={key} value={key}>{t(`dashboard.${key}`)}</option>
+              ))}
+            </select>
+            <input className="field px-3 py-2 text-sm" placeholder={t('pet.breed')} value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
+            <input type="date" className="field px-3 py-2 text-sm" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
+            <input className="field px-3 py-2 text-sm" placeholder={t('pet.chipPlaceholder')} value={form.chip_id} onChange={(e) => setForm({ ...form, chip_id: e.target.value })} />
+            <input type="number" step="0.1" className="field px-3 py-2 text-sm" placeholder={t('pet.weight')} value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
+            {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
+            <button type="submit" className="btn-primary sm:col-span-2" disabled={saving}>{saving ? t('pet.saving') : t('pet.saveChanges')}</button>
+          </form>
+        )}
 
         {!editingPet && (
           <div className="mt-4 flex flex-wrap gap-4 text-sm text-cyan-800 dark:text-cyan-200">
@@ -485,24 +447,7 @@ export default function PetProfile() {
           </div>
         )}
 
-        {editingPet && (
-          <form onSubmit={savePet} className="mt-5 grid gap-3 sm:grid-cols-2">
-            <input className="field px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <select className="field px-3 py-2 text-sm" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
-              {SPECIES_OPTIONS.map((key) => (
-                <option key={key} value={key}>{t(`dashboard.${key}`)}</option>
-              ))}
-            </select>
-            <input className="field px-3 py-2 text-sm" placeholder={t('pet.breed')} value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
-            <input type="date" className="field px-3 py-2 text-sm" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
-            <input className="field px-3 py-2 text-sm" placeholder={t('pet.chipPlaceholder')} value={form.chip_id} onChange={(e) => setForm({ ...form, chip_id: e.target.value })} />
-            <input type="number" step="0.1" className="field px-3 py-2 text-sm" placeholder={t('pet.weight')} value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
-            {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
-            <button type="submit" className="btn-primary sm:col-span-2" disabled={saving}>{saving ? t('pet.saving') : t('pet.saveChanges')}</button>
-          </form>
-        )}
-
-        {/* Allergies — same chip pattern as chronic conditions */}
+        {/* Allergies */}
         <div className="mt-5 border-t border-cyan-100 pt-4 dark:border-cyan-800">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-700/90 dark:text-amber-300/90">
@@ -600,7 +545,7 @@ export default function PetProfile() {
           )}
         </div>
 
-        {/* Chronic conditions — compact chips inside profile card */}
+        {/* Chronic conditions */}
         <div className="mt-5 border-t border-cyan-100 pt-4 dark:border-cyan-800">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-rose-700/80 dark:text-rose-300/90">
@@ -714,13 +659,79 @@ export default function PetProfile() {
           )}
         </div>
 
-        <div className="mt-5 flex flex-wrap gap-2">
-          {isOwner && (
-            <Link to={`/pets/${id}/vet-access`} className="btn-primary text-sm">{t('pet.vetAccess')}</Link>
+        {/* Tools: vet, exports, share */}
+        <div className="mt-5 rounded-xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-800 dark:bg-cyan-950/40">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
+              <Sparkles size={13} /> {t('pet.tools')}
+            </p>
+            {!isPro && (
+              <Link to="/pricing" className="text-xs font-medium text-cyan-700 underline-offset-2 hover:underline dark:text-cyan-300">
+                {t('pet.upgradeForPro')}
+              </Link>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {isOwner && (
+              <Link to={`/pets/${id}/vet-access`} className="btn-primary px-3 py-1.5 text-xs">
+                <QrCode size={12} /> {t('pet.vetAccess')}
+              </Link>
+            )}
+            <button
+              type="button"
+              className="btn-secondary px-3 py-1.5 text-xs"
+              disabled={!isPro || !!exportBusy}
+              onClick={() => downloadExport('pdf')}
+            >
+              <FileText size={12} /> {exportBusy === 'pdf' ? t('pet.exporting') : t('pet.exportPdf')}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary px-3 py-1.5 text-xs"
+              disabled={!isPro || !!exportBusy}
+              onClick={() => downloadExport('json')}
+            >
+              <Download size={12} /> {exportBusy === 'json' ? t('pet.exporting') : t('pet.exportJson')}
+            </button>
+          </div>
+          {!isPro && (
+            <p className="mt-3 text-xs text-cyan-700 dark:text-cyan-300">{t('pet.exportProHint')}</p>
           )}
+          {isOwner && <PetSharePanel petId={id} embedded />}
         </div>
 
-        {isOwner && <PetSharePanel petId={id} />}
+        {/* Upcoming alerts */}
+        <div className="mt-5 rounded-xl border border-cyan-100 bg-white/70 p-4 dark:border-cyan-800 dark:bg-cyan-950/30">
+          <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
+            <Bell size={13} /> {t('pet.upcomingAlerts')}
+          </p>
+          {isPro ? (
+            <>
+              {alerts.length === 0 ? (
+                <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('pet.noUpcomingAlerts')}</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {alerts.map((a) => (
+                    <li key={`${a.kind}-${a.id}`} className="text-xs text-cyan-900 dark:text-cyan-100">
+                      <span className="font-medium">{a.title}</span>
+                      <span className="text-cyan-600 dark:text-cyan-400">
+                        {' '}· {a.kind === 'vaccine' ? t('pet.vaccine') : t('pet.appointment')} · {formatLocalDateTime(a.due_at, i18n.language) || String(a.due_at).slice(0, 16)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-2 text-[11px] text-cyan-600/80 dark:text-cyan-400/80">{t('pet.alertsHint')}</p>
+            </>
+          ) : (
+            <p className="text-xs text-cyan-700 dark:text-cyan-300">
+              {t('pet.alertsProHint')}{' '}
+              <Link to="/pricing" className="font-medium underline-offset-2 hover:underline">
+                {t('pet.upgradeForPro')}
+              </Link>
+            </p>
+          )}
+        </div>
       </div>
 
       <PetHistorial

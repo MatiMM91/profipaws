@@ -12,7 +12,7 @@ function authHeaders() {
   }
 }
 
-export default function PetSharePanel({ petId }) {
+export default function PetSharePanel({ petId, embedded = false }) {
   const { t } = useTranslation()
   const [shares, setShares] = useState([])
   const [email, setEmail] = useState('')
@@ -69,7 +69,7 @@ export default function PetSharePanel({ petId }) {
   }
 
   return (
-    <div className="mt-5 rounded-xl border border-cyan-100 bg-white/70 p-4 dark:border-cyan-800 dark:bg-cyan-950/30">
+    <div className={embedded ? 'mt-3 border-t border-cyan-100 pt-3 dark:border-cyan-800' : 'mt-5 rounded-xl border border-cyan-100 bg-white/70 p-4 dark:border-cyan-800 dark:bg-cyan-950/30'}>
       <button
         type="button"
         className="inline-flex items-center gap-1.5 text-sm font-semibold text-cyan-900 dark:text-cyan-100"
