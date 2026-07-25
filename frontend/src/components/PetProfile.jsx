@@ -714,14 +714,24 @@ export default function PetProfile() {
                 <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('pet.noUpcomingAlerts')}</p>
               ) : (
                 <ul className="space-y-1.5">
-                  {alerts.map((a) => (
+                  {alerts.map((a) => {
+                    const typeKey =
+                      a.kind === 'vaccine' || a.event_type === 'vaccine'
+                        ? 'pet.vaccine'
+                        : a.event_type === 'medicine'
+                          ? 'pet.medicine'
+                          : a.event_type === 'other'
+                            ? 'pet.other'
+                            : 'pet.appointment'
+                    return (
                     <li key={`${a.kind}-${a.id}`} className="text-xs text-cyan-900 dark:text-cyan-100">
                       <span className="font-medium">{a.title}</span>
                       <span className="text-cyan-600 dark:text-cyan-400">
-                        {' '}· {a.kind === 'vaccine' ? t('pet.vaccine') : t('pet.appointment')} · {formatLocalDateTime(a.due_at, i18n.language) || String(a.due_at).slice(0, 16)}
+                        {' '}· {t(typeKey)} · {formatLocalDateTime(a.due_at, i18n.language) || String(a.due_at).slice(0, 16)}
                       </span>
                     </li>
-                  ))}
+                    )
+                  })}
                 </ul>
               )}
               <p className="mt-2 text-[11px] text-cyan-600/80 dark:text-cyan-400/80">{t('pet.alertsHint')}</p>
