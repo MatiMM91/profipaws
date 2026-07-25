@@ -9,8 +9,6 @@ import {
   Pencil,
   CalendarDays,
   Plus,
-  Syringe,
-  FileText,
   Trash2,
   Check,
   X,
@@ -22,6 +20,8 @@ import {
 } from 'lucide-react'
 import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 import PetSharePanel from './PetSharePanel'
+import PetHistorial from './PetHistorial'
+import PetConsultations from './PetConsultations'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -93,12 +93,6 @@ export default function PetProfile() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
-  const [vaccineForm, setVaccineForm] = useState({ name: '', administered_at: '', next_due_at: '' })
-  const [recordForm, setRecordForm] = useState({
-    record_type: 'exam',
-    title: '',
-    occurred_at: '',
-  })
   const [eventForm, setEventForm] = useState({
     event_type: 'appointment',
     title: '',
@@ -111,12 +105,8 @@ export default function PetProfile() {
   const [editingAllergyIdx, setEditingAllergyIdx] = useState(null)
   const [allergyEdit, setAllergyEdit] = useState('')
 
-  const [editingVaccineId, setEditingVaccineId] = useState(null)
-  const [editingRecordId, setEditingRecordId] = useState(null)
   const [editingEventId, setEditingEventId] = useState(null)
   const [editingConditionId, setEditingConditionId] = useState(null)
-  const [vaccineEdit, setVaccineEdit] = useState({})
-  const [recordEdit, setRecordEdit] = useState({})
   const [eventEdit, setEventEdit] = useState({})
   const [conditionEdit, setConditionEdit] = useState({})
 
@@ -288,80 +278,6 @@ export default function PetProfile() {
     a.download = `profipaws-${pet?.name || id}.json`
     a.click()
     URL.revokeObjectURL(url)
-  }
-
-  async function addVaccine(e) {
-    e.preventDefault()
-    const res = await fetch(`${API_URL}/api/pets/${id}/vaccines`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        name: vaccineForm.name,
-        administered_at: vaccineForm.administered_at,
-        next_due_at: vaccineForm.next_due_at || null,
-      }),
-    })
-    if (!res.ok) return alert('No se pudo añadir la vacuna')
-    setVaccineForm({ name: '', administered_at: '', next_due_at: '' })
-    await load()
-  }
-
-  async function saveVaccine(vaccineId) {
-    const res = await fetch(`${API_URL}/api/pets/${id}/vaccines/${vaccineId}`, {
-      method: 'PATCH',
-      headers: authHeaders(),
-      body: JSON.stringify({
-        name: vaccineEdit.name,
-        administered_at: vaccineEdit.administered_at,
-        next_due_at: vaccineEdit.next_due_at || null,
-      }),
-    })
-    if (!res.ok) return alert('No se pudo actualizar la vacuna')
-    setEditingVaccineId(null)
-    await load()
-  }
-
-  async function deleteVaccine(vaccineId) {
-    if (!confirm(t('pet.deleteVaccine'))) return
-    const res = await fetch(`${API_URL}/api/pets/${id}/vaccines/${vaccineId}`, {
-      method: 'DELETE',
-      headers: authHeaders(),
-    })
-    if (!res.ok) return alert('No se pudo borrar')
-    await load()
-  }
-
-  async function addRecord(e) {
-    e.preventDefault()
-    const res = await fetch(`${API_URL}/api/pets/${id}/records`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify(recordForm),
-    })
-    if (!res.ok) return alert('No se pudo añadir el registro')
-    setRecordForm({ record_type: 'exam', title: '', occurred_at: '' })
-    await load()
-  }
-
-  async function saveRecord(recordId) {
-    const res = await fetch(`${API_URL}/api/pets/${id}/records/${recordId}`, {
-      method: 'PATCH',
-      headers: authHeaders(),
-      body: JSON.stringify(recordEdit),
-    })
-    if (!res.ok) return alert('No se pudo actualizar el registro')
-    setEditingRecordId(null)
-    await load()
-  }
-
-  async function deleteRecord(recordId) {
-    if (!confirm(t('pet.deleteRecord'))) return
-    const res = await fetch(`${API_URL}/api/pets/${id}/records/${recordId}`, {
-      method: 'DELETE',
-      headers: authHeaders(),
-    })
-    if (!res.ok) return alert('No se pudo borrar')
-    await load()
   }
 
   async function addEvent(e) {
@@ -807,119 +723,15 @@ export default function PetProfile() {
         {isOwner && <PetSharePanel petId={id} />}
       </div>
 
-      {/* Vaccines */}
-      <section className="space-y-3">
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
-          <Syringe size={18} /> {t('pet.vaccines')}
-        </h2>
-        {canEdit && (
-        <form onSubmit={addVaccine} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
-          <input className="field px-3 py-2 text-sm" placeholder={t('pet.vaccineName')} value={vaccineForm.name} onChange={(e) => setVaccineForm({ ...vaccineForm, name: e.target.value })} required />
-          <input type="date" className="field px-3 py-2 text-sm" value={vaccineForm.administered_at} onChange={(e) => setVaccineForm({ ...vaccineForm, administered_at: e.target.value })} required />
-          <input type="date" className="field px-3 py-2 text-sm" value={vaccineForm.next_due_at} onChange={(e) => setVaccineForm({ ...vaccineForm, next_due_at: e.target.value })} />
-          <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
-        </form>
-        )}
-        <ul className="space-y-2">
-          {vaccines.length === 0 && <li className="text-sm text-cyan-600">{t('pet.noVaccines')}</li>}
-          {vaccines.map((v) => (
-            <li key={v.id} className="rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 px-4 py-3 text-sm">
-              {editingVaccineId === v.id ? (
-                <div className="grid gap-2 sm:grid-cols-4">
-                  <input className="field px-2 py-1.5" value={vaccineEdit.name} onChange={(e) => setVaccineEdit({ ...vaccineEdit, name: e.target.value })} />
-                  <input type="date" className="field px-2 py-1.5" value={vaccineEdit.administered_at} onChange={(e) => setVaccineEdit({ ...vaccineEdit, administered_at: e.target.value })} />
-                  <input type="date" className="field px-2 py-1.5" value={vaccineEdit.next_due_at || ''} onChange={(e) => setVaccineEdit({ ...vaccineEdit, next_due_at: e.target.value })} />
-                  <div className="flex gap-2">
-                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveVaccine(v.id)}><Check size={12} /> {t('common.save')}</button>
-                    <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={() => setEditingVaccineId(null)}><X size={12} /></button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <strong className="text-cyan-900 dark:text-cyan-100">{v.name}</strong>
-                    <span className="text-cyan-600"> · {v.administered_at}</span>
-                    {v.next_due_at && <span className="text-cyan-500"> · {t('pet.next')} {v.next_due_at}</span>}
-                  </div>
-                  {canEdit && (
-                  <div className="flex gap-2">
-                    <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingVaccineId(v.id); setVaccineEdit({ name: v.name, administered_at: v.administered_at, next_due_at: v.next_due_at || '' }) }}>
-                      <Pencil size={12} /> {t('pet.edit')}
-                    </button>
-                    <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs text-red-700" onClick={() => deleteVaccine(v.id)}>
-                      <Trash2 size={12} /> {t('pet.delete')}
-                    </button>
-                  </div>
-                  )}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <PetHistorial
+        petId={id}
+        vaccines={vaccines}
+        records={records}
+        canEdit={canEdit}
+        onRefresh={load}
+      />
 
-      {/* Records */}
-      <section id="historial" className="scroll-mt-24 space-y-3">
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
-          <FileText size={18} /> {t('pet.records')}
-        </h2>
-        {canEdit && (
-        <form onSubmit={addRecord} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
-          <select className="field px-3 py-2 text-sm" value={recordForm.record_type} onChange={(e) => setRecordForm({ ...recordForm, record_type: e.target.value })}>
-            <option value="exam">{t('pet.exam')}</option>
-            <option value="disease">{t('pet.disease')}</option>
-            <option value="surgery">{t('pet.surgery')}</option>
-            <option value="treatment">{t('pet.treatment')}</option>
-            <option value="other">{t('pet.other')}</option>
-          </select>
-          <input className="field px-3 py-2 text-sm" placeholder={t('pet.title')} value={recordForm.title} onChange={(e) => setRecordForm({ ...recordForm, title: e.target.value })} required />
-          <input type="date" className="field px-3 py-2 text-sm" value={recordForm.occurred_at} onChange={(e) => setRecordForm({ ...recordForm, occurred_at: e.target.value })} required />
-          <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
-        </form>
-        )}
-        <ul className="space-y-2">
-          {records.length === 0 && <li className="text-sm text-cyan-600">{t('pet.noRecords')}</li>}
-          {records.map((r) => (
-            <li key={r.id} className="rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 px-4 py-3 text-sm">
-              {editingRecordId === r.id ? (
-                <div className="grid gap-2 sm:grid-cols-4">
-                  <select className="field px-2 py-1.5" value={recordEdit.record_type} onChange={(e) => setRecordEdit({ ...recordEdit, record_type: e.target.value })}>
-                    <option value="exam">{t('pet.exam')}</option>
-                    <option value="disease">{t('pet.disease')}</option>
-                    <option value="surgery">{t('pet.surgery')}</option>
-                    <option value="treatment">{t('pet.treatment')}</option>
-                    <option value="other">{t('pet.other')}</option>
-                  </select>
-                  <input className="field px-2 py-1.5" value={recordEdit.title} onChange={(e) => setRecordEdit({ ...recordEdit, title: e.target.value })} />
-                  <input type="date" className="field px-2 py-1.5" value={recordEdit.occurred_at} onChange={(e) => setRecordEdit({ ...recordEdit, occurred_at: e.target.value })} />
-                  <div className="flex gap-2">
-                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveRecord(r.id)}><Check size={12} /> {t('common.save')}</button>
-                    <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={() => setEditingRecordId(null)}><X size={12} /></button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <span className="rounded bg-cyan-100 px-2 py-0.5 text-xs font-medium uppercase text-cyan-800">{r.record_type}</span>
-                    <strong className="ml-2 text-cyan-900 dark:text-cyan-100">{r.title}</strong>
-                    <span className="text-cyan-600"> · {r.occurred_at}</span>
-                  </div>
-                  {canEdit && (
-                  <div className="flex gap-2">
-                    <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingRecordId(r.id); setRecordEdit({ record_type: r.record_type, title: r.title, occurred_at: r.occurred_at }) }}>
-                      <Pencil size={12} /> {t('pet.edit')}
-                    </button>
-                    <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs text-red-700" onClick={() => deleteRecord(r.id)}>
-                      <Trash2 size={12} /> {t('pet.delete')}
-                    </button>
-                  </div>
-                  )}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <PetConsultations petId={id} canEdit={canEdit} />
 
       {/* Calendar */}
       <section className="space-y-3">

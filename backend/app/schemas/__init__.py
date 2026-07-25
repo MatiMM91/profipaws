@@ -196,8 +196,45 @@ class MedicalRecordOut(BaseModel):
     description: Optional[str] = None
     occurred_at: date
     document_url: Optional[str] = None
+    document_filename: Optional[str] = None
+    has_document: bool = False
     veterinarian: Optional[str] = None
     clinic_name: Optional[str] = None
+
+
+class ConsultationCreate(BaseModel):
+    treating_doctor: str = Field(..., min_length=1, max_length=255)
+    specialty: Optional[str] = None
+    reason: Optional[str] = None
+    treatment: Optional[str] = None
+    treatment_changes: Optional[str] = None
+    evolution: Optional[str] = None
+    consulted_at: date
+
+
+class ConsultationUpdate(BaseModel):
+    treating_doctor: Optional[str] = None
+    specialty: Optional[str] = None
+    reason: Optional[str] = None
+    treatment: Optional[str] = None
+    treatment_changes: Optional[str] = None
+    evolution: Optional[str] = None
+    consulted_at: Optional[date] = None
+
+
+class ConsultationOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    pet_id: int
+    treating_doctor: str
+    specialty: Optional[str] = None
+    reason: Optional[str] = None
+    treatment: Optional[str] = None
+    treatment_changes: Optional[str] = None
+    evolution: Optional[str] = None
+    consulted_at: date
+    created_at: datetime
 
 
 class CalendarEventCreate(BaseModel):
@@ -315,6 +352,7 @@ class PetExportOut(BaseModel):
     calendar_events: list[CalendarEventOut]
     daily_logs: list[DailyLogOut]
     chronic_conditions: list[ChronicConditionOut] = []
+    consultations: list[ConsultationOut] = []
 
 
 class ClinicApiKeyCreate(BaseModel):

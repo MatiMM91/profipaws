@@ -14,6 +14,7 @@ from app.models import (  # noqa: F401 — ensure models are registered
     CalendarEvent,
     DailyLog,
     ChronicCondition,
+    Consultation,
     ClinicApiKey,
 )
 from app.routers import auth, pets, subscriptions, external, alerts
@@ -25,11 +26,19 @@ settings = get_settings()
 def _ensure_schema_updates() -> None:
     """Lightweight column upgrades until Alembic is wired."""
     with engine.begin() as conn:
-        # Drop stored pet photos (no longer part of the product; frees DB space).
         try:
             conn.execute(text("UPDATE pets SET photo_url = NULL WHERE photo_url IS NOT NULL"))
         except Exception:
             pass
+        for stmt in (
+            "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_filename VARCHAR(255)",
+            "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_content_type VARCHAR(120)",
+            "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_data BYTEA",
+        ):
+            try:
+                conn.execute(text(stmt))
+            except Exception:
+                pass
 
 
 @asynccontextmanager

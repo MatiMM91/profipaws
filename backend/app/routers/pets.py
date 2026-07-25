@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from urllib.parse import quote
+from fastapi import APIRouter, Depends, HTTPException, status, Response, File, UploadFile
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import (
@@ -12,6 +13,7 @@ from app.models import (
     CalendarEvent,
     DailyLog,
     ChronicCondition,
+    Consultation,
     Subscription,
     SubscriptionTier,
 )
@@ -29,6 +31,9 @@ from app.schemas import (
     MedicalRecordCreate,
     MedicalRecordUpdate,
     MedicalRecordOut,
+    ConsultationCreate,
+    ConsultationUpdate,
+    ConsultationOut,
     CalendarEventCreate,
     CalendarEventUpdate,
     CalendarEventOut,
@@ -54,6 +59,32 @@ from app.services.pet_access import (
 router = APIRouter(prefix="/pets", tags=["Pets"])
 
 FREE_PET_LIMIT = 1
+MAX_EXAM_BYTES = 5 * 1024 * 1024
+ALLOWED_EXAM_TYPES = {
+    "application/pdf",
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+}
+
+
+def _record_out(record: MedicalRecord) -> MedicalRecordOut:
+    return MedicalRecordOut(
+        id=record.id,
+        pet_id=record.pet_id,
+        record_type=record.record_type,
+        title=record.title,
+        description=record.description,
+        occurred_at=record.occurred_at,
+        document_url=record.document_url,
+        document_filename=record.document_filename,
+        has_document=bool(record.document_data),
+        veterinarian=record.veterinarian,
+        clinic_name=record.clinic_name,
+    )
 
 
 def _pet_out(pet: Pet, role: PetRole) -> PetOut:
@@ -435,7 +466,7 @@ def add_record(
     db.add(record)
     db.commit()
     db.refresh(record)
-    return record
+    return _record_out(record)
 
 
 @router.get("/{pet_id}/records", response_model=list[MedicalRecordOut])
@@ -445,7 +476,8 @@ def list_records(
     db: Session = Depends(get_db),
 ):
     _pet_readable(db, pet_id, current_user)
-    return db.query(MedicalRecord).filter(MedicalRecord.pet_id == pet_id).all()
+    rows = db.query(MedicalRecord).filter(MedicalRecord.pet_id == pet_id).all()
+    return [_record_out(r) for r in rows]
 
 
 @router.patch("/{pet_id}/records/{record_id}", response_model=MedicalRecordOut)
@@ -461,7 +493,7 @@ def update_record(
         setattr(record, key, value)
     db.commit()
     db.refresh(record)
-    return record
+    return _record_out(record)
 
 
 @router.delete("/{pet_id}/records/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -473,6 +505,168 @@ def delete_record(
 ):
     record = _get_owned_record(db, pet_id, record_id, current_user)
     db.delete(record)
+    db.commit()
+
+
+@router.post("/{pet_id}/records/{record_id}/document", response_model=MedicalRecordOut)
+async def upload_record_document(
+    pet_id: int,
+    record_id: int,
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = _get_owned_record(db, pet_id, record_id, current_user)
+    rtype = record.record_type.value if hasattr(record.record_type, "value") else str(record.record_type)
+    if rtype != "exam":
+        raise HTTPException(status_code=400, detail="Only exam records can have attached files")
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Empty file")
+    if len(data) > MAX_EXAM_BYTES:
+        raise HTTPException(status_code=400, detail="File too large (max 5 MB)")
+
+    content_type = (file.content_type or "application/octet-stream").lower()
+    if content_type not in ALLOWED_EXAM_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported file type. Use PDF, image, or Word document.",
+        )
+
+    filename = (file.filename or "examen").strip()[:255] or "examen"
+    record.document_data = data
+    record.document_filename = filename
+    record.document_content_type = content_type
+    record.document_url = f"/api/pets/{pet_id}/records/{record_id}/document"
+    db.commit()
+    db.refresh(record)
+    return _record_out(record)
+
+
+@router.get("/{pet_id}/records/{record_id}/document")
+def download_record_document(
+    pet_id: int,
+    record_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _pet_readable(db, pet_id, current_user)
+    record = (
+        db.query(MedicalRecord)
+        .filter(MedicalRecord.id == record_id, MedicalRecord.pet_id == pet_id)
+        .first()
+    )
+    if not record or not record.document_data:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    filename = record.document_filename or "examen"
+    media = record.document_content_type or "application/octet-stream"
+    return Response(
+        content=record.document_data,
+        media_type=media,
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
+        },
+    )
+
+
+@router.delete("/{pet_id}/records/{record_id}/document", status_code=status.HTTP_204_NO_CONTENT)
+def delete_record_document(
+    pet_id: int,
+    record_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    record = _get_owned_record(db, pet_id, record_id, current_user)
+    record.document_data = None
+    record.document_filename = None
+    record.document_content_type = None
+    record.document_url = None
+    db.commit()
+
+
+@router.get("/{pet_id}/consultations", response_model=list[ConsultationOut])
+def list_consultations(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _pet_readable(db, pet_id, current_user)
+    return (
+        db.query(Consultation)
+        .filter(Consultation.pet_id == pet_id)
+        .order_by(Consultation.consulted_at.desc(), Consultation.id.desc())
+        .all()
+    )
+
+
+@router.post(
+    "/{pet_id}/consultations",
+    response_model=ConsultationOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_consultation(
+    pet_id: int,
+    payload: ConsultationCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    pet = _pet_writable(db, pet_id, current_user)
+    data = payload.model_dump()
+    for key in ("specialty", "reason", "treatment", "treatment_changes", "evolution"):
+        if data.get(key) is not None:
+            data[key] = (data[key] or "").strip() or None
+    data["treating_doctor"] = data["treating_doctor"].strip()
+    row = Consultation(pet_id=pet.id, **data)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.patch("/{pet_id}/consultations/{consultation_id}", response_model=ConsultationOut)
+def update_consultation(
+    pet_id: int,
+    consultation_id: int,
+    payload: ConsultationUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _pet_writable(db, pet_id, current_user)
+    row = (
+        db.query(Consultation)
+        .filter(Consultation.id == consultation_id, Consultation.pet_id == pet_id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    data = payload.model_dump(exclude_unset=True)
+    for key, value in data.items():
+        if isinstance(value, str):
+            value = value.strip() or None
+        setattr(row, key, value)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
+@router.delete("/{pet_id}/consultations/{consultation_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_consultation(
+    pet_id: int,
+    consultation_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _pet_writable(db, pet_id, current_user)
+    row = (
+        db.query(Consultation)
+        .filter(Consultation.id == consultation_id, Consultation.pet_id == pet_id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    db.delete(row)
     db.commit()
 
 
@@ -686,10 +880,14 @@ def _export_pet(db: Session, pet: Pet) -> PetExportOut:
     return PetExportOut(
         pet=_pet_out(pet, PetRole.OWNER),
         vaccines=db.query(Vaccine).filter(Vaccine.pet_id == pet.id).all(),
-        medical_records=db.query(MedicalRecord).filter(MedicalRecord.pet_id == pet.id).all(),
+        medical_records=[
+            _record_out(r)
+            for r in db.query(MedicalRecord).filter(MedicalRecord.pet_id == pet.id).all()
+        ],
         calendar_events=db.query(CalendarEvent).filter(CalendarEvent.pet_id == pet.id).all(),
         daily_logs=db.query(DailyLog).filter(DailyLog.pet_id == pet.id).all(),
         chronic_conditions=db.query(ChronicCondition)
         .filter(ChronicCondition.pet_id == pet.id)
         .all(),
+        consultations=db.query(Consultation).filter(Consultation.pet_id == pet.id).all(),
     )

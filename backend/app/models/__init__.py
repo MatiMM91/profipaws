@@ -9,6 +9,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    LargeBinary,
     Enum as SAEnum,
     UniqueConstraint,
 )
@@ -138,6 +139,9 @@ class Pet(Base):
     chronic_conditions: Mapped[list["ChronicCondition"]] = relationship(
         back_populates="pet", cascade="all, delete-orphan"
     )
+    consultations: Mapped[list["Consultation"]] = relationship(
+        back_populates="pet", cascade="all, delete-orphan"
+    )
 
 
 class ChronicCondition(Base):
@@ -202,11 +206,31 @@ class MedicalRecord(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     occurred_at: Mapped[date] = mapped_column(Date, nullable=False)
     document_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    document_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    document_content_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    document_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     veterinarian: Mapped[str | None] = mapped_column(String(255), nullable=True)
     clinic_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     pet: Mapped["Pet"] = relationship(back_populates="medical_records")
+
+
+class Consultation(Base):
+    __tablename__ = "consultations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    treating_doctor: Mapped[str] = mapped_column(String(255), nullable=False)
+    specialty: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    treatment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    treatment_changes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evolution: Mapped[str | None] = mapped_column(Text, nullable=True)
+    consulted_at: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    pet: Mapped["Pet"] = relationship(back_populates="consultations")
 
 
 class CalendarEvent(Base):
