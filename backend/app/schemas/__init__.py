@@ -54,6 +54,7 @@ class SubscriptionOut(BaseModel):
     status: SubscriptionStatus
     stripe_customer_id: Optional[str] = None
     stripe_subscription_id: Optional[str] = None
+    billing_interval: Optional[str] = None  # monthly | yearly
     current_period_end: Optional[datetime] = None
 
 
@@ -67,6 +68,16 @@ class CheckoutSessionRequest(BaseModel):
 class CheckoutSessionResponse(BaseModel):
     checkout_url: str
     session_id: str
+
+
+class ChangeIntervalRequest(BaseModel):
+    interval: str = Field(..., pattern="^(monthly|yearly)$")
+
+
+class ChangeIntervalResponse(BaseModel):
+    ok: bool = True
+    billing_interval: str
+    message: Optional[str] = None
 
 
 # --- Pets ---

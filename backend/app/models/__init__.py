@@ -91,6 +91,8 @@ class Subscription(Base):
     )
     stripe_customer_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    # monthly | yearly — set from Stripe checkout / plan changes
+    billing_interval: Mapped[str | None] = mapped_column(String(16), nullable=True)
     current_period_end: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(

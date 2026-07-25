@@ -35,6 +35,7 @@ def _ensure_schema_updates() -> None:
             "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_filename VARCHAR(255)",
             "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_content_type VARCHAR(120)",
             "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_data BYTEA",
+            "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS billing_interval VARCHAR(16)",
         ):
             try:
                 conn.execute(text(stmt))

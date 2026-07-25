@@ -17,31 +17,41 @@ export default function PricingSection() {
   const [billing, setBilling] = useState('yearly') // yearly default = better perceived value
   const [busy, setBusy] = useState(false)
   const [tier, setTier] = useState(null) // null while loading / logged out
+  const [billingInterval, setBillingInterval] = useState(null) // monthly | yearly | null
+  const [message, setMessage] = useState('')
 
-  useEffect(() => {
+  async function loadSubscription() {
     const token = localStorage.getItem('profipaws_token')
     if (!token) {
       setTier('guest')
+      setBillingInterval(null)
       return
     }
-    let cancelled = false
-    ;(async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/subscriptions/me`, { headers: authHeaders() })
-        if (!res.ok) {
-          if (!cancelled) setTier('free')
-          return
-        }
-        const data = await res.json()
-        const value = String(data.tier || 'free').toLowerCase()
-        if (!cancelled) setTier(value === 'pro' ? 'pro' : 'free')
-      } catch {
-        if (!cancelled) setTier('free')
+    try {
+      const res = await fetch(`${API_URL}/api/subscriptions/me`, { headers: authHeaders() })
+      if (!res.ok) {
+        setTier('free')
+        setBillingInterval(null)
+        return
       }
-    })()
-    return () => {
-      cancelled = true
+      const data = await res.json()
+      const value = String(data.tier || 'free').toLowerCase()
+      setTier(value === 'pro' ? 'pro' : 'free')
+      const interval = data.billing_interval === 'monthly' || data.billing_interval === 'yearly'
+        ? data.billing_interval
+        : null
+      setBillingInterval(interval)
+      if (value === 'pro' && interval) {
+        setBilling(interval)
+      }
+    } catch {
+      setTier('free')
+      setBillingInterval(null)
     }
+  }
+
+  useEffect(() => {
+    loadSubscription()
   }, [])
 
   async function startCheckout() {
@@ -51,6 +61,7 @@ export default function PricingSection() {
       return
     }
     setBusy(true)
+    setMessage('')
     try {
       const res = await fetch(`${API_URL}/api/subscriptions/checkout`, {
         method: 'POST',
@@ -72,9 +83,38 @@ export default function PricingSection() {
     }
   }
 
+  async function changeInterval(nextInterval) {
+    setBusy(true)
+    setMessage('')
+    try {
+      const res = await fetch(`${API_URL}/api/subscriptions/change-interval`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ interval: nextInterval }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(typeof data.detail === 'string' ? data.detail : t('pricing.changeError'))
+        return
+      }
+      setBillingInterval(data.billing_interval || nextInterval)
+      setBilling(data.billing_interval || nextInterval)
+      setMessage(
+        (data.billing_interval || nextInterval) === 'yearly'
+          ? t('pricing.changedToYearly')
+          : t('pricing.changedToMonthly'),
+      )
+      await loadSubscription()
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const isYearly = billing === 'yearly'
   const isPro = tier === 'pro'
   const isFree = tier === 'free'
+  const viewingCurrentInterval = isPro && billingInterval === billing
+  const canSwitchInterval = isPro && billingInterval && billingInterval !== billing
   const proPrice = isYearly ? t('pricing.proPriceYearly') : t('pricing.proPriceMonthly')
   const proPeriod = isYearly ? t('pricing.perYear') : t('pricing.perMonth')
   const proNote = isYearly ? t('pricing.yearlyNote') : t('pricing.monthlyNote')
@@ -104,6 +144,11 @@ export default function PricingSection() {
             }`}
           >
             {t('pricing.monthly')}
+            {isPro && billingInterval === 'monthly' && (
+              <span className={`ml-1.5 text-xs font-medium ${!isYearly ? 'text-cyan-100' : 'text-cyan-600 dark:text-cyan-400'}`}>
+                · {t('pricing.yourPlan')}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -115,11 +160,20 @@ export default function PricingSection() {
             }`}
           >
             {t('pricing.yearly')}
-            <span className={`ml-1.5 text-xs font-medium ${isYearly ? 'text-cyan-100' : 'text-teal-600 dark:text-teal-400'}`}>
-              {t('pricing.saveBadge')}
-            </span>
+            {isPro && billingInterval === 'yearly' ? (
+              <span className={`ml-1.5 text-xs font-medium ${isYearly ? 'text-cyan-100' : 'text-cyan-600 dark:text-cyan-400'}`}>
+                · {t('pricing.yourPlan')}
+              </span>
+            ) : (
+              <span className={`ml-1.5 text-xs font-medium ${isYearly ? 'text-cyan-100' : 'text-teal-600 dark:text-teal-400'}`}>
+                {t('pricing.saveBadge')}
+              </span>
+            )}
           </button>
         </div>
+        {message && (
+          <p className="mx-auto mt-3 max-w-md text-sm text-teal-700 dark:text-teal-300">{message}</p>
+        )}
       </div>
 
       <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
@@ -190,7 +244,31 @@ export default function PricingSection() {
               </li>
             ))}
           </ul>
-          {isPro ? (
+
+          {viewingCurrentInterval ? (
+            <div className="mt-8 w-full rounded-lg border border-white/40 bg-white/15 px-4 py-2.5 text-center text-sm font-semibold text-white">
+              {t('pricing.currentPlan')}
+              <span className="mt-1 block text-xs font-normal text-cyan-100/80">
+                {billingInterval === 'yearly' ? t('pricing.onYearly') : t('pricing.onMonthly')}
+              </span>
+            </div>
+          ) : canSwitchInterval ? (
+            <>
+              <button
+                type="button"
+                onClick={() => changeInterval(billing)}
+                disabled={busy}
+                className="mt-8 w-full rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-50 disabled:opacity-60"
+              >
+                {busy
+                  ? t('pricing.changing')
+                  : billing === 'yearly'
+                    ? t('pricing.switchToYearly')
+                    : t('pricing.switchToMonthly')}
+              </button>
+              <p className="mt-3 text-center text-xs text-cyan-100/70">{t('pricing.switchHint')}</p>
+            </>
+          ) : isPro ? (
             <div className="mt-8 w-full rounded-lg border border-white/40 bg-white/15 px-4 py-2.5 text-center text-sm font-semibold text-white">
               {t('pricing.currentPlan')}
             </div>
