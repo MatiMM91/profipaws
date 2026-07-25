@@ -12,41 +12,58 @@ function authHeaders() {
   }
 }
 
+function parseInterval(value) {
+  return value === 'monthly' || value === 'yearly' ? value : null
+}
+
 export default function PricingSection() {
   const { t } = useTranslation()
-  const [billing, setBilling] = useState('yearly') // yearly default = better perceived value
   const [busy, setBusy] = useState(false)
-  const [tier, setTier] = useState(null) // null while loading / logged out
-  const [billingInterval, setBillingInterval] = useState(null) // monthly | yearly | null
   const [message, setMessage] = useState('')
+  // null = still loading subscription for logged-in user
+  const [tier, setTier] = useState(null) // null | guest | free | pro
+  const [planInterval, setPlanInterval] = useState(null) // monthly | yearly | null
+  // User-selected tab; null means “follow planInterval (or yearly default)”
+  const [selectedBilling, setSelectedBilling] = useState(null)
 
-  async function loadSubscription() {
+  const ready = tier !== null
+  const billing = selectedBilling || planInterval || 'yearly'
+  const isYearly = billing === 'yearly'
+  const isPro = tier === 'pro'
+  const isFree = tier === 'free'
+  const viewingCurrentInterval = ready && isPro && planInterval === billing
+  const canSwitchInterval = ready && isPro && planInterval && planInterval !== billing
+  const proPrice = isYearly ? t('pricing.proPriceYearly') : t('pricing.proPriceMonthly')
+  const proPeriod = isYearly ? t('pricing.perYear') : t('pricing.perMonth')
+  const proNote = isYearly ? t('pricing.yearlyNote') : t('pricing.monthlyNote')
+
+  async function loadSubscription({ silent = false } = {}) {
     const token = localStorage.getItem('profipaws_token')
     if (!token) {
       setTier('guest')
-      setBillingInterval(null)
+      setPlanInterval(null)
       return
+    }
+    if (!silent) {
+      setTier(null)
     }
     try {
       const res = await fetch(`${API_URL}/api/subscriptions/me`, { headers: authHeaders() })
       if (!res.ok) {
         setTier('free')
-        setBillingInterval(null)
+        setPlanInterval(null)
         return
       }
       const data = await res.json()
-      const value = String(data.tier || 'free').toLowerCase()
-      setTier(value === 'pro' ? 'pro' : 'free')
-      const interval = data.billing_interval === 'monthly' || data.billing_interval === 'yearly'
-        ? data.billing_interval
-        : null
-      setBillingInterval(interval)
-      if (value === 'pro' && interval) {
-        setBilling(interval)
-      }
+      const nextTier = String(data.tier || 'free').toLowerCase() === 'pro' ? 'pro' : 'free'
+      const interval = parseInterval(data.billing_interval)
+      // Single render: tier + interval together; clear tab override so UI matches plan
+      setPlanInterval(interval)
+      setTier(nextTier)
+      setSelectedBilling(null)
     } catch {
       setTier('free')
-      setBillingInterval(null)
+      setPlanInterval(null)
     }
   }
 
@@ -97,27 +114,15 @@ export default function PricingSection() {
         alert(typeof data.detail === 'string' ? data.detail : t('pricing.changeError'))
         return
       }
-      setBillingInterval(data.billing_interval || nextInterval)
-      setBilling(data.billing_interval || nextInterval)
-      setMessage(
-        (data.billing_interval || nextInterval) === 'yearly'
-          ? t('pricing.changedToYearly')
-          : t('pricing.changedToMonthly'),
-      )
-      await loadSubscription()
+      const next = parseInterval(data.billing_interval) || nextInterval
+      setPlanInterval(next)
+      setSelectedBilling(null)
+      setMessage(next === 'yearly' ? t('pricing.changedToYearly') : t('pricing.changedToMonthly'))
+      await loadSubscription({ silent: true })
     } finally {
       setBusy(false)
     }
   }
-
-  const isYearly = billing === 'yearly'
-  const isPro = tier === 'pro'
-  const isFree = tier === 'free'
-  const viewingCurrentInterval = isPro && billingInterval === billing
-  const canSwitchInterval = isPro && billingInterval && billingInterval !== billing
-  const proPrice = isYearly ? t('pricing.proPriceYearly') : t('pricing.proPriceMonthly')
-  const proPeriod = isYearly ? t('pricing.perYear') : t('pricing.perMonth')
-  const proNote = isYearly ? t('pricing.yearlyNote') : t('pricing.monthlyNote')
 
   return (
     <div className="space-y-10">
@@ -136,7 +141,7 @@ export default function PricingSection() {
         >
           <button
             type="button"
-            onClick={() => setBilling('monthly')}
+            onClick={() => setSelectedBilling('monthly')}
             className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
               !isYearly
                 ? 'bg-cyan-600 text-white shadow-sm'
@@ -144,7 +149,7 @@ export default function PricingSection() {
             }`}
           >
             {t('pricing.monthly')}
-            {isPro && billingInterval === 'monthly' && (
+            {ready && isPro && planInterval === 'monthly' && (
               <span className={`ml-1.5 text-xs font-medium ${!isYearly ? 'text-cyan-100' : 'text-cyan-600 dark:text-cyan-400'}`}>
                 · {t('pricing.yourPlan')}
               </span>
@@ -152,7 +157,7 @@ export default function PricingSection() {
           </button>
           <button
             type="button"
-            onClick={() => setBilling('yearly')}
+            onClick={() => setSelectedBilling('yearly')}
             className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
               isYearly
                 ? 'bg-cyan-600 text-white shadow-sm'
@@ -160,7 +165,7 @@ export default function PricingSection() {
             }`}
           >
             {t('pricing.yearly')}
-            {isPro && billingInterval === 'yearly' ? (
+            {ready && isPro && planInterval === 'yearly' ? (
               <span className={`ml-1.5 text-xs font-medium ${isYearly ? 'text-cyan-100' : 'text-cyan-600 dark:text-cyan-400'}`}>
                 · {t('pricing.yourPlan')}
               </span>
@@ -211,7 +216,7 @@ export default function PricingSection() {
                 : 'border-cyan-200 text-cyan-700 dark:border-cyan-700 dark:text-cyan-200'
             }`}
           >
-            {isFree ? t('pricing.currentPlan') : t('pricing.freeIncluded')}
+            {!ready ? t('pricing.loadingPlan') : isFree ? t('pricing.currentPlan') : t('pricing.freeIncluded')}
           </div>
         </article>
 
@@ -245,11 +250,15 @@ export default function PricingSection() {
             ))}
           </ul>
 
-          {viewingCurrentInterval ? (
+          {!ready ? (
+            <div className="mt-8 w-full rounded-lg border border-white/30 bg-white/10 px-4 py-2.5 text-center text-sm font-semibold text-cyan-100/90">
+              {t('pricing.loadingPlan')}
+            </div>
+          ) : viewingCurrentInterval ? (
             <div className="mt-8 w-full rounded-lg border border-white/40 bg-white/15 px-4 py-2.5 text-center text-sm font-semibold text-white">
               {t('pricing.currentPlan')}
               <span className="mt-1 block text-xs font-normal text-cyan-100/80">
-                {billingInterval === 'yearly' ? t('pricing.onYearly') : t('pricing.onMonthly')}
+                {planInterval === 'yearly' ? t('pricing.onYearly') : t('pricing.onMonthly')}
               </span>
             </div>
           ) : canSwitchInterval ? (
@@ -277,7 +286,7 @@ export default function PricingSection() {
               <button
                 type="button"
                 onClick={startCheckout}
-                disabled={busy || tier === null}
+                disabled={busy}
                 className="mt-8 w-full rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-cyan-800 transition hover:bg-cyan-50 disabled:opacity-60"
               >
                 {busy ? t('pricing.redirecting') : t('pricing.upgrade')}

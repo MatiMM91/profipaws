@@ -227,6 +227,7 @@
     "changedToYearly": "Listo: tu Pro ahora es anual.",
     "changedToMonthly": "Listo: tu Pro ahora es mensual.",
     "changeError": "No se pudo cambiar el intervalo de facturación.",
+    "loadingPlan": "Cargando tu plan…",
     "upgrade": "Pasar a Pro",
     "redirecting": "Redirigiendo…",
     "cancelAnytime": "Cancela cuando quieras. Sin permanencia.",

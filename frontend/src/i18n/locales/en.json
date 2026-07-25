@@ -227,6 +227,7 @@
     "changedToYearly": "Done: your Pro plan is now yearly.",
     "changedToMonthly": "Done: your Pro plan is now monthly.",
     "changeError": "Could not change billing interval.",
+    "loadingPlan": "Loading your plan…",
     "upgrade": "Upgrade to Pro",
     "redirecting": "Redirecting…",
     "cancelAnytime": "Cancel anytime. No lock-in.",
