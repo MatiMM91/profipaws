@@ -880,7 +880,9 @@ export default function PetProfile() {
               ) : (
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-medium uppercase text-teal-800">{ev.event_type}</span>
+                    <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800 dark:bg-teal-900/50 dark:text-teal-200">
+                      {t(`pet.${ev.event_type}`, { defaultValue: ev.event_type })}
+                    </span>
                     <strong className="ml-2 text-cyan-900 dark:text-cyan-100">{ev.title}</strong>
                     <span className="text-cyan-600"> · {formatLocalDateTime(ev.scheduled_at, i18n.language)}</span>
                   </div>
