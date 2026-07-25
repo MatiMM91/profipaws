@@ -23,6 +23,50 @@ const emptyForm = {
 
 const emptyNote = { note: '', noted_at: '' }
 
+function Field({ label, value, onChange, textarea, required }) {
+  const cls = 'field w-full px-3 py-2 text-sm'
+  return (
+    <label className="block space-y-1">
+      <span className="text-xs font-medium text-cyan-700 dark:text-cyan-300">{label}</span>
+      {textarea ? (
+        <textarea className={cls} rows={2} value={value} onChange={onChange} required={required} />
+      ) : (
+        <input className={cls} value={value} onChange={onChange} required={required} />
+      )}
+    </label>
+  )
+}
+
+function ConsultationFormFields({ t, values, setValues, onSubmit, onCancel, submitLabel }) {
+  return (
+    <form onSubmit={onSubmit} className="grid gap-3 rounded-xl border border-cyan-100 bg-white p-4 dark:border-cyan-800 dark:bg-cyan-900/40 sm:grid-cols-2">
+      <Field label={t('seguimiento.doctor')} value={values.treating_doctor} onChange={(e) => setValues({ ...values, treating_doctor: e.target.value })} required />
+      <Field label={t('seguimiento.specialty')} value={values.specialty} onChange={(e) => setValues({ ...values, specialty: e.target.value })} />
+      <label className="block space-y-1">
+        <span className="text-xs font-medium text-cyan-700 dark:text-cyan-300">{t('seguimiento.date')}</span>
+        <input type="date" className="field w-full px-3 py-2 text-sm" value={values.consulted_at} onChange={(e) => setValues({ ...values, consulted_at: e.target.value })} required />
+      </label>
+      <div className="sm:col-span-2">
+        <Field label={t('seguimiento.reason')} value={values.reason} onChange={(e) => setValues({ ...values, reason: e.target.value })} textarea />
+      </div>
+      <div className="sm:col-span-2">
+        <Field label={t('seguimiento.treatment')} value={values.treatment} onChange={(e) => setValues({ ...values, treatment: e.target.value })} textarea />
+      </div>
+      <div className="sm:col-span-2">
+        <Field label={t('seguimiento.treatmentChanges')} value={values.treatment_changes} onChange={(e) => setValues({ ...values, treatment_changes: e.target.value })} textarea />
+      </div>
+      <div className="flex gap-2 sm:col-span-2">
+        <button type="submit" className="btn-primary text-sm">{submitLabel}</button>
+        {onCancel && (
+          <button type="button" className="btn-secondary text-sm" onClick={onCancel}>
+            <X size={14} /> {t('common.cancel')}
+          </button>
+        )}
+      </div>
+    </form>
+  )
+}
+
 export default function PetConsultations({ petId, canEdit }) {
   const { t } = useTranslation()
   const [items, setItems] = useState([])
@@ -138,50 +182,6 @@ export default function PetConsultations({ petId, canEdit }) {
     await load()
   }
 
-  function Field({ label, value, onChange, textarea, required }) {
-    const cls = 'field w-full px-3 py-2 text-sm'
-    return (
-      <label className="block space-y-1">
-        <span className="text-xs font-medium text-cyan-700 dark:text-cyan-300">{label}</span>
-        {textarea ? (
-          <textarea className={cls} rows={2} value={value} onChange={onChange} required={required} />
-        ) : (
-          <input className={cls} value={value} onChange={onChange} required={required} />
-        )}
-      </label>
-    )
-  }
-
-  function FormFields({ values, setValues, onSubmit, onCancel, submitLabel }) {
-    return (
-      <form onSubmit={onSubmit} className="grid gap-3 rounded-xl border border-cyan-100 bg-white p-4 dark:border-cyan-800 dark:bg-cyan-900/40 sm:grid-cols-2">
-        <Field label={t('seguimiento.doctor')} value={values.treating_doctor} onChange={(e) => setValues({ ...values, treating_doctor: e.target.value })} required />
-        <Field label={t('seguimiento.specialty')} value={values.specialty} onChange={(e) => setValues({ ...values, specialty: e.target.value })} />
-        <label className="block space-y-1">
-          <span className="text-xs font-medium text-cyan-700 dark:text-cyan-300">{t('seguimiento.date')}</span>
-          <input type="date" className="field w-full px-3 py-2 text-sm" value={values.consulted_at} onChange={(e) => setValues({ ...values, consulted_at: e.target.value })} required />
-        </label>
-        <div className="sm:col-span-2">
-          <Field label={t('seguimiento.reason')} value={values.reason} onChange={(e) => setValues({ ...values, reason: e.target.value })} textarea />
-        </div>
-        <div className="sm:col-span-2">
-          <Field label={t('seguimiento.treatment')} value={values.treatment} onChange={(e) => setValues({ ...values, treatment: e.target.value })} textarea />
-        </div>
-        <div className="sm:col-span-2">
-          <Field label={t('seguimiento.treatmentChanges')} value={values.treatment_changes} onChange={(e) => setValues({ ...values, treatment_changes: e.target.value })} textarea />
-        </div>
-        <div className="flex gap-2 sm:col-span-2">
-          <button type="submit" className="btn-primary text-sm">{submitLabel}</button>
-          {onCancel && (
-            <button type="button" className="btn-secondary text-sm" onClick={onCancel}>
-              <X size={14} /> {t('common.cancel')}
-            </button>
-          )}
-        </div>
-      </form>
-    )
-  }
-
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -201,7 +201,8 @@ export default function PetConsultations({ petId, canEdit }) {
       </div>
 
       {showForm && canEdit && (
-        <FormFields
+        <ConsultationFormFields
+          t={t}
           values={form}
           setValues={setForm}
           onSubmit={addItem}
@@ -221,7 +222,8 @@ export default function PetConsultations({ petId, canEdit }) {
           <li key={c.id} className="rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40">
             {editingId === c.id ? (
               <div className="p-3">
-                <FormFields
+                <ConsultationFormFields
+                  t={t}
                   values={editForm}
                   setValues={setEditForm}
                   onSubmit={(e) => {
