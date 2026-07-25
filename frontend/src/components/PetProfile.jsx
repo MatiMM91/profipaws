@@ -671,28 +671,61 @@ export default function PetProfile() {
               </Link>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {isOwner && (
-              <Link to={`/pets/${id}/vet-access`} className="btn-primary px-3 py-1.5 text-xs">
-                <QrCode size={12} /> {t('pet.vetAccess')}
-              </Link>
+              <div className="flex flex-col gap-3 rounded-lg border border-cyan-100/90 bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-cyan-800 dark:bg-cyan-950/50">
+                <div className="flex min-w-0 gap-3">
+                  <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
+                    <QrCode size={16} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-cyan-950 dark:text-cyan-50">{t('pet.vetAccess')}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-cyan-600 dark:text-cyan-400">{t('pet.vetAccessDesc')}</p>
+                  </div>
+                </div>
+                <Link to={`/pets/${id}/vet-access`} className="btn-primary shrink-0 px-3 py-1.5 text-xs sm:self-center">
+                  {t('pet.vetAccessAction')}
+                </Link>
+              </div>
             )}
-            <button
-              type="button"
-              className="btn-secondary px-3 py-1.5 text-xs"
-              disabled={!isPro || !!exportBusy}
-              onClick={() => downloadExport('pdf')}
-            >
-              <FileText size={12} /> {exportBusy === 'pdf' ? t('pet.exporting') : t('pet.exportPdf')}
-            </button>
-            <button
-              type="button"
-              className="btn-secondary px-3 py-1.5 text-xs"
-              disabled={!isPro || !!exportBusy}
-              onClick={() => downloadExport('json')}
-            >
-              <Download size={12} /> {exportBusy === 'json' ? t('pet.exporting') : t('pet.exportJson')}
-            </button>
+            <div className="flex flex-col gap-3 rounded-lg border border-cyan-100/90 bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-cyan-800 dark:bg-cyan-950/50">
+              <div className="flex min-w-0 gap-3">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
+                  <FileText size={16} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-cyan-950 dark:text-cyan-50">{t('pet.exportPdf')}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-cyan-600 dark:text-cyan-400">{t('pet.exportPdfDesc')}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-secondary shrink-0 px-3 py-1.5 text-xs sm:self-center"
+                disabled={!isPro || !!exportBusy}
+                onClick={() => downloadExport('pdf')}
+              >
+                {exportBusy === 'pdf' ? t('pet.exporting') : t('pet.exportPdfAction')}
+              </button>
+            </div>
+            <div className="flex flex-col gap-3 rounded-lg border border-cyan-100/90 bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-cyan-800 dark:bg-cyan-950/50">
+              <div className="flex min-w-0 gap-3">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">
+                  <Download size={16} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-cyan-950 dark:text-cyan-50">{t('pet.exportJson')}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-cyan-600 dark:text-cyan-400">{t('pet.exportJsonDesc')}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-secondary shrink-0 px-3 py-1.5 text-xs sm:self-center"
+                disabled={!isPro || !!exportBusy}
+                onClick={() => downloadExport('json')}
+              >
+                {exportBusy === 'json' ? t('pet.exporting') : t('pet.exportJsonAction')}
+              </button>
+            </div>
           </div>
           {!isPro && (
             <p className="mt-3 text-xs text-cyan-700 dark:text-cyan-300">{t('pet.exportProHint')}</p>
