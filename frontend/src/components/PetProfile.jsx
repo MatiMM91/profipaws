@@ -391,7 +391,7 @@ export default function PetProfile() {
       </Link>
 
       <div className="surface p-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
             <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
               <SpeciesIcon species={pet.species} size={28} />
@@ -414,44 +414,43 @@ export default function PetProfile() {
             </div>
           </div>
 
-          <nav
-            className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1 lg:max-w-[min(100%,28rem)] lg:flex-wrap lg:justify-end lg:overflow-visible"
-            aria-label={t('pet.tabsLabel')}
-          >
-            {PET_TABS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => selectTab(item.id)}
-                className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 ${
-                  tab === item.id
-                    ? 'bg-cyan-700 text-white dark:bg-cyan-500 dark:text-cyan-950'
-                    : 'bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-900/60 dark:text-cyan-100 dark:hover:bg-cyan-800'
-                }`}
-              >
-                {t(item.labelKey)}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        {tab === 'profile' && (
-          <>
-        {canEdit && (
-          <div className="mt-4 flex justify-end">
+          {canEdit && (
             <button
               type="button"
-              className="btn-secondary text-sm"
+              className="btn-secondary shrink-0 text-sm"
               onClick={() => {
-                setEditingPet((v) => !v)
+                if (tab !== 'profile') selectTab('profile')
+                setEditingPet((v) => (tab === 'profile' ? !v : true))
                 setError('')
               }}
             >
-              <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
+              <Pencil size={14} /> {editingPet && tab === 'profile' ? t('pet.cancel') : t('pet.editData')}
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
+        <nav
+          className="-mx-1 mt-4 flex max-w-full gap-1 overflow-x-auto px-1 pb-1"
+          aria-label={t('pet.tabsLabel')}
+        >
+          {PET_TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => selectTab(item.id)}
+              className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 ${
+                tab === item.id
+                  ? 'bg-cyan-700 text-white dark:bg-cyan-500 dark:text-cyan-950'
+                  : 'bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-900/60 dark:text-cyan-100 dark:hover:bg-cyan-800'
+              }`}
+            >
+              {t(item.labelKey)}
+            </button>
+          ))}
+        </nav>
+
+        {tab === 'profile' && (
+          <>
         {error && !editingPet && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
         {editingPet && (
