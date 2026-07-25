@@ -54,6 +54,18 @@ function formatLocalDateTime(iso, locale) {
   return d.toLocaleString(locale)
 }
 
+function parseAllergies(text) {
+  if (!text) return []
+  return String(text)
+    .split(/[,;\n]+/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+function serializeAllergies(list) {
+  return list.length ? list.join(', ') : null
+}
+
 const emptyPetEdit = {
   name: '',
   species: 'dog',
@@ -94,6 +106,10 @@ export default function PetProfile() {
   })
   const [conditionForm, setConditionForm] = useState({ name: '', notes: '' })
   const [showConditionForm, setShowConditionForm] = useState(false)
+  const [showAllergyForm, setShowAllergyForm] = useState(false)
+  const [allergyForm, setAllergyForm] = useState('')
+  const [editingAllergyIdx, setEditingAllergyIdx] = useState(null)
+  const [allergyEdit, setAllergyEdit] = useState('')
 
   const [editingVaccineId, setEditingVaccineId] = useState(null)
   const [editingRecordId, setEditingRecordId] = useState(null)
@@ -107,6 +123,51 @@ export default function PetProfile() {
   const myRole = pet?.my_role || 'owner'
   const isOwner = myRole === 'owner'
   const canEdit = myRole === 'owner' || myRole === 'edit'
+  const allergyList = parseAllergies(pet?.allergies)
+
+  async function persistAllergies(nextList) {
+    const allergies = serializeAllergies(nextList)
+    const res = await fetch(`${API_URL}/api/pets/${id}`, {
+      method: 'PATCH',
+      headers: authHeaders(),
+      body: JSON.stringify({ allergies }),
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      alert(typeof err.detail === 'string' ? err.detail : t('pet.allergySaveError'))
+      return false
+    }
+    const data = await res.json()
+    setPet(data)
+    setForm((f) => ({ ...f, allergies: data.allergies || '' }))
+    return true
+  }
+
+  async function addAllergy(e) {
+    e.preventDefault()
+    const name = allergyForm.trim()
+    if (!name) return
+    const ok = await persistAllergies([...allergyList, name])
+    if (ok) {
+      setAllergyForm('')
+      setShowAllergyForm(false)
+    }
+  }
+
+  async function saveAllergy(idx) {
+    const name = allergyEdit.trim()
+    if (!name) return
+    const next = [...allergyList]
+    next[idx] = name
+    const ok = await persistAllergies(next)
+    if (ok) setEditingAllergyIdx(null)
+  }
+
+  async function deleteAllergy(idx) {
+    if (!confirm(t('pet.deleteAllergy'))) return
+    const next = allergyList.filter((_, i) => i !== idx)
+    await persistAllergies(next)
+  }
 
   async function load() {
     const [petRes, vacRes, recRes, evRes, condRes, subRes] = await Promise.all([
@@ -504,11 +565,6 @@ export default function PetProfile() {
                 <Cpu size={14} /> {t('pet.noChip')}
               </span>
             )}
-            {pet.allergies && (
-              <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-300">
-                <AlertTriangle size={14} /> {pet.allergies}
-              </span>
-            )}
           </div>
         )}
 
@@ -524,11 +580,108 @@ export default function PetProfile() {
             <input type="date" className="field px-3 py-2 text-sm" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
             <input className="field px-3 py-2 text-sm" placeholder={t('pet.chipPlaceholder')} value={form.chip_id} onChange={(e) => setForm({ ...form, chip_id: e.target.value })} />
             <input type="number" step="0.1" className="field px-3 py-2 text-sm" placeholder={t('pet.weight')} value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
-            <textarea className="field px-3 py-2 text-sm sm:col-span-2" placeholder={t('pet.allergies')} rows={2} value={form.allergies} onChange={(e) => setForm({ ...form, allergies: e.target.value })} />
             {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
             <button type="submit" className="btn-primary sm:col-span-2" disabled={saving}>{saving ? t('pet.saving') : t('pet.saveChanges')}</button>
           </form>
         )}
+
+        {/* Allergies — same chip pattern as chronic conditions */}
+        <div className="mt-5 border-t border-cyan-100 pt-4 dark:border-cyan-800">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-700/90 dark:text-amber-300/90">
+              <AlertTriangle size={13} /> {t('pet.allergies')}
+            </p>
+            {!showAllergyForm && editingAllergyIdx == null && canEdit && (
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-amber-800 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/40"
+                onClick={() => setShowAllergyForm(true)}
+              >
+                <Plus size={12} /> {t('pet.allergyAdd')}
+              </button>
+            )}
+          </div>
+
+          {showAllergyForm && canEdit && (
+            <form onSubmit={addAllergy} className="mb-3 grid gap-2 sm:grid-cols-[1fr_auto]">
+              <input
+                className="field px-3 py-1.5 text-sm"
+                placeholder={t('pet.allergyPlaceholder')}
+                value={allergyForm}
+                onChange={(e) => setAllergyForm(e.target.value)}
+                required
+                autoFocus
+              />
+              <div className="flex gap-1.5">
+                <button type="submit" className="btn-primary px-3 py-1.5 text-xs">{t('pet.allergyAdd')}</button>
+                <button
+                  type="button"
+                  className="btn-secondary px-3 py-1.5 text-xs"
+                  onClick={() => {
+                    setShowAllergyForm(false)
+                    setAllergyForm('')
+                  }}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            </form>
+          )}
+
+          {allergyList.length === 0 && !showAllergyForm ? (
+            <p className="text-xs text-cyan-500 dark:text-cyan-500">{t('pet.allergyEmpty')}</p>
+          ) : (
+            <ul className="flex flex-wrap gap-2">
+              {allergyList.map((name, idx) => (
+                <li key={`${name}-${idx}`}>
+                  {editingAllergyIdx === idx ? (
+                    <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/80 p-2 dark:border-amber-900 dark:bg-amber-950/40">
+                      <input
+                        className="field !min-w-[8rem] px-2 py-1 text-xs"
+                        value={allergyEdit}
+                        onChange={(e) => setAllergyEdit(e.target.value)}
+                      />
+                      <button type="button" className="rounded-md bg-cyan-600 px-2 py-1 text-xs text-white" onClick={() => saveAllergy(idx)}>
+                        <Check size={12} />
+                      </button>
+                      <button type="button" className="rounded-md bg-white px-2 py-1 text-xs dark:bg-cyan-950" onClick={() => setEditingAllergyIdx(null)}>
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="group inline-flex max-w-full items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-3 py-1 text-xs text-amber-950 dark:border-amber-900/70 dark:bg-amber-950/50 dark:text-amber-100">
+                      <span className="truncate font-medium">{name}</span>
+                      {canEdit && (
+                        <>
+                          <button
+                            type="button"
+                            className="rounded-full p-0.5 text-amber-700 opacity-70 hover:bg-amber-100 hover:opacity-100 dark:text-amber-300 dark:hover:bg-amber-900"
+                            onClick={() => {
+                              setEditingAllergyIdx(idx)
+                              setAllergyEdit(name)
+                              setShowAllergyForm(false)
+                            }}
+                            aria-label={t('pet.edit')}
+                          >
+                            <Pencil size={11} />
+                          </button>
+                          <button
+                            type="button"
+                            className="rounded-full p-0.5 text-amber-700 opacity-70 hover:bg-amber-100 hover:opacity-100 dark:text-amber-300 dark:hover:bg-amber-900"
+                            onClick={() => deleteAllergy(idx)}
+                            aria-label={t('pet.delete')}
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
 
         {/* Chronic conditions — compact chips inside profile card */}
         <div className="mt-5 border-t border-cyan-100 pt-4 dark:border-cyan-800">
