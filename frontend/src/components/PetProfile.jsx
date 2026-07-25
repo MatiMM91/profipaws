@@ -9,6 +9,7 @@ import {
   Pencil,
   CalendarDays,
   Plus,
+  FileText,
   Trash2,
   Check,
   X,
