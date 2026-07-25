@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, PawPrint, Syringe, BookOpen, QrCode, Users } from 'lucide-react'
+import { Plus, PawPrint, Syringe, QrCode, Users } from 'lucide-react'
 import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -144,9 +144,6 @@ export default function Dashboard() {
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2 text-xs" onClick={(e) => e.stopPropagation()}>
                   <Link to={`/pets/${pet.id}`} className="btn-secondary px-3 py-1.5 text-xs">{t('dashboard.profile')}</Link>
-                  <Link to={`/pets/${pet.id}/log`} className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-1.5 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100">
-                    <BookOpen size={12} /> {t('dashboard.diary')}
-                  </Link>
                   {pet.my_role === 'owner' && (
                     <Link to={`/pets/${pet.id}/vet-access`} className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-3 py-1.5 text-teal-800 dark:bg-teal-900/50 dark:text-teal-100">
                       <QrCode size={12} /> {t('dashboard.vetPin')}

@@ -138,8 +138,8 @@
     "downloadError": "Não foi possível descarregar o ficheiro"
   },
   "seguimiento": {
-    "title": "Acompanhamento",
-    "subtitle": "Consultas clínicas com médico, tratamento e evolução.",
+    "title": "Acompanhamento médico",
+    "subtitle": "Consultas clínicas e notas de evolução posteriores.",
     "consultations": "Consultas",
     "add": "Nova consulta",
     "empty": "Ainda não há consultas registadas.",
@@ -149,7 +149,14 @@
     "reason": "Motivo da consulta",
     "treatment": "Tratamento",
     "treatmentChanges": "Alterações no tratamento",
-    "evolution": "Evolução",
+    "evolutionNotes": "Evolução posterior",
+    "evolutionHint": "Notas após a consulta: apetite, urina, humor ou outras mudanças.",
+    "notePlaceholder": "Ex. Comeu bem, urinou normal, sem energia…",
+    "addNote": "Adicionar nota",
+    "notesEmpty": "Ainda sem notas de evolução.",
+    "notesCount": "notas",
+    "noteDeleteConfirm": "Apagar esta nota?",
+    "noteSaveError": "Não foi possível guardar a nota",
     "deleteConfirm": "Apagar esta consulta?",
     "saveError": "Não foi possível guardar a consulta"
   },

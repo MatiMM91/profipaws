@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Stethoscope, Plus, Pencil, Trash2, X, ChevronDown, ChevronUp } from 'lucide-react'
+import { Stethoscope, Plus, Pencil, Trash2, X, ChevronDown, ChevronUp, NotebookPen } from 'lucide-react'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -18,9 +18,10 @@ const emptyForm = {
   reason: '',
   treatment: '',
   treatment_changes: '',
-  evolution: '',
   consulted_at: '',
 }
+
+const emptyNote = { note: '', noted_at: '' }
 
 export default function PetConsultations({ petId, canEdit }) {
   const { t } = useTranslation()
@@ -30,6 +31,9 @@ export default function PetConsultations({ petId, canEdit }) {
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState(emptyForm)
   const [openId, setOpenId] = useState(null)
+  const [noteForm, setNoteForm] = useState(emptyNote)
+  const [editingNoteId, setEditingNoteId] = useState(null)
+  const [noteEdit, setNoteEdit] = useState(emptyNote)
 
   async function load() {
     const res = await fetch(`${API_URL}/api/pets/${petId}/consultations`, { headers: authHeaders() })
@@ -51,7 +55,6 @@ export default function PetConsultations({ petId, canEdit }) {
         reason: form.reason.trim() || null,
         treatment: form.treatment.trim() || null,
         treatment_changes: form.treatment_changes.trim() || null,
-        evolution: form.evolution.trim() || null,
         consulted_at: form.consulted_at,
       }),
     })
@@ -75,7 +78,6 @@ export default function PetConsultations({ petId, canEdit }) {
         reason: editForm.reason.trim() || null,
         treatment: editForm.treatment.trim() || null,
         treatment_changes: editForm.treatment_changes.trim() || null,
-        evolution: editForm.evolution.trim() || null,
         consulted_at: editForm.consulted_at,
       }),
     })
@@ -91,6 +93,48 @@ export default function PetConsultations({ petId, canEdit }) {
       headers: authHeaders(),
     })
     if (!res.ok) return alert(t('seguimiento.saveError'))
+    await load()
+  }
+
+  async function addNote(consultationId, e) {
+    e.preventDefault()
+    const res = await fetch(`${API_URL}/api/pets/${petId}/consultations/${consultationId}/notes`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({
+        note: noteForm.note.trim(),
+        noted_at: noteForm.noted_at,
+      }),
+    })
+    if (!res.ok) return alert(t('seguimiento.noteSaveError'))
+    setNoteForm(emptyNote)
+    await load()
+  }
+
+  async function saveNote(consultationId, noteId) {
+    const res = await fetch(
+      `${API_URL}/api/pets/${petId}/consultations/${consultationId}/notes/${noteId}`,
+      {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          note: noteEdit.note.trim(),
+          noted_at: noteEdit.noted_at,
+        }),
+      },
+    )
+    if (!res.ok) return alert(t('seguimiento.noteSaveError'))
+    setEditingNoteId(null)
+    await load()
+  }
+
+  async function deleteNote(consultationId, noteId) {
+    if (!confirm(t('seguimiento.noteDeleteConfirm'))) return
+    const res = await fetch(
+      `${API_URL}/api/pets/${petId}/consultations/${consultationId}/notes/${noteId}`,
+      { method: 'DELETE', headers: authHeaders() },
+    )
+    if (!res.ok) return alert(t('seguimiento.noteSaveError'))
     await load()
   }
 
@@ -125,9 +169,6 @@ export default function PetConsultations({ petId, canEdit }) {
         </div>
         <div className="sm:col-span-2">
           <Field label={t('seguimiento.treatmentChanges')} value={values.treatment_changes} onChange={(e) => setValues({ ...values, treatment_changes: e.target.value })} textarea />
-        </div>
-        <div className="sm:col-span-2">
-          <Field label={t('seguimiento.evolution')} value={values.evolution} onChange={(e) => setValues({ ...values, evolution: e.target.value })} textarea />
         </div>
         <div className="flex gap-2 sm:col-span-2">
           <button type="submit" className="btn-primary text-sm">{submitLabel}</button>
@@ -197,7 +238,11 @@ export default function PetConsultations({ petId, canEdit }) {
                   <button
                     type="button"
                     className="flex min-w-0 flex-1 items-start gap-2 text-left"
-                    onClick={() => setOpenId((v) => (v === c.id ? null : c.id))}
+                    onClick={() => {
+                      setOpenId((v) => (v === c.id ? null : c.id))
+                      setNoteForm(emptyNote)
+                      setEditingNoteId(null)
+                    }}
                   >
                     {openId === c.id ? <ChevronUp size={16} className="mt-0.5 shrink-0 text-cyan-500" /> : <ChevronDown size={16} className="mt-0.5 shrink-0 text-cyan-500" />}
                     <div className="min-w-0">
@@ -205,7 +250,12 @@ export default function PetConsultations({ petId, canEdit }) {
                         {c.treating_doctor}
                         {c.specialty ? <span className="font-normal text-cyan-600 dark:text-cyan-400"> · {c.specialty}</span> : null}
                       </p>
-                      <p className="text-xs text-cyan-600 dark:text-cyan-400">{c.consulted_at}</p>
+                      <p className="text-xs text-cyan-600 dark:text-cyan-400">
+                        {c.consulted_at}
+                        {(c.notes || []).length > 0 && (
+                          <span> · {(c.notes || []).length} {t('seguimiento.notesCount')}</span>
+                        )}
+                      </p>
                     </div>
                   </button>
                   {canEdit && (
@@ -221,7 +271,6 @@ export default function PetConsultations({ petId, canEdit }) {
                             reason: c.reason || '',
                             treatment: c.treatment || '',
                             treatment_changes: c.treatment_changes || '',
-                            evolution: c.evolution || '',
                             consulted_at: c.consulted_at || '',
                           })
                         }}
@@ -234,25 +283,114 @@ export default function PetConsultations({ petId, canEdit }) {
                     </div>
                   )}
                 </div>
+
                 {openId === c.id && (
-                  <dl className="mt-3 grid gap-2 border-t border-cyan-50 pt-3 text-sm dark:border-cyan-800/60 sm:grid-cols-2">
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-cyan-600">{t('seguimiento.reason')}</dt>
-                      <dd className="mt-0.5 text-cyan-900 dark:text-cyan-100">{c.reason || '—'}</dd>
+                  <div className="mt-3 space-y-4 border-t border-cyan-50 pt-3 dark:border-cyan-800/60">
+                    <dl className="grid gap-2 text-sm sm:grid-cols-2">
+                      <div className="sm:col-span-2">
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-cyan-600">{t('seguimiento.reason')}</dt>
+                        <dd className="mt-0.5 text-cyan-900 dark:text-cyan-100">{c.reason || '—'}</dd>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-cyan-600">{t('seguimiento.treatment')}</dt>
+                        <dd className="mt-0.5 text-cyan-900 dark:text-cyan-100">{c.treatment || '—'}</dd>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <dt className="text-xs font-semibold uppercase tracking-wide text-cyan-600">{t('seguimiento.treatmentChanges')}</dt>
+                        <dd className="mt-0.5 text-cyan-900 dark:text-cyan-100">{c.treatment_changes || '—'}</dd>
+                      </div>
+                    </dl>
+
+                    <div className="rounded-lg border border-amber-100 bg-amber-50/40 p-3 dark:border-amber-900/50 dark:bg-amber-950/20">
+                      <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-200">
+                        <NotebookPen size={13} /> {t('seguimiento.evolutionNotes')}
+                      </p>
+                      <p className="mb-3 text-xs text-amber-800/80 dark:text-amber-200/70">{t('seguimiento.evolutionHint')}</p>
+
+                      {canEdit && (
+                        <form onSubmit={(e) => addNote(c.id, e)} className="mb-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                          <input
+                            className="field px-3 py-1.5 text-sm"
+                            placeholder={t('seguimiento.notePlaceholder')}
+                            value={noteForm.note}
+                            onChange={(e) => setNoteForm({ ...noteForm, note: e.target.value })}
+                            required
+                          />
+                          <input
+                            type="date"
+                            className="field px-3 py-1.5 text-sm"
+                            value={noteForm.noted_at}
+                            onChange={(e) => setNoteForm({ ...noteForm, noted_at: e.target.value })}
+                            required
+                          />
+                          <button type="submit" className="btn-primary text-xs">
+                            <Plus size={12} /> {t('seguimiento.addNote')}
+                          </button>
+                        </form>
+                      )}
+
+                      <ul className="space-y-2">
+                        {(c.notes || []).length === 0 && (
+                          <li className="text-xs text-cyan-600 dark:text-cyan-400">{t('seguimiento.notesEmpty')}</li>
+                        )}
+                        {(c.notes || []).map((n) => (
+                          <li key={n.id} className="rounded-lg border border-amber-100/80 bg-white/80 px-3 py-2 text-sm dark:border-amber-900/40 dark:bg-cyan-950/40">
+                            {editingNoteId === n.id ? (
+                              <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+                                <input
+                                  className="field px-2 py-1 text-sm"
+                                  value={noteEdit.note}
+                                  onChange={(e) => setNoteEdit({ ...noteEdit, note: e.target.value })}
+                                />
+                                <input
+                                  type="date"
+                                  className="field px-2 py-1 text-sm"
+                                  value={noteEdit.noted_at}
+                                  onChange={(e) => setNoteEdit({ ...noteEdit, noted_at: e.target.value })}
+                                />
+                                <div className="flex gap-1">
+                                  <button type="button" className="btn-primary px-2 py-1 text-xs" onClick={() => saveNote(c.id, n.id)}>
+                                    {t('common.save')}
+                                  </button>
+                                  <button type="button" className="btn-secondary px-2 py-1 text-xs" onClick={() => setEditingNoteId(null)}>
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div>
+                                  <p className="text-cyan-950 dark:text-cyan-50">{n.note}</p>
+                                  <p className="mt-0.5 text-xs text-cyan-600 dark:text-cyan-400">{n.noted_at}</p>
+                                </div>
+                                {canEdit && (
+                                  <div className="flex gap-1">
+                                    <button
+                                      type="button"
+                                      className="rounded-md bg-cyan-50 px-2 py-1 text-xs text-cyan-800"
+                                      onClick={() => {
+                                        setEditingNoteId(n.id)
+                                        setNoteEdit({ note: n.note, noted_at: n.noted_at })
+                                      }}
+                                    >
+                                      <Pencil size={11} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="rounded-md bg-red-50 px-2 py-1 text-xs text-red-700"
+                                      onClick={() => deleteNote(c.id, n.id)}
+                                    >
+                                      <Trash2 size={11} />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-cyan-600">{t('seguimiento.treatment')}</dt>
-                      <dd className="mt-0.5 text-cyan-900 dark:text-cyan-100">{c.treatment || '—'}</dd>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-cyan-600">{t('seguimiento.treatmentChanges')}</dt>
-                      <dd className="mt-0.5 text-cyan-900 dark:text-cyan-100">{c.treatment_changes || '—'}</dd>
-                    </div>
-                    <div className="sm:col-span-2">
-                      <dt className="text-xs font-semibold uppercase tracking-wide text-cyan-600">{t('seguimiento.evolution')}</dt>
-                      <dd className="mt-0.5 text-cyan-900 dark:text-cyan-100">{c.evolution || '—'}</dd>
-                    </div>
-                  </dl>
+                  </div>
                 )}
               </div>
             )}

@@ -15,6 +15,7 @@ from app.models import (  # noqa: F401 — ensure models are registered
     DailyLog,
     ChronicCondition,
     Consultation,
+    ConsultationNote,
     ClinicApiKey,
 )
 from app.routers import auth, pets, subscriptions, external, alerts

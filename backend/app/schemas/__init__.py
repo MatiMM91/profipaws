@@ -208,7 +208,6 @@ class ConsultationCreate(BaseModel):
     reason: Optional[str] = None
     treatment: Optional[str] = None
     treatment_changes: Optional[str] = None
-    evolution: Optional[str] = None
     consulted_at: date
 
 
@@ -218,8 +217,27 @@ class ConsultationUpdate(BaseModel):
     reason: Optional[str] = None
     treatment: Optional[str] = None
     treatment_changes: Optional[str] = None
-    evolution: Optional[str] = None
     consulted_at: Optional[date] = None
+
+
+class ConsultationNoteCreate(BaseModel):
+    note: str = Field(..., min_length=1)
+    noted_at: date
+
+
+class ConsultationNoteUpdate(BaseModel):
+    note: Optional[str] = None
+    noted_at: Optional[date] = None
+
+
+class ConsultationNoteOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    consultation_id: int
+    note: str
+    noted_at: date
+    created_at: datetime
 
 
 class ConsultationOut(BaseModel):
@@ -232,9 +250,9 @@ class ConsultationOut(BaseModel):
     reason: Optional[str] = None
     treatment: Optional[str] = None
     treatment_changes: Optional[str] = None
-    evolution: Optional[str] = None
     consulted_at: date
     created_at: datetime
+    notes: list[ConsultationNoteOut] = []
 
 
 class CalendarEventCreate(BaseModel):

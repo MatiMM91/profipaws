@@ -715,7 +715,6 @@ export default function PetProfile() {
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
-          <Link to={`/pets/${id}/log`} className="btn-secondary text-sm">{t('pet.diary')}</Link>
           {isOwner && (
             <Link to={`/pets/${id}/vet-access`} className="btn-primary text-sm">{t('pet.vetAccess')}</Link>
           )}

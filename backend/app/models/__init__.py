@@ -226,11 +226,29 @@ class Consultation(Base):
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     treatment: Mapped[str | None] = mapped_column(Text, nullable=True)
     treatment_changes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    evolution: Mapped[str | None] = mapped_column(Text, nullable=True)
+    evolution: Mapped[str | None] = mapped_column(Text, nullable=True)  # legacy; use notes instead
     consulted_at: Mapped[date] = mapped_column(Date, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     pet: Mapped["Pet"] = relationship(back_populates="consultations")
+    notes: Mapped[list["ConsultationNote"]] = relationship(
+        back_populates="consultation",
+        cascade="all, delete-orphan",
+    )
+
+
+class ConsultationNote(Base):
+    __tablename__ = "consultation_notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    consultation_id: Mapped[int] = mapped_column(
+        ForeignKey("consultations.id", ondelete="CASCADE"), index=True
+    )
+    note: Mapped[str] = mapped_column(Text, nullable=False)
+    noted_at: Mapped[date] = mapped_column(Date, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    consultation: Mapped["Consultation"] = relationship(back_populates="notes")
 
 
 class CalendarEvent(Base):

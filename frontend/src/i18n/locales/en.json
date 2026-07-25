@@ -138,8 +138,8 @@
     "downloadError": "Could not download the file"
   },
   "seguimiento": {
-    "title": "Follow-up",
-    "subtitle": "Clinical consultations with doctor, treatment, and evolution.",
+    "title": "Medical follow-up",
+    "subtitle": "Clinical consultations and later evolution notes.",
     "consultations": "Consultations",
     "add": "New consultation",
     "empty": "No consultations recorded yet.",
@@ -149,7 +149,14 @@
     "reason": "Reason for visit",
     "treatment": "Treatment",
     "treatmentChanges": "Treatment changes",
-    "evolution": "Evolution",
+    "evolutionNotes": "Later evolution",
+    "evolutionHint": "Post-visit notes: appetite, urination, mood, or other changes.",
+    "notePlaceholder": "E.g. Ate well, peed normally, low energy…",
+    "addNote": "Add note",
+    "notesEmpty": "No evolution notes yet.",
+    "notesCount": "notes",
+    "noteDeleteConfirm": "Delete this note?",
+    "noteSaveError": "Could not save the note",
     "deleteConfirm": "Delete this consultation?",
     "saveError": "Could not save the consultation"
   },

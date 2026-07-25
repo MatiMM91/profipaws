@@ -14,6 +14,7 @@ from app.models import (
     DailyLog,
     ChronicCondition,
     Consultation,
+    ConsultationNote,
     Subscription,
     SubscriptionTier,
 )
@@ -34,6 +35,9 @@ from app.schemas import (
     ConsultationCreate,
     ConsultationUpdate,
     ConsultationOut,
+    ConsultationNoteCreate,
+    ConsultationNoteUpdate,
+    ConsultationNoteOut,
     CalendarEventCreate,
     CalendarEventUpdate,
     CalendarEventOut,
@@ -586,6 +590,33 @@ def delete_record_document(
     db.commit()
 
 
+def _consultation_out(row: Consultation) -> ConsultationOut:
+    notes = sorted(row.notes or [], key=lambda n: (n.noted_at, n.id), reverse=True)
+    return ConsultationOut(
+        id=row.id,
+        pet_id=row.pet_id,
+        treating_doctor=row.treating_doctor,
+        specialty=row.specialty,
+        reason=row.reason,
+        treatment=row.treatment,
+        treatment_changes=row.treatment_changes,
+        consulted_at=row.consulted_at,
+        created_at=row.created_at,
+        notes=[ConsultationNoteOut.model_validate(n) for n in notes],
+    )
+
+
+def _get_consultation(db: Session, pet_id: int, consultation_id: int) -> Consultation:
+    row = (
+        db.query(Consultation)
+        .filter(Consultation.id == consultation_id, Consultation.pet_id == pet_id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Consultation not found")
+    return row
+
+
 @router.get("/{pet_id}/consultations", response_model=list[ConsultationOut])
 def list_consultations(
     pet_id: int,
@@ -593,12 +624,13 @@ def list_consultations(
     db: Session = Depends(get_db),
 ):
     _pet_readable(db, pet_id, current_user)
-    return (
+    rows = (
         db.query(Consultation)
         .filter(Consultation.pet_id == pet_id)
         .order_by(Consultation.consulted_at.desc(), Consultation.id.desc())
         .all()
     )
+    return [_consultation_out(r) for r in rows]
 
 
 @router.post(
@@ -614,7 +646,7 @@ def add_consultation(
 ):
     pet = _pet_writable(db, pet_id, current_user)
     data = payload.model_dump()
-    for key in ("specialty", "reason", "treatment", "treatment_changes", "evolution"):
+    for key in ("specialty", "reason", "treatment", "treatment_changes"):
         if data.get(key) is not None:
             data[key] = (data[key] or "").strip() or None
     data["treating_doctor"] = data["treating_doctor"].strip()
@@ -622,7 +654,7 @@ def add_consultation(
     db.add(row)
     db.commit()
     db.refresh(row)
-    return row
+    return _consultation_out(row)
 
 
 @router.patch("/{pet_id}/consultations/{consultation_id}", response_model=ConsultationOut)
@@ -634,13 +666,7 @@ def update_consultation(
     db: Session = Depends(get_db),
 ):
     _pet_writable(db, pet_id, current_user)
-    row = (
-        db.query(Consultation)
-        .filter(Consultation.id == consultation_id, Consultation.pet_id == pet_id)
-        .first()
-    )
-    if not row:
-        raise HTTPException(status_code=404, detail="Consultation not found")
+    row = _get_consultation(db, pet_id, consultation_id)
     data = payload.model_dump(exclude_unset=True)
     for key, value in data.items():
         if isinstance(value, str):
@@ -648,7 +674,7 @@ def update_consultation(
         setattr(row, key, value)
     db.commit()
     db.refresh(row)
-    return row
+    return _consultation_out(row)
 
 
 @router.delete("/{pet_id}/consultations/{consultation_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -659,14 +685,94 @@ def delete_consultation(
     db: Session = Depends(get_db),
 ):
     _pet_writable(db, pet_id, current_user)
-    row = (
-        db.query(Consultation)
-        .filter(Consultation.id == consultation_id, Consultation.pet_id == pet_id)
+    row = _get_consultation(db, pet_id, consultation_id)
+    db.delete(row)
+    db.commit()
+
+
+@router.post(
+    "/{pet_id}/consultations/{consultation_id}/notes",
+    response_model=ConsultationNoteOut,
+    status_code=status.HTTP_201_CREATED,
+)
+def add_consultation_note(
+    pet_id: int,
+    consultation_id: int,
+    payload: ConsultationNoteCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _pet_writable(db, pet_id, current_user)
+    consultation = _get_consultation(db, pet_id, consultation_id)
+    note = ConsultationNote(
+        consultation_id=consultation.id,
+        note=payload.note.strip(),
+        noted_at=payload.noted_at,
+    )
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+@router.patch(
+    "/{pet_id}/consultations/{consultation_id}/notes/{note_id}",
+    response_model=ConsultationNoteOut,
+)
+def update_consultation_note(
+    pet_id: int,
+    consultation_id: int,
+    note_id: int,
+    payload: ConsultationNoteUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _pet_writable(db, pet_id, current_user)
+    _get_consultation(db, pet_id, consultation_id)
+    note = (
+        db.query(ConsultationNote)
+        .filter(
+            ConsultationNote.id == note_id,
+            ConsultationNote.consultation_id == consultation_id,
+        )
         .first()
     )
-    if not row:
-        raise HTTPException(status_code=404, detail="Consultation not found")
-    db.delete(row)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    data = payload.model_dump(exclude_unset=True)
+    if "note" in data and data["note"] is not None:
+        data["note"] = data["note"].strip()
+    for key, value in data.items():
+        setattr(note, key, value)
+    db.commit()
+    db.refresh(note)
+    return note
+
+
+@router.delete(
+    "/{pet_id}/consultations/{consultation_id}/notes/{note_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_consultation_note(
+    pet_id: int,
+    consultation_id: int,
+    note_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _pet_writable(db, pet_id, current_user)
+    _get_consultation(db, pet_id, consultation_id)
+    note = (
+        db.query(ConsultationNote)
+        .filter(
+            ConsultationNote.id == note_id,
+            ConsultationNote.consultation_id == consultation_id,
+        )
+        .first()
+    )
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    db.delete(note)
     db.commit()
 
 
@@ -889,5 +995,8 @@ def _export_pet(db: Session, pet: Pet) -> PetExportOut:
         chronic_conditions=db.query(ChronicCondition)
         .filter(ChronicCondition.pet_id == pet.id)
         .all(),
-        consultations=db.query(Consultation).filter(Consultation.pet_id == pet.id).all(),
+        consultations=[
+            _consultation_out(c)
+            for c in db.query(Consultation).filter(Consultation.pet_id == pet.id).all()
+        ],
     )
