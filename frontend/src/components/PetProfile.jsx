@@ -236,6 +236,7 @@ export default function PetProfile() {
   function selectTab(nextId) {
     const next = PET_TABS.find((item) => item.id === nextId) || PET_TABS[0]
     setTab(next.id)
+    if (next.id !== 'profile') setEditingPet(false)
     navigate(`${location.pathname}${next.hash}`, { replace: true })
   }
 
@@ -414,17 +415,16 @@ export default function PetProfile() {
             </div>
           </div>
 
-          {canEdit && (
+          {canEdit && tab === 'profile' && (
             <button
               type="button"
               className="btn-secondary shrink-0 text-sm"
               onClick={() => {
-                if (tab !== 'profile') selectTab('profile')
-                setEditingPet((v) => (tab === 'profile' ? !v : true))
+                setEditingPet((v) => !v)
                 setError('')
               }}
             >
-              <Pencil size={14} /> {editingPet && tab === 'profile' ? t('pet.cancel') : t('pet.editData')}
+              <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
             </button>
           )}
         </div>
