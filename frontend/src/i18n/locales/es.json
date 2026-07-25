@@ -177,5 +177,18 @@
     "edit": "Editar",
     "delete": "Borrar",
     "loading": "Cargando…"
+  },
+  "share": {
+    "title": "Compartir mascota",
+    "hint": "Invita a otro usuario de Profipaws (Free o Pro) con acceso de solo lectura o edición.",
+    "email": "Correo del usuario",
+    "add": "Compartir",
+    "sharing": "Compartiendo…",
+    "canRead": "Solo leer",
+    "canEdit": "Puede editar",
+    "empty": "Aún no está compartida con nadie.",
+    "remove": "Quitar acceso",
+    "removeConfirm": "¿Quitar el acceso de esta persona?",
+    "error": "No se pudo compartir"
   }
 }

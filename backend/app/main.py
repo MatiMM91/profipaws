@@ -8,6 +8,7 @@ from app.models import (  # noqa: F401 — ensure models are registered
     User,
     Subscription,
     Pet,
+    PetShare,
     Vaccine,
     MedicalRecord,
     CalendarEvent,

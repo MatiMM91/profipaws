@@ -44,6 +44,11 @@ class RecordType(str, Enum):
     OTHER = "other"
 
 
+class SharePermission(str, Enum):
+    READ = "read"
+    EDIT = "edit"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -64,6 +69,11 @@ class User(Base):
     pets: Mapped[list["Pet"]] = relationship(back_populates="owner", cascade="all, delete-orphan")
     clinic_api_keys: Mapped[list["ClinicApiKey"]] = relationship(
         back_populates="owner", cascade="all, delete-orphan"
+    )
+    shares_received: Mapped[list["PetShare"]] = relationship(
+        back_populates="shared_with",
+        foreign_keys="PetShare.shared_with_user_id",
+        cascade="all, delete-orphan",
     )
 
 
@@ -110,6 +120,9 @@ class Pet(Base):
     )
 
     owner: Mapped["User"] = relationship(back_populates="pets")
+    shares: Mapped[list["PetShare"]] = relationship(
+        back_populates="pet", cascade="all, delete-orphan"
+    )
     vaccines: Mapped[list["Vaccine"]] = relationship(
         back_populates="pet", cascade="all, delete-orphan"
     )
@@ -138,6 +151,29 @@ class ChronicCondition(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     pet: Mapped["Pet"] = relationship(back_populates="chronic_conditions")
+
+
+class PetShare(Base):
+    __tablename__ = "pet_shares"
+    __table_args__ = (
+        UniqueConstraint("pet_id", "shared_with_user_id", name="uq_pet_share_user"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    shared_with_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    permission: Mapped[SharePermission] = mapped_column(
+        SAEnum(SharePermission), nullable=False, default=SharePermission.READ
+    )
+    invited_by: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    pet: Mapped["Pet"] = relationship(back_populates="shares")
+    shared_with: Mapped["User"] = relationship(
+        back_populates="shares_received", foreign_keys=[shared_with_user_id]
+    )
 
 
 class Vaccine(Base):

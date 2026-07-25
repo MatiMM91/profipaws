@@ -177,5 +177,18 @@
     "edit": "Editar",
     "delete": "Apagar",
     "loading": "A carregar…"
+  },
+  "share": {
+    "title": "Partilhar pet",
+    "hint": "Convide outro utilizador Profipaws (Grátis ou Pro) com acesso só de leitura ou edição.",
+    "email": "Email do utilizador",
+    "add": "Partilhar",
+    "sharing": "A partilhar…",
+    "canRead": "Só ler",
+    "canEdit": "Pode editar",
+    "empty": "Ainda não está partilhado com ninguém.",
+    "remove": "Remover acesso",
+    "removeConfirm": "Remover o acesso desta pessoa?",
+    "error": "Não foi possível partilhar"
   }
 }

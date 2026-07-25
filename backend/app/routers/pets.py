@@ -5,6 +5,8 @@ from app.database import get_db
 from app.models import (
     User,
     Pet,
+    PetShare,
+    SharePermission,
     Vaccine,
     MedicalRecord,
     CalendarEvent,
@@ -18,6 +20,9 @@ from app.schemas import (
     PetUpdate,
     PetOut,
     AccessPinResponse,
+    PetShareCreate,
+    PetShareUpdate,
+    PetShareOut,
     VaccineCreate,
     VaccineUpdate,
     VaccineOut,
@@ -38,21 +43,40 @@ from app.schemas import (
 from app.services.auth import get_current_user, generate_access_pin
 from app.services.billing import require_pro
 from app.services.pdf_export import build_pet_passport_pdf
+from app.services.pet_access import (
+    PetRole,
+    list_accessible_pets,
+    require_edit,
+    require_owner,
+    require_read,
+)
 
 router = APIRouter(prefix="/pets", tags=["Pets"])
 
 FREE_PET_LIMIT = 1
 
 
+def _pet_out(pet: Pet, role: PetRole) -> PetOut:
+    return PetOut.model_validate(pet).model_copy(update={"my_role": role.value})
+
+
 def _get_owned_pet(db: Session, pet_id: int, user: User) -> Pet:
-    pet = db.query(Pet).filter(Pet.id == pet_id, Pet.owner_id == user.id).first()
-    if not pet:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pet not found")
+    """Owner-only (delete, PIN, share management)."""
+    return require_owner(db, pet_id, user)
+
+
+def _pet_readable(db: Session, pet_id: int, user: User) -> Pet:
+    pet, _role = require_read(db, pet_id, user)
+    return pet
+
+
+def _pet_writable(db: Session, pet_id: int, user: User) -> Pet:
+    pet, _role = require_edit(db, pet_id, user)
     return pet
 
 
 def _get_owned_vaccine(db: Session, pet_id: int, vaccine_id: int, user: User) -> Vaccine:
-    _get_owned_pet(db, pet_id, user)
+    _pet_writable(db, pet_id, user)
     vaccine = (
         db.query(Vaccine).filter(Vaccine.id == vaccine_id, Vaccine.pet_id == pet_id).first()
     )
@@ -62,7 +86,7 @@ def _get_owned_vaccine(db: Session, pet_id: int, vaccine_id: int, user: User) ->
 
 
 def _get_owned_record(db: Session, pet_id: int, record_id: int, user: User) -> MedicalRecord:
-    _get_owned_pet(db, pet_id, user)
+    _pet_writable(db, pet_id, user)
     record = (
         db.query(MedicalRecord)
         .filter(MedicalRecord.id == record_id, MedicalRecord.pet_id == pet_id)
@@ -74,7 +98,7 @@ def _get_owned_record(db: Session, pet_id: int, record_id: int, user: User) -> M
 
 
 def _get_owned_event(db: Session, pet_id: int, event_id: int, user: User) -> CalendarEvent:
-    _get_owned_pet(db, pet_id, user)
+    _pet_writable(db, pet_id, user)
     event = (
         db.query(CalendarEvent)
         .filter(CalendarEvent.id == event_id, CalendarEvent.pet_id == pet_id)
@@ -86,7 +110,7 @@ def _get_owned_event(db: Session, pet_id: int, event_id: int, user: User) -> Cal
 
 
 def _get_owned_log(db: Session, pet_id: int, log_id: int, user: User) -> DailyLog:
-    _get_owned_pet(db, pet_id, user)
+    _pet_writable(db, pet_id, user)
     log = db.query(DailyLog).filter(DailyLog.id == log_id, DailyLog.pet_id == pet_id).first()
     if not log:
         raise HTTPException(status_code=404, detail="Daily log not found")
@@ -96,7 +120,7 @@ def _get_owned_log(db: Session, pet_id: int, log_id: int, user: User) -> DailyLo
 def _get_owned_condition(
     db: Session, pet_id: int, condition_id: int, user: User
 ) -> ChronicCondition:
-    _get_owned_pet(db, pet_id, user)
+    _pet_writable(db, pet_id, user)
     condition = (
         db.query(ChronicCondition)
         .filter(ChronicCondition.id == condition_id, ChronicCondition.pet_id == pet_id)
@@ -105,6 +129,19 @@ def _get_owned_condition(
     if not condition:
         raise HTTPException(status_code=404, detail="Chronic condition not found")
     return condition
+
+
+def _share_out(share: PetShare, user: User) -> PetShareOut:
+    return PetShareOut(
+        id=share.id,
+        pet_id=share.pet_id,
+        shared_with_user_id=share.shared_with_user_id,
+        permission=share.permission,
+        invited_by=share.invited_by,
+        created_at=share.created_at,
+        email=user.email,
+        full_name=user.full_name,
+    )
 
 
 @router.get("/access/{pin}", response_model=PetExportOut)
@@ -125,7 +162,7 @@ def list_pets(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return db.query(Pet).filter(Pet.owner_id == current_user.id).all()
+    return [_pet_out(pet, role) for pet, role in list_accessible_pets(db, current_user)]
 
 
 @router.post("", response_model=PetOut, status_code=status.HTTP_201_CREATED)
@@ -156,7 +193,7 @@ def create_pet(
     db.add(pet)
     db.commit()
     db.refresh(pet)
-    return pet
+    return _pet_out(pet, PetRole.OWNER)
 
 
 @router.get("/{pet_id}", response_model=PetOut)
@@ -165,7 +202,8 @@ def get_pet(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return _get_owned_pet(db, pet_id, current_user)
+    pet, role = require_read(db, pet_id, current_user)
+    return _pet_out(pet, role)
 
 
 @router.patch("/{pet_id}", response_model=PetOut)
@@ -175,7 +213,7 @@ def update_pet(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    pet = _get_owned_pet(db, pet_id, current_user)
+    pet, role = require_edit(db, pet_id, current_user)
     data = payload.model_dump(exclude_unset=True)
 
     if "chip_id" in data:
@@ -199,7 +237,7 @@ def update_pet(
         setattr(pet, key, value)
     db.commit()
     db.refresh(pet)
-    return pet
+    return _pet_out(pet, role)
 
 
 @router.delete("/{pet_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -233,6 +271,104 @@ def create_access_pin(
     )
 
 
+@router.get("/{pet_id}/shares", response_model=list[PetShareOut])
+def list_shares(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_owned_pet(db, pet_id, current_user)
+    rows = (
+        db.query(PetShare, User)
+        .join(User, User.id == PetShare.shared_with_user_id)
+        .filter(PetShare.pet_id == pet_id)
+        .order_by(PetShare.created_at.desc())
+        .all()
+    )
+    return [_share_out(share, user) for share, user in rows]
+
+
+@router.post("/{pet_id}/shares", response_model=PetShareOut, status_code=status.HTTP_201_CREATED)
+def create_share(
+    pet_id: int,
+    payload: PetShareCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    pet = _get_owned_pet(db, pet_id, current_user)
+    email = str(payload.email).strip().lower()
+    if email == (current_user.email or "").strip().lower():
+        raise HTTPException(status_code=400, detail="You cannot share a pet with yourself")
+
+    target = db.query(User).filter(User.email.ilike(email)).first()
+    if not target or not target.is_active:
+        raise HTTPException(
+            status_code=404,
+            detail="No Profipaws account found for that email. They must sign up first.",
+        )
+
+    existing = (
+        db.query(PetShare)
+        .filter(PetShare.pet_id == pet.id, PetShare.shared_with_user_id == target.id)
+        .first()
+    )
+    if existing:
+        existing.permission = payload.permission
+        existing.invited_by = current_user.id
+        db.commit()
+        db.refresh(existing)
+        return _share_out(existing, target)
+
+    share = PetShare(
+        pet_id=pet.id,
+        shared_with_user_id=target.id,
+        permission=payload.permission,
+        invited_by=current_user.id,
+    )
+    db.add(share)
+    db.commit()
+    db.refresh(share)
+    return _share_out(share, target)
+
+
+@router.patch("/{pet_id}/shares/{share_id}", response_model=PetShareOut)
+def update_share(
+    pet_id: int,
+    share_id: int,
+    payload: PetShareUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_owned_pet(db, pet_id, current_user)
+    share = (
+        db.query(PetShare).filter(PetShare.id == share_id, PetShare.pet_id == pet_id).first()
+    )
+    if not share:
+        raise HTTPException(status_code=404, detail="Share not found")
+    share.permission = payload.permission
+    db.commit()
+    db.refresh(share)
+    target = db.query(User).filter(User.id == share.shared_with_user_id).first()
+    return _share_out(share, target)
+
+
+@router.delete("/{pet_id}/shares/{share_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_share(
+    pet_id: int,
+    share_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _get_owned_pet(db, pet_id, current_user)
+    share = (
+        db.query(PetShare).filter(PetShare.id == share_id, PetShare.pet_id == pet_id).first()
+    )
+    if not share:
+        raise HTTPException(status_code=404, detail="Share not found")
+    db.delete(share)
+    db.commit()
+
+
 # --- Nested resources ---
 @router.post("/{pet_id}/vaccines", response_model=VaccineOut, status_code=201)
 def add_vaccine(
@@ -241,7 +377,7 @@ def add_vaccine(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    pet = _get_owned_pet(db, pet_id, current_user)
+    pet = _pet_writable(db, pet_id, current_user)
     vaccine = Vaccine(pet_id=pet.id, **payload.model_dump())
     db.add(vaccine)
     db.commit()
@@ -255,7 +391,7 @@ def list_vaccines(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _get_owned_pet(db, pet_id, current_user)
+    _pet_readable(db, pet_id, current_user)
     return db.query(Vaccine).filter(Vaccine.pet_id == pet_id).all()
 
 
@@ -294,7 +430,7 @@ def add_record(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    pet = _get_owned_pet(db, pet_id, current_user)
+    pet = _pet_writable(db, pet_id, current_user)
     record = MedicalRecord(pet_id=pet.id, **payload.model_dump())
     db.add(record)
     db.commit()
@@ -308,7 +444,7 @@ def list_records(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _get_owned_pet(db, pet_id, current_user)
+    _pet_readable(db, pet_id, current_user)
     return db.query(MedicalRecord).filter(MedicalRecord.pet_id == pet_id).all()
 
 
@@ -347,7 +483,7 @@ def add_event(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    pet = _get_owned_pet(db, pet_id, current_user)
+    pet = _pet_writable(db, pet_id, current_user)
     event = CalendarEvent(pet_id=pet.id, **payload.model_dump())
     db.add(event)
     db.commit()
@@ -361,7 +497,7 @@ def list_events(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _get_owned_pet(db, pet_id, current_user)
+    _pet_readable(db, pet_id, current_user)
     return db.query(CalendarEvent).filter(CalendarEvent.pet_id == pet_id).all()
 
 
@@ -400,7 +536,7 @@ def add_log(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    pet = _get_owned_pet(db, pet_id, current_user)
+    pet = _pet_writable(db, pet_id, current_user)
     data = payload.model_dump()
     if not data.get("logged_at"):
         data["logged_at"] = datetime.utcnow()
@@ -417,7 +553,7 @@ def list_logs(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _get_owned_pet(db, pet_id, current_user)
+    _pet_readable(db, pet_id, current_user)
     return (
         db.query(DailyLog)
         .filter(DailyLog.pet_id == pet_id)
@@ -460,7 +596,7 @@ def list_conditions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    _get_owned_pet(db, pet_id, current_user)
+    _pet_readable(db, pet_id, current_user)
     return (
         db.query(ChronicCondition)
         .filter(ChronicCondition.pet_id == pet_id)
@@ -480,7 +616,7 @@ def add_condition(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    pet = _get_owned_pet(db, pet_id, current_user)
+    pet = _pet_writable(db, pet_id, current_user)
     condition = ChronicCondition(pet_id=pet.id, **payload.model_dump())
     db.add(condition)
     db.commit()
@@ -523,7 +659,7 @@ def export_pet(
     db: Session = Depends(get_db),
 ):
     """Pro: JSON medical passport export."""
-    pet = _get_owned_pet(db, pet_id, current_user)
+    pet = _pet_readable(db, pet_id, current_user)
     return _export_pet(db, pet)
 
 
@@ -534,7 +670,7 @@ def export_pet_pdf(
     db: Session = Depends(get_db),
 ):
     """Pro: PDF medical passport export."""
-    pet = _get_owned_pet(db, pet_id, current_user)
+    pet = _pet_readable(db, pet_id, current_user)
     dossier = _export_pet(db, pet)
     payload = dossier.model_dump(mode="json")
     pdf_bytes = build_pet_passport_pdf(payload)
@@ -548,7 +684,7 @@ def export_pet_pdf(
 
 def _export_pet(db: Session, pet: Pet) -> PetExportOut:
     return PetExportOut(
-        pet=PetOut.model_validate(pet),
+        pet=_pet_out(pet, PetRole.OWNER),
         vaccines=db.query(Vaccine).filter(Vaccine.pet_id == pet.id).all(),
         medical_records=db.query(MedicalRecord).filter(MedicalRecord.pet_id == pet.id).all(),
         calendar_events=db.query(CalendarEvent).filter(CalendarEvent.pet_id == pet.id).all(),

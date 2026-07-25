@@ -18,7 +18,10 @@ import {
   Download,
   Bell,
   Sparkles,
+  Users,
 } from 'lucide-react'
+import SpeciesIcon from './SpeciesIcon'
+import PetSharePanel from './PetSharePanel'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -100,6 +103,10 @@ export default function PetProfile() {
   const [recordEdit, setRecordEdit] = useState({})
   const [eventEdit, setEventEdit] = useState({})
   const [conditionEdit, setConditionEdit] = useState({})
+
+  const myRole = pet?.my_role || 'owner'
+  const isOwner = myRole === 'owner'
+  const canEdit = myRole === 'owner' || myRole === 'edit'
 
   async function load() {
     const [petRes, vacRes, recRes, evRes, condRes, subRes] = await Promise.all([
@@ -388,24 +395,39 @@ export default function PetProfile() {
 
       <div className="surface p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">{pet.name}</h1>
-            <p className="mt-1 text-cyan-700 dark:text-cyan-300">
-              {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
-              {pet.breed ? ` · ${pet.breed}` : ''}
-              {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
-            </p>
+          <div className="flex items-start gap-3">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
+              <SpeciesIcon species={pet.species} size={28} />
+            </span>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">{pet.name}</h1>
+                {!isOwner && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-teal-800 dark:bg-teal-900/40 dark:text-teal-200">
+                    <Users size={11} />
+                    {canEdit ? t('share.canEdit') : t('share.canRead')}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-cyan-700 dark:text-cyan-300">
+                {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
+                {pet.breed ? ` · ${pet.breed}` : ''}
+                {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
+              </p>
+            </div>
           </div>
-          <button
-            type="button"
-            className="btn-secondary text-sm"
-            onClick={() => {
-              setEditingPet((v) => !v)
-              setError('')
-            }}
-          >
-            <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
-          </button>
+          {canEdit && (
+            <button
+              type="button"
+              className="btn-secondary text-sm"
+              onClick={() => {
+                setEditingPet((v) => !v)
+                setError('')
+              }}
+            >
+              <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
+            </button>
+          )}
         </div>
 
         {error && !editingPet && <p className="mt-3 text-sm text-red-600">{error}</p>}
@@ -514,7 +536,7 @@ export default function PetProfile() {
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-rose-700/80 dark:text-rose-300/90">
               <Activity size={13} /> {t('pet.chronic')}
             </p>
-            {!showConditionForm && editingConditionId == null && (
+            {!showConditionForm && editingConditionId == null && canEdit && (
               <button
                 type="button"
                 className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-rose-700 hover:bg-rose-50 dark:text-rose-300 dark:hover:bg-rose-950/40"
@@ -525,7 +547,7 @@ export default function PetProfile() {
             )}
           </div>
 
-          {showConditionForm && (
+          {showConditionForm && canEdit && (
             <form onSubmit={addCondition} className="mb-3 grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
               <input
                 className="field px-3 py-1.5 text-sm"
@@ -590,6 +612,8 @@ export default function PetProfile() {
                     >
                       <span className="truncate font-medium">{c.name}</span>
                       {c.notes && <span className="hidden max-w-[10rem] truncate text-rose-700/70 dark:text-rose-300/70 sm:inline">· {c.notes}</span>}
+                      {canEdit && (
+                      <>
                       <button
                         type="button"
                         className="rounded-full p-0.5 text-rose-600 opacity-70 hover:bg-rose-100 hover:opacity-100 dark:text-rose-300 dark:hover:bg-rose-900"
@@ -610,6 +634,8 @@ export default function PetProfile() {
                       >
                         <Trash2 size={11} />
                       </button>
+                      </>
+                      )}
                     </span>
                   )}
                 </li>
@@ -620,8 +646,12 @@ export default function PetProfile() {
 
         <div className="mt-5 flex flex-wrap gap-2">
           <Link to={`/pets/${id}/log`} className="btn-secondary text-sm">{t('pet.diary')}</Link>
-          <Link to={`/pets/${id}/vet-access`} className="btn-primary text-sm">{t('pet.vetAccess')}</Link>
+          {isOwner && (
+            <Link to={`/pets/${id}/vet-access`} className="btn-primary text-sm">{t('pet.vetAccess')}</Link>
+          )}
         </div>
+
+        {isOwner && <PetSharePanel petId={id} />}
       </div>
 
       {/* Vaccines */}
@@ -629,12 +659,14 @@ export default function PetProfile() {
         <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
           <Syringe size={18} /> {t('pet.vaccines')}
         </h2>
+        {canEdit && (
         <form onSubmit={addVaccine} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
           <input className="field px-3 py-2 text-sm" placeholder={t('pet.vaccineName')} value={vaccineForm.name} onChange={(e) => setVaccineForm({ ...vaccineForm, name: e.target.value })} required />
           <input type="date" className="field px-3 py-2 text-sm" value={vaccineForm.administered_at} onChange={(e) => setVaccineForm({ ...vaccineForm, administered_at: e.target.value })} required />
           <input type="date" className="field px-3 py-2 text-sm" value={vaccineForm.next_due_at} onChange={(e) => setVaccineForm({ ...vaccineForm, next_due_at: e.target.value })} />
           <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
         </form>
+        )}
         <ul className="space-y-2">
           {vaccines.length === 0 && <li className="text-sm text-cyan-600">{t('pet.noVaccines')}</li>}
           {vaccines.map((v) => (
@@ -656,6 +688,7 @@ export default function PetProfile() {
                     <span className="text-cyan-600"> · {v.administered_at}</span>
                     {v.next_due_at && <span className="text-cyan-500"> · {t('pet.next')} {v.next_due_at}</span>}
                   </div>
+                  {canEdit && (
                   <div className="flex gap-2">
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingVaccineId(v.id); setVaccineEdit({ name: v.name, administered_at: v.administered_at, next_due_at: v.next_due_at || '' }) }}>
                       <Pencil size={12} /> {t('pet.edit')}
@@ -664,6 +697,7 @@ export default function PetProfile() {
                       <Trash2 size={12} /> {t('pet.delete')}
                     </button>
                   </div>
+                  )}
                 </div>
               )}
             </li>
@@ -676,6 +710,7 @@ export default function PetProfile() {
         <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
           <FileText size={18} /> {t('pet.records')}
         </h2>
+        {canEdit && (
         <form onSubmit={addRecord} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
           <select className="field px-3 py-2 text-sm" value={recordForm.record_type} onChange={(e) => setRecordForm({ ...recordForm, record_type: e.target.value })}>
             <option value="exam">{t('pet.exam')}</option>
@@ -688,6 +723,7 @@ export default function PetProfile() {
           <input type="date" className="field px-3 py-2 text-sm" value={recordForm.occurred_at} onChange={(e) => setRecordForm({ ...recordForm, occurred_at: e.target.value })} required />
           <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
         </form>
+        )}
         <ul className="space-y-2">
           {records.length === 0 && <li className="text-sm text-cyan-600">{t('pet.noRecords')}</li>}
           {records.map((r) => (
@@ -715,6 +751,7 @@ export default function PetProfile() {
                     <strong className="ml-2 text-cyan-900 dark:text-cyan-100">{r.title}</strong>
                     <span className="text-cyan-600"> · {r.occurred_at}</span>
                   </div>
+                  {canEdit && (
                   <div className="flex gap-2">
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingRecordId(r.id); setRecordEdit({ record_type: r.record_type, title: r.title, occurred_at: r.occurred_at }) }}>
                       <Pencil size={12} /> {t('pet.edit')}
@@ -723,6 +760,7 @@ export default function PetProfile() {
                       <Trash2 size={12} /> {t('pet.delete')}
                     </button>
                   </div>
+                  )}
                 </div>
               )}
             </li>
@@ -736,6 +774,7 @@ export default function PetProfile() {
           <CalendarDays size={18} /> {t('pet.calendar')}
         </h2>
         <p className="text-sm text-cyan-700/80 dark:text-cyan-300/80">{t('pet.calendarHint')}</p>
+        {canEdit && (
         <form onSubmit={addEvent} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
           <select className="field px-3 py-2 text-sm" value={eventForm.event_type} onChange={(e) => setEventForm({ ...eventForm, event_type: e.target.value })}>
             <option value="appointment">{t('pet.appointment')}</option>
@@ -747,6 +786,7 @@ export default function PetProfile() {
           <input type="datetime-local" className="field px-3 py-2 text-sm" value={eventForm.scheduled_at} onChange={(e) => setEventForm({ ...eventForm, scheduled_at: e.target.value })} required />
           <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
         </form>
+        )}
         <ul className="space-y-2">
           {events.length === 0 && <li className="text-sm text-cyan-600">{t('pet.noEvents')}</li>}
           {events.map((ev) => (
@@ -773,6 +813,7 @@ export default function PetProfile() {
                     <strong className="ml-2 text-cyan-900 dark:text-cyan-100">{ev.title}</strong>
                     <span className="text-cyan-600"> · {formatLocalDateTime(ev.scheduled_at, i18n.language)}</span>
                   </div>
+                  {canEdit && (
                   <div className="flex gap-2">
                     <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingEventId(ev.id); setEventEdit({ event_type: ev.event_type, title: ev.title, scheduled_at: toLocalInput(ev.scheduled_at), completed: ev.completed }) }}>
                       <Pencil size={12} /> {t('pet.edit')}
@@ -781,6 +822,7 @@ export default function PetProfile() {
                       <Trash2 size={12} /> {t('pet.delete')}
                     </button>
                   </div>
+                  )}
                 </div>
               )}
             </li>

@@ -22,10 +22,18 @@ export default function MedicalLog() {
   const [appetite, setAppetite] = useState('')
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({ note: '', mood: '', appetite: '' })
+  const [canEdit, setCanEdit] = useState(true)
 
   async function loadLogs() {
-    const res = await fetch(`${API_URL}/api/pets/${id}/logs`, { headers: authHeaders() })
-    if (res.ok) setLogs(await res.json())
+    const [logsRes, petRes] = await Promise.all([
+      fetch(`${API_URL}/api/pets/${id}/logs`, { headers: authHeaders() }),
+      fetch(`${API_URL}/api/pets/${id}`, { headers: authHeaders() }),
+    ])
+    if (logsRes.ok) setLogs(await logsRes.json())
+    if (petRes.ok) {
+      const pet = await petRes.json()
+      setCanEdit(pet.my_role === 'owner' || pet.my_role === 'edit')
+    }
   }
 
   useEffect(() => {
@@ -93,6 +101,7 @@ export default function MedicalLog() {
         </p>
       </div>
 
+      {canEdit && (
       <form onSubmit={submitLog} className="space-y-3 surface p-5">
         <textarea
           className="w-full field px-3 py-2 text-sm"
@@ -120,6 +129,7 @@ export default function MedicalLog() {
           <NotebookPen size={16} /> {t('log.save')}
         </button>
       </form>
+      )}
 
       <ul className="space-y-3">
         {logs.map((log) => (
@@ -165,6 +175,7 @@ export default function MedicalLog() {
                     {log.appetite ? ` · ${t('log.appetiteLabel')}: ${log.appetite}` : ''}
                   </p>
                 </div>
+                {canEdit && (
                 <div className="flex gap-2">
                   <button
                     type="button"
@@ -188,6 +199,7 @@ export default function MedicalLog() {
                     <Trash2 size={12} /> {t('log.delete')}
                   </button>
                 </div>
+                )}
               </div>
             )}
           </li>

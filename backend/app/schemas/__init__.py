@@ -6,6 +6,7 @@ from app.models import (
     SubscriptionStatus,
     EventType,
     RecordType,
+    SharePermission,
 )
 
 
@@ -102,12 +103,35 @@ class PetOut(BaseModel):
     weight_kg: Optional[float] = None
     allergies: Optional[str] = None
     created_at: datetime
+    my_role: str = "owner"  # owner | edit | read
 
 
 class AccessPinResponse(BaseModel):
     pin: str
     expires_at: datetime
     qr_payload: str
+
+
+class PetShareCreate(BaseModel):
+    email: EmailStr
+    permission: SharePermission = SharePermission.READ
+
+
+class PetShareUpdate(BaseModel):
+    permission: SharePermission
+
+
+class PetShareOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    pet_id: int
+    shared_with_user_id: int
+    permission: SharePermission
+    invited_by: int
+    created_at: datetime
+    email: str
+    full_name: Optional[str] = None
 
 
 # --- Vaccines / Records / Logs ---

@@ -177,5 +177,18 @@
     "edit": "Edit",
     "delete": "Delete",
     "loading": "Loading…"
+  },
+  "share": {
+    "title": "Share pet",
+    "hint": "Invite another Profipaws user (Free or Pro) with read-only or edit access.",
+    "email": "User email",
+    "add": "Share",
+    "sharing": "Sharing…",
+    "canRead": "View only",
+    "canEdit": "Can edit",
+    "empty": "Not shared with anyone yet.",
+    "remove": "Remove access",
+    "removeConfirm": "Remove this person's access?",
+    "error": "Could not share"
   }
 }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Plus, PawPrint, Syringe, BookOpen, QrCode } from 'lucide-react'
+import { Plus, PawPrint, Syringe, BookOpen, QrCode, Users } from 'lucide-react'
+import SpeciesIcon from './SpeciesIcon'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -15,6 +16,7 @@ function authHeaders() {
 
 export default function Dashboard() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [pets, setPets] = useState([])
   const [subscription, setSubscription] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -108,29 +110,52 @@ export default function Dashboard() {
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pets.map((pet) => (
-            <li key={pet.id} className="surface p-5 shadow-sm shadow-cyan-900/5">
-              <div className="flex items-start gap-3">
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
-                  <PawPrint size={22} />
-                </span>
-                <div>
-                  <h2 className="font-display text-lg font-semibold text-cyan-950 dark:text-cyan-50">{pet.name}</h2>
-                  <p className="text-sm text-cyan-700/70 dark:text-cyan-300/70">
-                    {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}{pet.breed ? ` · ${pet.breed}` : ''}
-                  </p>
+            <li key={pet.id}>
+              <div
+                role="link"
+                tabIndex={0}
+                onClick={() => navigate(`/pets/${pet.id}`)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    navigate(`/pets/${pet.id}`)
+                  }
+                }}
+                className="surface cursor-pointer p-5 shadow-sm shadow-cyan-900/5 transition hover:border-cyan-300 dark:hover:border-cyan-600"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
+                    <SpeciesIcon species={pet.species} size={22} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h2 className="font-display text-lg font-semibold text-cyan-950 dark:text-cyan-50">{pet.name}</h2>
+                      {pet.my_role && pet.my_role !== 'owner' && (
+                        <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-teal-800 dark:bg-teal-900/40 dark:text-teal-200">
+                          <Users size={10} />
+                          {pet.my_role === 'edit' ? t('share.canEdit') : t('share.canRead')}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-cyan-700/70 dark:text-cyan-300/70">
+                      {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}{pet.breed ? ` · ${pet.breed}` : ''}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="mt-4 flex flex-wrap gap-2 text-xs">
-                <Link to={`/pets/${pet.id}`} className="btn-secondary px-3 py-1.5 text-xs">{t('dashboard.profile')}</Link>
-                <Link to={`/pets/${pet.id}/log`} className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-1.5 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100">
-                  <BookOpen size={12} /> {t('dashboard.diary')}
-                </Link>
-                <Link to={`/pets/${pet.id}/vet-access`} className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-3 py-1.5 text-teal-800 dark:bg-teal-900/50 dark:text-teal-100">
-                  <QrCode size={12} /> {t('dashboard.vetPin')}
-                </Link>
-                <Link to={`/pets/${pet.id}#historial`} className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-1.5 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100">
-                  <Syringe size={12} /> {t('dashboard.history')}
-                </Link>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs" onClick={(e) => e.stopPropagation()}>
+                  <Link to={`/pets/${pet.id}`} className="btn-secondary px-3 py-1.5 text-xs">{t('dashboard.profile')}</Link>
+                  <Link to={`/pets/${pet.id}/log`} className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-1.5 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100">
+                    <BookOpen size={12} /> {t('dashboard.diary')}
+                  </Link>
+                  {pet.my_role === 'owner' && (
+                    <Link to={`/pets/${pet.id}/vet-access`} className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-3 py-1.5 text-teal-800 dark:bg-teal-900/50 dark:text-teal-100">
+                      <QrCode size={12} /> {t('dashboard.vetPin')}
+                    </Link>
+                  )}
+                  <Link to={`/pets/${pet.id}#historial`} className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-3 py-1.5 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100">
+                    <Syringe size={12} /> {t('dashboard.history')}
+                  </Link>
+                </div>
               </div>
             </li>
           ))}
