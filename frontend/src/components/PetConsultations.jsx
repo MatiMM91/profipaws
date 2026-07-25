@@ -67,7 +67,7 @@ function ConsultationFormFields({ t, values, setValues, onSubmit, onCancel, subm
   )
 }
 
-export default function PetConsultations({ petId, canEdit }) {
+export default function PetConsultations({ petId, canEdit, hideTitle = false }) {
   const { t } = useTranslation()
   const [items, setItems] = useState([])
   const [form, setForm] = useState(emptyForm)
@@ -185,16 +185,22 @@ export default function PetConsultations({ petId, canEdit }) {
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
-          <Stethoscope size={18} /> {t('seguimiento.title')}
-        </h2>
+        {!hideTitle ? (
+          <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
+            <Stethoscope size={18} /> {t('seguimiento.title')}
+          </h2>
+        ) : (
+          <p className="text-sm text-cyan-700/80 dark:text-cyan-300/80">{t('seguimiento.subtitle')}</p>
+        )}
         {canEdit && !showForm && editingId == null && (
           <button type="button" className="btn-secondary text-xs" onClick={() => setShowForm(true)}>
             <Plus size={12} /> {t('seguimiento.add')}
           </button>
         )}
       </div>
-      <p className="text-sm text-cyan-700/80 dark:text-cyan-300/80">{t('seguimiento.subtitle')}</p>
+      {!hideTitle && (
+        <p className="text-sm text-cyan-700/80 dark:text-cyan-300/80">{t('seguimiento.subtitle')}</p>
+      )}
 
       <div className="rounded-lg border border-cyan-100 bg-cyan-50/40 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
         {t('seguimiento.consultations')}

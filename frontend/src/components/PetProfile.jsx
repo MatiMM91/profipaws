@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link, useLocation } from 'react-router-dom'
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   ArrowLeft,
@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   Cpu,
   Pencil,
-  CalendarDays,
   Plus,
   FileText,
   Trash2,
@@ -78,10 +77,25 @@ const emptyPetEdit = {
   allergies: '',
 }
 
+const PET_TABS = [
+  { id: 'profile', hash: '#perfil', labelKey: 'pet.tabProfile' },
+  { id: 'historial', hash: '#historial', labelKey: 'pet.tabHistorial' },
+  { id: 'seguimiento', hash: '#seguimiento', labelKey: 'pet.tabSeguimiento' },
+  { id: 'calendar', hash: '#calendario', labelKey: 'pet.tabCalendar' },
+  { id: 'tools', hash: '#herramientas', labelKey: 'pet.tabTools' },
+]
+
+function tabFromHash(hash) {
+  const found = PET_TABS.find((tab) => tab.hash === hash)
+  return found?.id || 'profile'
+}
+
 export default function PetProfile() {
   const { t, i18n } = useTranslation()
   const { id } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
+  const [tab, setTab] = useState(() => tabFromHash(typeof window !== 'undefined' ? window.location.hash : ''))
   const [pet, setPet] = useState(null)
   const [vaccines, setVaccines] = useState([])
   const [records, setRecords] = useState([])
@@ -216,10 +230,14 @@ export default function PetProfile() {
   }, [id])
 
   useEffect(() => {
-    if (!pet || location.hash !== '#historial') return
-    const el = document.getElementById('historial')
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [pet, location.hash])
+    setTab(tabFromHash(location.hash))
+  }, [location.hash])
+
+  function selectTab(nextId) {
+    const next = PET_TABS.find((item) => item.id === nextId) || PET_TABS[0]
+    setTab(next.id)
+    navigate(`${location.pathname}${next.hash}`, { replace: true })
+  }
 
   async function savePet(e) {
     e.preventDefault()
@@ -373,12 +391,12 @@ export default function PetProfile() {
       </Link>
 
       <div className="surface p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
             <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
               <SpeciesIcon species={pet.species} size={28} />
             </span>
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">{pet.name}</h1>
                 {!isOwner && (
@@ -395,7 +413,32 @@ export default function PetProfile() {
               </p>
             </div>
           </div>
-          {canEdit && (
+
+          <nav
+            className="-mx-1 flex max-w-full gap-1 overflow-x-auto px-1 pb-1 lg:max-w-[min(100%,28rem)] lg:flex-wrap lg:justify-end lg:overflow-visible"
+            aria-label={t('pet.tabsLabel')}
+          >
+            {PET_TABS.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => selectTab(item.id)}
+                className={`shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 ${
+                  tab === item.id
+                    ? 'bg-cyan-700 text-white dark:bg-cyan-500 dark:text-cyan-950'
+                    : 'bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-900/60 dark:text-cyan-100 dark:hover:bg-cyan-800'
+                }`}
+              >
+                {t(item.labelKey)}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {tab === 'profile' && (
+          <>
+        {canEdit && (
+          <div className="mt-4 flex justify-end">
             <button
               type="button"
               className="btn-secondary text-sm"
@@ -406,8 +449,8 @@ export default function PetProfile() {
             >
               <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
         {error && !editingPet && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
@@ -659,7 +702,44 @@ export default function PetProfile() {
           )}
         </div>
 
-        {/* Tools: vet, exports, share */}
+        {isOwner && <PetSharePanel petId={id} embedded />}
+
+        {/* Upcoming alerts */}
+        <div className="mt-5 rounded-xl border border-cyan-100 bg-white/70 p-4 dark:border-cyan-800 dark:bg-cyan-950/30">
+          <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
+            <Bell size={13} /> {t('pet.upcomingAlerts')}
+          </p>
+          {isPro ? (
+            <>
+              {alerts.length === 0 ? (
+                <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('pet.noUpcomingAlerts')}</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {alerts.map((a) => (
+                    <li key={`${a.kind}-${a.id}`} className="text-xs text-cyan-900 dark:text-cyan-100">
+                      <span className="font-medium">{a.title}</span>
+                      <span className="text-cyan-600 dark:text-cyan-400">
+                        {' '}· {a.kind === 'vaccine' ? t('pet.vaccine') : t('pet.appointment')} · {formatLocalDateTime(a.due_at, i18n.language) || String(a.due_at).slice(0, 16)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-2 text-[11px] text-cyan-600/80 dark:text-cyan-400/80">{t('pet.alertsHint')}</p>
+            </>
+          ) : (
+            <p className="text-xs text-cyan-700 dark:text-cyan-300">
+              {t('pet.alertsProHint')}{' '}
+              <Link to="/pricing" className="font-medium underline-offset-2 hover:underline">
+                {t('pet.upgradeForPro')}
+              </Link>
+            </p>
+          )}
+        </div>
+          </>
+        )}
+
+        {tab === 'tools' && (
         <div className="mt-5 rounded-xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-800 dark:bg-cyan-950/40">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
@@ -671,6 +751,7 @@ export default function PetProfile() {
               </Link>
             )}
           </div>
+          {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
           <div className="space-y-2">
             {isOwner && (
               <div className="flex flex-col gap-3 rounded-lg border border-cyan-100/90 bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-cyan-800 dark:bg-cyan-950/50">
@@ -730,58 +811,30 @@ export default function PetProfile() {
           {!isPro && (
             <p className="mt-3 text-xs text-cyan-700 dark:text-cyan-300">{t('pet.exportProHint')}</p>
           )}
-          {isOwner && <PetSharePanel petId={id} embedded />}
         </div>
+        )}
 
-        {/* Upcoming alerts */}
-        <div className="mt-5 rounded-xl border border-cyan-100 bg-white/70 p-4 dark:border-cyan-800 dark:bg-cyan-950/30">
-          <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
-            <Bell size={13} /> {t('pet.upcomingAlerts')}
-          </p>
-          {isPro ? (
-            <>
-              {alerts.length === 0 ? (
-                <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('pet.noUpcomingAlerts')}</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {alerts.map((a) => (
-                    <li key={`${a.kind}-${a.id}`} className="text-xs text-cyan-900 dark:text-cyan-100">
-                      <span className="font-medium">{a.title}</span>
-                      <span className="text-cyan-600 dark:text-cyan-400">
-                        {' '}· {a.kind === 'vaccine' ? t('pet.vaccine') : t('pet.appointment')} · {formatLocalDateTime(a.due_at, i18n.language) || String(a.due_at).slice(0, 16)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <p className="mt-2 text-[11px] text-cyan-600/80 dark:text-cyan-400/80">{t('pet.alertsHint')}</p>
-            </>
-          ) : (
-            <p className="text-xs text-cyan-700 dark:text-cyan-300">
-              {t('pet.alertsProHint')}{' '}
-              <Link to="/pricing" className="font-medium underline-offset-2 hover:underline">
-                {t('pet.upgradeForPro')}
-              </Link>
-            </p>
-          )}
-        </div>
-      </div>
+        {tab === 'historial' && (
+          <div className="mt-5">
+            <PetHistorial
+              petId={id}
+              vaccines={vaccines}
+              records={records}
+              canEdit={canEdit}
+              onRefresh={load}
+              hideTitle
+            />
+          </div>
+        )}
 
-      <PetHistorial
-        petId={id}
-        vaccines={vaccines}
-        records={records}
-        canEdit={canEdit}
-        onRefresh={load}
-      />
+        {tab === 'seguimiento' && (
+          <div className="mt-5">
+            <PetConsultations petId={id} canEdit={canEdit} hideTitle />
+          </div>
+        )}
 
-      <PetConsultations petId={id} canEdit={canEdit} />
-
-      {/* Calendar */}
-      <section className="space-y-3">
-        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
-          <CalendarDays size={18} /> {t('pet.calendar')}
-        </h2>
+        {tab === 'calendar' && (
+      <section className="mt-5 space-y-3">
         <p className="text-sm text-cyan-700/80 dark:text-cyan-300/80">{t('pet.calendarHint')}</p>
         {canEdit && (
         <form onSubmit={addEvent} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
@@ -838,6 +891,8 @@ export default function PetProfile() {
           ))}
         </ul>
       </section>
+        )}
+      </div>
     </div>
   )
 }

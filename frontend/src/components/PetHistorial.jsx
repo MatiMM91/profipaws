@@ -28,6 +28,7 @@ export default function PetHistorial({
   records,
   canEdit,
   onRefresh,
+  hideTitle = false,
 }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState('vaccine')
@@ -167,9 +168,11 @@ export default function PetHistorial({
 
   return (
     <section id="historial" className="scroll-mt-24 space-y-4">
-      <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
-        <FileText size={18} /> {t('historial.title')}
-      </h2>
+      {!hideTitle && (
+        <h2 className="flex items-center gap-2 font-display text-xl font-semibold text-cyan-950 dark:text-cyan-50">
+          <FileText size={18} /> {t('historial.title')}
+        </h2>
+      )}
 
       <div className="flex flex-wrap gap-1.5 border-b border-cyan-100 pb-2 dark:border-cyan-800">
         {TABS.map((tabItem) => (
