@@ -16,6 +16,7 @@ import {
   Bell,
   Sparkles,
   Users,
+  QrCode,
   ShieldCheck,
 } from 'lucide-react'
 import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
