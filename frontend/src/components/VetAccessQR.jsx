@@ -72,13 +72,17 @@ export default function VetAccessQR() {
                 height={220}
               />
             )}
-            <p className="inline-flex items-center gap-1.5 text-xs text-cyan-600 dark:text-cyan-400">
-              <Clock size={12} />
-              {t('vet.expires')}: {new Date(access.expires_at).toLocaleString(i18n.language)}
-            </p>
-            <button type="button" className="btn-secondary" onClick={generatePin}>
-              {t('vet.regenerate')}
-            </button>
+            <div className="flex flex-col items-center gap-3 pt-1">
+              <p className="inline-flex max-w-full items-center justify-center gap-1.5 px-1 text-xs text-cyan-600 dark:text-cyan-400">
+                <Clock size={12} className="shrink-0" />
+                <span className="break-words text-center">
+                  {t('vet.expires')}: {new Date(access.expires_at).toLocaleString(i18n.language)}
+                </span>
+              </p>
+              <button type="button" className="btn-secondary" onClick={generatePin} disabled={loading}>
+                {loading ? t('vet.generating') : t('vet.regenerate')}
+              </button>
+            </div>
           </div>
         )}
       </div>
