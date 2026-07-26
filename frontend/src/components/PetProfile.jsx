@@ -109,6 +109,9 @@ export default function PetProfile() {
   const [form, setForm] = useState(emptyPetEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleteName, setDeleteName] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   const [eventForm, setEventForm] = useState({
     event_type: 'appointment',
@@ -233,7 +236,11 @@ export default function PetProfile() {
   function selectTab(nextId) {
     const next = PET_TABS.find((item) => item.id === nextId) || PET_TABS[0]
     setTab(next.id)
-    if (next.id !== 'profile') setEditingPet(false)
+    if (next.id !== 'profile') {
+      setEditingPet(false)
+      setConfirmDelete(false)
+      setDeleteName('')
+    }
     navigate(`${location.pathname}${next.hash}`, { replace: true })
   }
 
@@ -262,6 +269,25 @@ export default function PetProfile() {
     }
     setPet(await res.json())
     setEditingPet(false)
+    setConfirmDelete(false)
+    setDeleteName('')
+  }
+
+  async function deletePet() {
+    if (!pet || deleteName.trim() !== pet.name) return
+    setDeleting(true)
+    setError('')
+    const res = await fetch(`${API_URL}/api/pets/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+    })
+    setDeleting(false)
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}))
+      setError(typeof err.detail === 'string' ? err.detail : t('pet.deletePetError'))
+      return
+    }
+    navigate('/dashboard')
   }
 
   async function downloadExport(format) {
@@ -419,6 +445,8 @@ export default function PetProfile() {
               onClick={() => {
                 setEditingPet((v) => !v)
                 setError('')
+                setConfirmDelete(false)
+                setDeleteName('')
               }}
             >
               <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
@@ -465,6 +493,63 @@ export default function PetProfile() {
             {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
             <button type="submit" className="btn-primary sm:col-span-2" disabled={saving}>{saving ? t('pet.saving') : t('pet.saveChanges')}</button>
           </form>
+        )}
+
+        {editingPet && isOwner && (
+          <div className="mt-5 rounded-xl border border-red-200 bg-red-50/80 p-4 dark:border-red-900/60 dark:bg-red-950/30">
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-red-800 dark:text-red-200">
+              <AlertTriangle size={13} /> {t('pet.deletePetZone')}
+            </p>
+            <p className="mt-2 text-sm text-red-800/90 dark:text-red-200/90">{t('pet.deletePetWarning')}</p>
+
+            {!confirmDelete ? (
+              <button
+                type="button"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
+                onClick={() => {
+                  setConfirmDelete(true)
+                  setDeleteName('')
+                  setError('')
+                }}
+              >
+                <Trash2 size={14} /> {t('pet.deletePet')}
+              </button>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <p className="text-sm font-medium text-red-900 dark:text-red-100">
+                  {t('pet.deletePetConfirm', { name: pet.name })}
+                </p>
+                <input
+                  className="field w-full border-red-200 px-3 py-2 text-sm focus:border-red-400 focus:ring-red-200 dark:border-red-800"
+                  placeholder={pet.name}
+                  value={deleteName}
+                  onChange={(e) => setDeleteName(e.target.value)}
+                  autoComplete="off"
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    disabled={deleting || deleteName.trim() !== pet.name}
+                    onClick={deletePet}
+                  >
+                    <Trash2 size={14} /> {deleting ? t('pet.deletingPet') : t('pet.deletePetConfirmAction')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-secondary px-3 py-2 text-sm"
+                    disabled={deleting}
+                    onClick={() => {
+                      setConfirmDelete(false)
+                      setDeleteName('')
+                    }}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {!editingPet && (
