@@ -27,8 +27,8 @@ export default function PetSharePanel({ petId, embedded = false }) {
   }
 
   useEffect(() => {
-    if (open) loadShares()
-  }, [petId, open])
+    loadShares()
+  }, [petId])
 
   async function addShare(e) {
     e.preventDefault()
