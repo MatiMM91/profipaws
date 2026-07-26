@@ -148,6 +148,8 @@ class PetShareOut(BaseModel):
 # --- Vaccines / Records / Logs ---
 class VaccineCreate(BaseModel):
     name: str
+    brand: Optional[str] = None
+    code: Optional[str] = None
     administered_at: date
     next_due_at: Optional[date] = None
     veterinarian: Optional[str] = None
@@ -157,6 +159,8 @@ class VaccineCreate(BaseModel):
 
 class VaccineUpdate(BaseModel):
     name: Optional[str] = None
+    brand: Optional[str] = None
+    code: Optional[str] = None
     administered_at: Optional[date] = None
     next_due_at: Optional[date] = None
     veterinarian: Optional[str] = None
@@ -170,6 +174,8 @@ class VaccineOut(BaseModel):
     id: int
     pet_id: int
     name: str
+    brand: Optional[str] = None
+    code: Optional[str] = None
     administered_at: date
     next_due_at: Optional[date] = None
     veterinarian: Optional[str] = None
@@ -374,6 +380,8 @@ class ChronicConditionOut(BaseModel):
 # --- External API ---
 class ExternalVaccineCreate(BaseModel):
     name: str
+    brand: Optional[str] = None
+    code: Optional[str] = None
     administered_at: date
     next_due_at: Optional[date] = None
     veterinarian: Optional[str] = None

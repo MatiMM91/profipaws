@@ -20,7 +20,20 @@ function authHeaders(json = true) {
   }
 }
 
-const emptyForm = { title: '', occurred_at: '', notes: '' }
+const emptyRecordForm = { title: '', occurred_at: '', notes: '' }
+const emptyVaccineForm = {
+  name: '',
+  brand: '',
+  code: '',
+  administered_at: '',
+  next_due_at: '',
+  notes: '',
+}
+
+function cleanOptional(value) {
+  const v = String(value || '').trim()
+  return v || null
+}
 
 export default function PetHistorial({
   petId,
@@ -32,9 +45,11 @@ export default function PetHistorial({
 }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState('vaccine')
-  const [form, setForm] = useState(emptyForm)
+  const [recordForm, setRecordForm] = useState(emptyRecordForm)
+  const [vaccineForm, setVaccineForm] = useState(emptyVaccineForm)
   const [editingId, setEditingId] = useState(null)
-  const [editForm, setEditForm] = useState(emptyForm)
+  const [editRecordForm, setEditRecordForm] = useState(emptyRecordForm)
+  const [editVaccineForm, setEditVaccineForm] = useState(emptyVaccineForm)
   const [uploadingId, setUploadingId] = useState(null)
 
   const isVaccine = tab === 'vaccine'
@@ -51,30 +66,30 @@ export default function PetHistorial({
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
-          name: form.title.trim(),
-          administered_at: form.occurred_at,
-          notes: form.notes.trim() || null,
+          name: vaccineForm.name.trim(),
+          brand: cleanOptional(vaccineForm.brand),
+          code: cleanOptional(vaccineForm.code),
+          administered_at: vaccineForm.administered_at,
+          next_due_at: cleanOptional(vaccineForm.next_due_at),
+          notes: cleanOptional(vaccineForm.notes),
         }),
       })
       if (!res.ok) return alert(t('historial.saveError'))
+      setVaccineForm(emptyVaccineForm)
     } else {
       const res = await fetch(`${API_URL}/api/pets/${petId}/records`, {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
           record_type: tab,
-          title: form.title.trim(),
-          occurred_at: form.occurred_at,
-          description: form.notes.trim() || null,
+          title: recordForm.title.trim(),
+          occurred_at: recordForm.occurred_at,
+          description: cleanOptional(recordForm.notes),
         }),
       })
       if (!res.ok) return alert(t('historial.saveError'))
-      const created = await res.json()
-      setForm(emptyForm)
-      await onRefresh()
-      return created
+      setRecordForm(emptyRecordForm)
     }
-    setForm(emptyForm)
     await onRefresh()
   }
 
@@ -84,9 +99,12 @@ export default function PetHistorial({
         method: 'PATCH',
         headers: authHeaders(),
         body: JSON.stringify({
-          name: editForm.title.trim(),
-          administered_at: editForm.occurred_at,
-          notes: editForm.notes.trim() || null,
+          name: editVaccineForm.name.trim(),
+          brand: cleanOptional(editVaccineForm.brand),
+          code: cleanOptional(editVaccineForm.code),
+          administered_at: editVaccineForm.administered_at,
+          next_due_at: cleanOptional(editVaccineForm.next_due_at),
+          notes: cleanOptional(editVaccineForm.notes),
         }),
       })
       if (!res.ok) return alert(t('historial.saveError'))
@@ -95,9 +113,9 @@ export default function PetHistorial({
         method: 'PATCH',
         headers: authHeaders(),
         body: JSON.stringify({
-          title: editForm.title.trim(),
-          occurred_at: editForm.occurred_at,
-          description: editForm.notes.trim() || null,
+          title: editRecordForm.title.trim(),
+          occurred_at: editRecordForm.occurred_at,
+          description: cleanOptional(editRecordForm.notes),
         }),
       })
       if (!res.ok) return alert(t('historial.saveError'))
@@ -152,18 +170,28 @@ export default function PetHistorial({
   function startEdit(item) {
     setEditingId(item.id)
     if (isVaccine) {
-      setEditForm({
-        title: item.name,
-        occurred_at: item.administered_at,
+      setEditVaccineForm({
+        name: item.name || '',
+        brand: item.brand || '',
+        code: item.code || '',
+        administered_at: item.administered_at || '',
+        next_due_at: item.next_due_at || '',
         notes: item.notes || '',
       })
     } else {
-      setEditForm({
+      setEditRecordForm({
         title: item.title,
         occurred_at: item.occurred_at,
         notes: item.description || '',
       })
     }
+  }
+
+  function switchTab(nextTab) {
+    setTab(nextTab)
+    setEditingId(null)
+    setRecordForm(emptyRecordForm)
+    setVaccineForm(emptyVaccineForm)
   }
 
   return (
@@ -179,11 +207,7 @@ export default function PetHistorial({
           <button
             key={tabItem.id}
             type="button"
-            onClick={() => {
-              setTab(tabItem.id)
-              setEditingId(null)
-              setForm(emptyForm)
-            }}
+            onClick={() => switchTab(tabItem.id)}
             className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
               tab === tabItem.id
                 ? 'bg-cyan-700 text-white dark:bg-cyan-500 dark:text-cyan-950'
@@ -196,20 +220,75 @@ export default function PetHistorial({
         ))}
       </div>
 
-      {canEdit && (
+      {canEdit && isVaccine && (
+        <form onSubmit={addItem} className="grid gap-2 rounded-xl border border-cyan-100 bg-white p-4 dark:border-cyan-800 dark:bg-cyan-900/40 sm:grid-cols-2">
+          <input
+            className="field px-3 py-2 text-sm"
+            placeholder={t('historial.vaccineName')}
+            value={vaccineForm.name}
+            onChange={(e) => setVaccineForm({ ...vaccineForm, name: e.target.value })}
+            required
+          />
+          <input
+            className="field px-3 py-2 text-sm"
+            placeholder={t('historial.vaccineBrand')}
+            value={vaccineForm.brand}
+            onChange={(e) => setVaccineForm({ ...vaccineForm, brand: e.target.value })}
+          />
+          <input
+            className="field px-3 py-2 text-sm"
+            placeholder={t('historial.vaccineCode')}
+            value={vaccineForm.code}
+            onChange={(e) => setVaccineForm({ ...vaccineForm, code: e.target.value })}
+          />
+          <div className="grid grid-cols-2 gap-2">
+            <label className="space-y-1">
+              <span className="text-[11px] font-medium text-cyan-700 dark:text-cyan-300">{t('historial.administeredAt')}</span>
+              <input
+                type="date"
+                className="field w-full px-3 py-2 text-sm"
+                value={vaccineForm.administered_at}
+                onChange={(e) => setVaccineForm({ ...vaccineForm, administered_at: e.target.value })}
+                required
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-[11px] font-medium text-cyan-700 dark:text-cyan-300">{t('historial.nextDueAt')}</span>
+              <input
+                type="date"
+                className="field w-full px-3 py-2 text-sm"
+                value={vaccineForm.next_due_at}
+                onChange={(e) => setVaccineForm({ ...vaccineForm, next_due_at: e.target.value })}
+              />
+            </label>
+          </div>
+          <textarea
+            className="field px-3 py-2 text-sm sm:col-span-2"
+            rows={2}
+            placeholder={t('historial.notes')}
+            value={vaccineForm.notes}
+            onChange={(e) => setVaccineForm({ ...vaccineForm, notes: e.target.value })}
+          />
+          <button type="submit" className="btn-primary text-sm sm:col-span-2">
+            <Plus size={14} /> {t('historial.add')}
+          </button>
+        </form>
+      )}
+
+      {canEdit && !isVaccine && (
         <form onSubmit={addItem} className="grid gap-2 rounded-xl border border-cyan-100 bg-white p-4 dark:border-cyan-800 dark:bg-cyan-900/40 sm:grid-cols-4">
           <input
             className="field px-3 py-2 text-sm sm:col-span-2"
             placeholder={t('historial.titleField')}
-            value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            value={recordForm.title}
+            onChange={(e) => setRecordForm({ ...recordForm, title: e.target.value })}
             required
           />
           <input
             type="date"
             className="field px-3 py-2 text-sm"
-            value={form.occurred_at}
-            onChange={(e) => setForm({ ...form, occurred_at: e.target.value })}
+            value={recordForm.occurred_at}
+            onChange={(e) => setRecordForm({ ...recordForm, occurred_at: e.target.value })}
             required
           />
           <button type="submit" className="btn-primary text-sm">
@@ -219,8 +298,8 @@ export default function PetHistorial({
             className="field px-3 py-2 text-sm sm:col-span-4"
             rows={2}
             placeholder={t('historial.notes')}
-            value={form.notes}
-            onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            value={recordForm.notes}
+            onChange={(e) => setRecordForm({ ...recordForm, notes: e.target.value })}
           />
         </form>
       )}
@@ -235,10 +314,60 @@ export default function PetHistorial({
           const notes = isVaccine ? item.notes : item.description
           return (
             <li key={item.id} className="rounded-xl border border-cyan-100 bg-white px-4 py-3 text-sm dark:border-cyan-800 dark:bg-cyan-900/40">
-              {editingId === item.id ? (
+              {editingId === item.id && isVaccine ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <input
+                    className="field px-2 py-1.5"
+                    placeholder={t('historial.vaccineName')}
+                    value={editVaccineForm.name}
+                    onChange={(e) => setEditVaccineForm({ ...editVaccineForm, name: e.target.value })}
+                  />
+                  <input
+                    className="field px-2 py-1.5"
+                    placeholder={t('historial.vaccineBrand')}
+                    value={editVaccineForm.brand}
+                    onChange={(e) => setEditVaccineForm({ ...editVaccineForm, brand: e.target.value })}
+                  />
+                  <input
+                    className="field px-2 py-1.5"
+                    placeholder={t('historial.vaccineCode')}
+                    value={editVaccineForm.code}
+                    onChange={(e) => setEditVaccineForm({ ...editVaccineForm, code: e.target.value })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      className="field px-2 py-1.5"
+                      value={editVaccineForm.administered_at}
+                      onChange={(e) => setEditVaccineForm({ ...editVaccineForm, administered_at: e.target.value })}
+                    />
+                    <input
+                      type="date"
+                      className="field px-2 py-1.5"
+                      value={editVaccineForm.next_due_at}
+                      onChange={(e) => setEditVaccineForm({ ...editVaccineForm, next_due_at: e.target.value })}
+                    />
+                  </div>
+                  <textarea
+                    className="field px-2 py-1.5 sm:col-span-2"
+                    rows={2}
+                    value={editVaccineForm.notes}
+                    onChange={(e) => setEditVaccineForm({ ...editVaccineForm, notes: e.target.value })}
+                    placeholder={t('historial.notes')}
+                  />
+                  <div className="flex gap-2 sm:col-span-2">
+                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveItem(item.id)}>
+                      <Check size={12} /> {t('common.save')}
+                    </button>
+                    <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={() => setEditingId(null)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                </div>
+              ) : editingId === item.id ? (
                 <div className="grid gap-2 sm:grid-cols-3">
-                  <input className="field px-2 py-1.5" value={editForm.title} onChange={(e) => setEditForm({ ...editForm, title: e.target.value })} />
-                  <input type="date" className="field px-2 py-1.5" value={editForm.occurred_at} onChange={(e) => setEditForm({ ...editForm, occurred_at: e.target.value })} />
+                  <input className="field px-2 py-1.5" value={editRecordForm.title} onChange={(e) => setEditRecordForm({ ...editRecordForm, title: e.target.value })} />
+                  <input type="date" className="field px-2 py-1.5" value={editRecordForm.occurred_at} onChange={(e) => setEditRecordForm({ ...editRecordForm, occurred_at: e.target.value })} />
                   <div className="flex gap-2">
                     <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveItem(item.id)}>
                       <Check size={12} /> {t('common.save')}
@@ -250,8 +379,8 @@ export default function PetHistorial({
                   <textarea
                     className="field px-2 py-1.5 sm:col-span-3"
                     rows={2}
-                    value={editForm.notes}
-                    onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+                    value={editRecordForm.notes}
+                    onChange={(e) => setEditRecordForm({ ...editRecordForm, notes: e.target.value })}
                     placeholder={t('historial.notes')}
                   />
                 </div>
@@ -261,6 +390,27 @@ export default function PetHistorial({
                     <div>
                       <strong className="text-cyan-900 dark:text-cyan-100">{title}</strong>
                       <span className="text-cyan-600 dark:text-cyan-400"> · {date}</span>
+                      {isVaccine && (
+                        <p className="mt-1 text-xs text-cyan-700 dark:text-cyan-300">
+                          {item.brand && (
+                            <span>
+                              {t('historial.vaccineBrand')}: {item.brand}
+                            </span>
+                          )}
+                          {item.brand && item.code ? ' · ' : ''}
+                          {item.code && (
+                            <span>
+                              {t('historial.vaccineCode')}: {item.code}
+                            </span>
+                          )}
+                          {item.next_due_at && (
+                            <span>
+                              {(item.brand || item.code) ? ' · ' : ''}
+                              {t('historial.nextDueAt')}: {item.next_due_at}
+                            </span>
+                          )}
+                        </p>
+                      )}
                       {notes && <p className="mt-1 text-xs text-cyan-700 dark:text-cyan-300">{notes}</p>}
                     </div>
                     {canEdit && (

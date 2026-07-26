@@ -37,6 +37,8 @@ def _ensure_schema_updates() -> None:
             "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_content_type VARCHAR(120)",
             "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_data BYTEA",
             "ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS billing_interval VARCHAR(16)",
+            "ALTER TABLE vaccines ADD COLUMN IF NOT EXISTS brand VARCHAR(120)",
+            "ALTER TABLE vaccines ADD COLUMN IF NOT EXISTS code VARCHAR(80)",
         ):
             try:
                 conn.execute(text(stmt))

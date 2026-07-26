@@ -71,18 +71,20 @@ def build_pet_passport_pdf(dossier: dict) -> bytes:
             story.append(Paragraph("Sin registros.", body))
             return
         data = [headers] + rows
-        table = Table(data, hAlign="LEFT", colWidths=[4.2 * cm, 5.5 * cm, 6 * cm][: len(headers)])
+        usable = 17.4 * cm
+        col_w = usable / max(len(headers), 1)
+        table = Table(data, hAlign="LEFT", colWidths=[col_w] * len(headers))
         table.setStyle(
             TableStyle(
                 [
                     ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#ecfeff")),
                     ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0e7490")),
                     ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("FONTSIZE", (0, 0), (-1, -1), 8),
                     ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#a5f3fc")),
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 3),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 3),
                     ("TOPPADDING", (0, 0), (-1, -1), 3),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                 ]
@@ -95,12 +97,14 @@ def build_pet_passport_pdf(dossier: dict) -> bytes:
         [
             [
                 str(v.get("name") or ""),
+                str(v.get("brand") or "—"),
+                str(v.get("code") or "—"),
                 str(v.get("administered_at") or ""),
                 str(v.get("next_due_at") or "—"),
             ]
             for v in vaccines
         ],
-        ["Nombre", "Aplicada", "Próxima"],
+        ["Nombre", "Marca", "Código", "Aplicada", "Próxima"],
     )
     section(
         "Historial médico",
@@ -219,34 +223,50 @@ def build_vaccine_pass_pdf(dossier: dict) -> bytes:
     if not vaccines:
         story.append(Paragraph("Sin vacunas registradas.", body))
     else:
-        rows = [
-            [
-                str(v.get("name") or ""),
-                str(v.get("administered_at") or ""),
-                str(v.get("next_due_at") or "—"),
-                str(v.get("clinic_name") or v.get("veterinarian") or "—"),
-            ]
-            for v in vaccines
-        ]
-        data = [["Vacuna", "Aplicada", "Próxima", "Clínica / Vet"]] + rows
-        table = Table(data, hAlign="LEFT", colWidths=[4.5 * cm, 3.2 * cm, 3.2 * cm, 5 * cm])
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#ecfeff")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0e7490")),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 9),
-                    ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#a5f3fc")),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                    ("TOPPADDING", (0, 0), (-1, -1), 3),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
-                ]
-            )
+        small = ParagraphStyle(
+            "PassSmall",
+            parent=body,
+            fontSize=9,
+            leading=12,
+            spaceAfter=2,
         )
-        story.append(table)
+        for idx, v in enumerate(vaccines):
+            block = [
+                [Paragraph(f"<b>{v.get('name') or '—'}</b>", small), ""],
+                [
+                    Paragraph(f"<b>Marca:</b> {v.get('brand') or '—'}", small),
+                    Paragraph(f"<b>Código:</b> {v.get('code') or '—'}", small),
+                ],
+                [
+                    Paragraph(f"<b>Aplicada:</b> {v.get('administered_at') or '—'}", small),
+                    Paragraph(f"<b>Próxima:</b> {v.get('next_due_at') or '—'}", small),
+                ],
+                [
+                    Paragraph(f"<b>Nota:</b> {v.get('notes') or '—'}", small),
+                    "",
+                ],
+            ]
+            table = Table(block, hAlign="LEFT", colWidths=[8.5 * cm, 8.5 * cm])
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#ecfeff")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0e7490")),
+                        ("BOX", (0, 0), (-1, -1), 0.4, colors.HexColor("#a5f3fc")),
+                        ("INNERGRID", (0, 0), (-1, -1), 0.2, colors.HexColor("#cffafe")),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                        ("SPAN", (0, 0), (1, 0)),
+                        ("SPAN", (0, 3), (1, 3)),
+                    ]
+                )
+            )
+            story.append(table)
+            if idx < len(vaccines) - 1:
+                story.append(Spacer(1, 0.35 * cm))
 
     story.append(Spacer(1, 0.8 * cm))
     story.append(

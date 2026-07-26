@@ -204,6 +204,8 @@ class Vaccine(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
+    brand: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    code: Mapped[str | None] = mapped_column(String(80), nullable=True)
     administered_at: Mapped[date] = mapped_column(Date, nullable=False)
     next_due_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     veterinarian: Mapped[str | None] = mapped_column(String(255), nullable=True)
