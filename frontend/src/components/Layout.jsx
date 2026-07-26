@@ -1,11 +1,17 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { LayoutDashboard, CreditCard } from 'lucide-react'
+import { LayoutDashboard, CreditCard, LogOut } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
+import { clearSession } from '../auth'
 
 export default function Layout() {
   const { t } = useTranslation()
+
+  function logout() {
+    clearSession()
+    window.location.href = '/'
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-teal-50 dark:from-cyan-950 dark:via-slate-950 dark:to-teal-950">
@@ -25,6 +31,9 @@ export default function Layout() {
               </NavLink>
             </nav>
             <PreferenceControls variant="app" />
+            <button type="button" onClick={logout} className="nav-link inline-flex items-center gap-1.5 text-sm">
+              <LogOut size={16} /> {t('nav.logout')}
+            </button>
           </div>
         </div>
       </header>

@@ -6,7 +6,8 @@
     "language": "Language",
     "theme": "Theme",
     "dark": "Dark",
-    "light": "Light"
+    "light": "Light",
+    "logout": "Log out"
   },
   "landing": {
     "eyebrow": "Digital health passport",
@@ -19,6 +20,7 @@
     "maintenanceSubtitle": "We're building the digital health passport for pets. Public access is closed for now.",
     "maintenanceCta": "Check back soon",
     "maintenanceLoginDenied": "Access is unavailable while the site is under development.",
+    "loginFailed": "Could not sign in with Google. Please try again.",
     "featureClinical": "Clinical record",
     "featureClinicalDesc": "Vaccines, surgeries, exams, and PDFs in one place.",
     "featureVet": "Vet access",
@@ -52,7 +54,10 @@
     "ferret": "Ferret",
     "other": "Other",
     "loading": "Loading dashboard…",
-    "createError": "Could not create the pet"
+    "createError": "Could not create the pet",
+    "saving": "Saving…",
+    "sessionRequired": "You need to sign in to create a pet.",
+    "sessionExpired": "Your session expired or is invalid. Please sign in with Google again."
   },
   "pet": {
     "back": "Back",

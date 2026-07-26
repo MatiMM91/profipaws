@@ -1,11 +1,12 @@
 import { useEffect, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Shield, Building2, QrCode, ArrowRight, Construction } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import { useTheme } from '../theme/ThemeProvider'
 import { MAINTENANCE_MODE } from '../config'
+import { getToken, setSession } from '../auth'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
@@ -18,19 +19,38 @@ async function exchangeGoogleToken(idToken) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error')
+    throw new Error(typeof err.detail === 'string' ? err.detail : 'Error')
   }
   const data = await res.json()
-  localStorage.setItem('profipaws_token', data.access_token)
-  localStorage.setItem('profipaws_user', JSON.stringify(data.user))
-  window.location.href = '/dashboard'
+  if (!data.access_token) {
+    throw new Error('Login failed: no access token')
+  }
+  setSession(data.access_token, data.user)
+  return data
 }
 
 export default function LandingPage() {
   const { t } = useTranslation()
   const { theme } = useTheme()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const googleBtnRef = useRef(null)
   const isDark = theme === 'dark'
+
+  function goAfterLogin() {
+    const next = searchParams.get('next')
+    if (next && next.startsWith('/') && !next.startsWith('//')) {
+      window.location.href = next
+      return
+    }
+    window.location.href = '/dashboard'
+  }
+
+  useEffect(() => {
+    if (getToken()) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [navigate])
 
   async function loginWithGoogle() {
     if (GOOGLE_CLIENT_ID && window.google?.accounts?.id) {
@@ -44,6 +64,7 @@ export default function LandingPage() {
     const email = prompt('Dev login — email:') || 'demo@profipaws.com'
     try {
       await exchangeGoogleToken(`dev:${email}`)
+      goAfterLogin()
     } catch (e) {
       alert(e.message)
     }
@@ -58,7 +79,11 @@ export default function LandingPage() {
         client_id: GOOGLE_CLIENT_ID,
         callback: async (response) => {
           try {
+            if (!response?.credential) {
+              throw new Error(t('landing.loginFailed'))
+            }
             await exchangeGoogleToken(response.credential)
+            goAfterLogin()
           } catch (e) {
             alert(e.message || t('landing.maintenanceLoginDenied'))
           }
@@ -90,7 +115,7 @@ export default function LandingPage() {
       return () => script.remove()
     }
     return undefined
-  }, [isDark, t])
+  }, [isDark, t, searchParams])
 
   return (
     <div

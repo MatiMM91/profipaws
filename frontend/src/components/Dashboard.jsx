@@ -3,16 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, PawPrint, Syringe, QrCode, Users } from 'lucide-react'
 import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
+import { authHeaders, getStoredUser, getToken, handleAuthFailure } from '../auth'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
-function authHeaders() {
-  const token = localStorage.getItem('profipaws_token')
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  }
-}
 
 export default function Dashboard() {
   const { t } = useTranslation()
@@ -22,7 +15,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', species: 'dog', breed: '', chip_id: '' })
-  const user = JSON.parse(localStorage.getItem('profipaws_user') || 'null')
+  const [saving, setSaving] = useState(false)
+  const user = getStoredUser()
 
   useEffect(() => {
     async function load() {
@@ -31,6 +25,10 @@ export default function Dashboard() {
           fetch(`${API_URL}/api/pets`, { headers: authHeaders() }),
           fetch(`${API_URL}/api/subscriptions/me`, { headers: authHeaders() }),
         ])
+        if (petsRes.status === 401 || subRes.status === 401) {
+          handleAuthFailure(401)
+          return
+        }
         if (petsRes.ok) setPets(await petsRes.json())
         if (subRes.ok) setSubscription(await subRes.json())
       } finally {
@@ -42,26 +40,41 @@ export default function Dashboard() {
 
   async function createPet(e) {
     e.preventDefault()
+    if (!getToken()) {
+      alert(t('dashboard.sessionRequired'))
+      handleAuthFailure(401)
+      return
+    }
+    setSaving(true)
     const payload = {
       name: form.name,
       species: form.species,
       breed: form.breed || null,
       chip_id: form.chip_id || null,
     }
-    const res = await fetch(`${API_URL}/api/pets`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify(payload),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      alert(err.detail || t('dashboard.createError'))
-      return
+    try {
+      const res = await fetch(`${API_URL}/api/pets`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(payload),
+      })
+      if (res.status === 401) {
+        alert(t('dashboard.sessionExpired'))
+        handleAuthFailure(401)
+        return
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        alert(typeof err.detail === 'string' ? err.detail : t('dashboard.createError'))
+        return
+      }
+      const pet = await res.json()
+      setPets((prev) => [...prev, pet])
+      setShowForm(false)
+      setForm({ name: '', species: 'dog', breed: '', chip_id: '' })
+    } finally {
+      setSaving(false)
     }
-    const pet = await res.json()
-    setPets((prev) => [...prev, pet])
-    setShowForm(false)
-    setForm({ name: '', species: 'dog', breed: '', chip_id: '' })
   }
 
   if (loading) {
@@ -98,7 +111,9 @@ export default function Dashboard() {
           </select>
           <input className="field" placeholder={t('dashboard.breed')} value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
           <input className="field" placeholder={t('dashboard.chip')} value={form.chip_id} onChange={(e) => setForm({ ...form, chip_id: e.target.value })} />
-          <button type="submit" className="btn-primary sm:col-span-2">{t('dashboard.save')}</button>
+          <button type="submit" className="btn-primary sm:col-span-2" disabled={saving}>
+            {saving ? t('dashboard.saving') : t('dashboard.save')}
+          </button>
         </form>
       )}
 

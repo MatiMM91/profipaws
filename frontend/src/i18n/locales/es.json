@@ -6,7 +6,8 @@
     "language": "Idioma",
     "theme": "Tema",
     "dark": "Oscuro",
-    "light": "Claro"
+    "light": "Claro",
+    "logout": "Salir"
   },
   "landing": {
     "eyebrow": "Pasaporte digital de salud",
@@ -19,6 +20,7 @@
     "maintenanceSubtitle": "Estamos construyendo el pasaporte digital de salud para mascotas. Mientras tanto, el acceso público está cerrado.",
     "maintenanceCta": "Vuelve pronto",
     "maintenanceLoginDenied": "Acceso no disponible mientras el sitio está en desarrollo.",
+    "loginFailed": "No se pudo iniciar sesión con Google. Inténtalo de nuevo.",
     "featureClinical": "Expediente clínico",
     "featureClinicalDesc": "Vacunas, cirugías, exámenes y PDFs en un solo lugar.",
     "featureVet": "Acceso veterinario",
@@ -52,7 +54,10 @@
     "ferret": "Hurón",
     "other": "Otro",
     "loading": "Cargando dashboard…",
-    "createError": "No se pudo crear la mascota"
+    "createError": "No se pudo crear la mascota",
+    "saving": "Guardando…",
+    "sessionRequired": "Debes iniciar sesión para crear una mascota.",
+    "sessionExpired": "Tu sesión expiró o no es válida. Vuelve a iniciar sesión con Google."
   },
   "pet": {
     "back": "Volver",
