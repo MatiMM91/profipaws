@@ -31,8 +31,14 @@ export default function Layout() {
               </NavLink>
             </nav>
             <PreferenceControls variant="app" />
-            <button type="button" onClick={logout} className="nav-link inline-flex items-center gap-1.5 text-sm">
-              <LogOut size={16} /> {t('nav.logout')}
+            <button
+              type="button"
+              onClick={logout}
+              className="nav-link inline-flex h-9 w-9 items-center justify-center rounded-lg"
+              aria-label={t('nav.logout')}
+              title={t('nav.logout')}
+            >
+              <LogOut size={18} />
             </button>
           </div>
         </div>
