@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
-  ArrowLeft,
   Weight,
   AlertTriangle,
   Cpu,
@@ -387,10 +386,6 @@ export default function PetProfile() {
 
   return (
     <div className="space-y-8">
-      <Link to="/dashboard" className="inline-flex items-center gap-1 text-sm text-cyan-700 hover:text-cyan-900 dark:text-cyan-100 dark:text-cyan-300 dark:hover:text-cyan-100">
-        <ArrowLeft size={14} /> Volver
-      </Link>
-
       <div className="surface p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
