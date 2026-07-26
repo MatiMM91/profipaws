@@ -17,6 +17,7 @@ from app.models import (  # noqa: F401 — ensure models are registered
     Consultation,
     ConsultationNote,
     ClinicApiKey,
+    WeightEntry,
 )
 from app.routers import auth, pets, subscriptions, external, alerts
 

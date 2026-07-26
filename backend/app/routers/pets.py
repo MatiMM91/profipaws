@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, status, Response, File, UploadFile
 from sqlalchemy.orm import Session
@@ -17,6 +17,7 @@ from app.models import (
     ConsultationNote,
     Subscription,
     SubscriptionTier,
+    WeightEntry,
 )
 from app.schemas import (
     PetCreate,
@@ -47,11 +48,13 @@ from app.schemas import (
     ChronicConditionCreate,
     ChronicConditionUpdate,
     ChronicConditionOut,
+    WeightEntryCreate,
+    WeightEntryOut,
     PetExportOut,
 )
 from app.services.auth import get_current_user, generate_access_pin
 from app.services.billing import require_pro
-from app.services.pdf_export import build_pet_passport_pdf
+from app.services.pdf_export import build_pet_passport_pdf, build_vaccine_pass_pdf
 from app.services.pet_access import (
     PetRole,
     list_accessible_pets,
@@ -62,7 +65,7 @@ from app.services.pet_access import (
 
 router = APIRouter(prefix="/pets", tags=["Pets"])
 
-FREE_PET_LIMIT = 1
+FREE_PET_LIMIT = 5
 MAX_EXAM_BYTES = 5 * 1024 * 1024
 ALLOWED_EXAM_TYPES = {
     "application/pdf",
@@ -179,6 +182,35 @@ def _share_out(share: PetShare, user: User) -> PetShareOut:
     )
 
 
+def _record_weight(db: Session, pet: Pet, weight_kg: float, recorded_at: date | None = None) -> WeightEntry:
+    entry = WeightEntry(
+        pet_id=pet.id,
+        weight_kg=weight_kg,
+        recorded_at=recorded_at or date.today(),
+    )
+    db.add(entry)
+    pet.weight_kg = weight_kg
+    return entry
+
+
+def _ensure_legacy_weight_entry(db: Session, pet: Pet) -> None:
+    """Seed history from the single weight field if the pet has no entries yet."""
+    if pet.weight_kg is None:
+        return
+    exists = db.query(WeightEntry.id).filter(WeightEntry.pet_id == pet.id).first()
+    if exists:
+        return
+    db.add(
+        WeightEntry(
+            pet_id=pet.id,
+            weight_kg=pet.weight_kg,
+            recorded_at=pet.updated_at.date() if pet.updated_at else date.today(),
+        )
+    )
+    db.commit()
+
+
+
 @router.get("/access/{pin}", response_model=PetExportOut)
 def access_by_pin(pin: str, db: Session = Depends(get_db)):
     """Public vet access via temporary PIN (no account required)."""
@@ -216,7 +248,7 @@ def create_pet(
     ):
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Free plan allows 1 pet. Upgrade to Pro for unlimited pets.",
+            detail="Free plan allows up to 5 pets. Upgrade to Pro for unlimited pets.",
         )
 
     if payload.chip_id:
@@ -226,6 +258,9 @@ def create_pet(
 
     pet = Pet(owner_id=current_user.id, **payload.model_dump())
     db.add(pet)
+    db.flush()
+    if pet.weight_kg is not None:
+        _record_weight(db, pet, pet.weight_kg)
     db.commit()
     db.refresh(pet)
     return _pet_out(pet, PetRole.OWNER)
@@ -268,8 +303,14 @@ def update_pet(
     if "allergies" in data and data["allergies"] is not None:
         data["allergies"] = data["allergies"].strip() or None
 
+    weight_changed = "weight_kg" in data and data["weight_kg"] is not None and data["weight_kg"] != pet.weight_kg
+
     for key, value in data.items():
         setattr(pet, key, value)
+
+    if weight_changed:
+        _record_weight(db, pet, float(data["weight_kg"]))
+
     db.commit()
     db.refresh(pet)
     return _pet_out(pet, role)
@@ -980,6 +1021,93 @@ def export_pet_pdf(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.get("/{pet_id}/vaccine-pass")
+def export_vaccine_pass(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Free: compact vaccine certificate / Entry PASS PDF."""
+    pet = _pet_readable(db, pet_id, current_user)
+    dossier = _export_pet(db, pet)
+    payload = dossier.model_dump(mode="json")
+    pdf_bytes = build_vaccine_pass_pdf(payload)
+    filename = f"profipaws-pass-{pet.name.lower().replace(' ', '-')}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/{pet_id}/weights", response_model=list[WeightEntryOut])
+def list_weights(
+    pet_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    pet = _pet_readable(db, pet_id, current_user)
+    _ensure_legacy_weight_entry(db, pet)
+    return (
+        db.query(WeightEntry)
+        .filter(WeightEntry.pet_id == pet_id)
+        .order_by(WeightEntry.recorded_at.asc(), WeightEntry.id.asc())
+        .all()
+    )
+
+
+@router.post("/{pet_id}/weights", response_model=WeightEntryOut, status_code=status.HTTP_201_CREATED)
+def create_weight(
+    pet_id: int,
+    payload: WeightEntryCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    pet, _role = require_edit(db, pet_id, current_user)
+    notes = (payload.notes or "").strip() or None
+    entry = WeightEntry(
+        pet_id=pet.id,
+        weight_kg=payload.weight_kg,
+        recorded_at=payload.recorded_at,
+        notes=notes,
+    )
+    db.add(entry)
+    pet.weight_kg = payload.weight_kg
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+@router.delete("/{pet_id}/weights/{entry_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_weight(
+    pet_id: int,
+    entry_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _pet_writable(db, pet_id, current_user)
+    entry = (
+        db.query(WeightEntry)
+        .filter(WeightEntry.id == entry_id, WeightEntry.pet_id == pet_id)
+        .first()
+    )
+    if not entry:
+        raise HTTPException(status_code=404, detail="Weight entry not found")
+    db.delete(entry)
+    db.commit()
+    # Keep pet.weight_kg aligned with latest remaining entry
+    latest = (
+        db.query(WeightEntry)
+        .filter(WeightEntry.pet_id == pet_id)
+        .order_by(WeightEntry.recorded_at.desc(), WeightEntry.id.desc())
+        .first()
+    )
+    pet = db.query(Pet).filter(Pet.id == pet_id).first()
+    if pet:
+        pet.weight_kg = latest.weight_kg if latest else None
+        db.commit()
 
 
 def _export_pet(db: Session, pet: Pet) -> PetExportOut:

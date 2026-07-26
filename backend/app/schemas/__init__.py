@@ -332,6 +332,23 @@ class DailyLogOut(BaseModel):
     logged_at: datetime
 
 
+class WeightEntryCreate(BaseModel):
+    weight_kg: float = Field(..., gt=0, le=500)
+    recorded_at: date
+    notes: Optional[str] = None
+
+
+class WeightEntryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    pet_id: int
+    weight_kg: float
+    recorded_at: date
+    notes: Optional[str] = None
+    created_at: datetime
+
+
 class ChronicConditionCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     notes: Optional[str] = None

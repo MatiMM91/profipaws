@@ -144,6 +144,22 @@ class Pet(Base):
     consultations: Mapped[list["Consultation"]] = relationship(
         back_populates="pet", cascade="all, delete-orphan"
     )
+    weight_entries: Mapped[list["WeightEntry"]] = relationship(
+        back_populates="pet", cascade="all, delete-orphan"
+    )
+
+
+class WeightEntry(Base):
+    __tablename__ = "weight_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    weight_kg: Mapped[float] = mapped_column(Float, nullable=False)
+    recorded_at: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    pet: Mapped["Pet"] = relationship(back_populates="weight_entries")
 
 
 class ChronicCondition(Base):

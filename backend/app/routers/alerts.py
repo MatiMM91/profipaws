@@ -4,7 +4,6 @@ from app.config import get_settings
 from app.database import get_db
 from app.models import User
 from app.services.auth import get_current_user
-from app.services.billing import require_pro
 from app.services.alerts import upcoming_for_owner, dispatch_due_reminders
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
@@ -14,10 +13,10 @@ settings = get_settings()
 @router.get("/upcoming")
 def list_upcoming_alerts(
     days: int = Query(default=14, ge=1, le=60),
-    current_user: User = Depends(require_pro),
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Pro: vaccines and calendar events due in the next N days."""
+    """Free + Pro: vaccines and calendar events due in the next N days (in-app)."""
     return {"items": upcoming_for_owner(db, current_user, days=days)}
 
 

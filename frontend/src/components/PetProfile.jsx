@@ -16,12 +16,13 @@ import {
   Bell,
   Sparkles,
   Users,
-  QrCode,
+  ShieldCheck,
 } from 'lucide-react'
 import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 import PetSharePanel from './PetSharePanel'
 import PetHistorial from './PetHistorial'
 import PetConsultations from './PetConsultations'
+import PetWeightHistory from './PetWeightHistory'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -210,15 +211,11 @@ export default function PetProfile() {
       setIsPro(false)
     }
 
-    if (pro) {
-      const alertRes = await fetch(`${API_URL}/api/alerts/upcoming?days=14`, { headers: authHeaders() })
-      if (alertRes.ok) {
-        const data = await alertRes.json()
-        const mine = (data.items || []).filter((a) => String(a.pet_id) === String(id))
-        setAlerts(mine)
-      } else {
-        setAlerts([])
-      }
+    const alertRes = await fetch(`${API_URL}/api/alerts/upcoming?days=14`, { headers: authHeaders() })
+    if (alertRes.ok) {
+      const data = await alertRes.json()
+      const mine = (data.items || []).filter((a) => String(a.pet_id) === String(id))
+      setAlerts(mine)
     } else {
       setAlerts([])
     }
@@ -269,7 +266,8 @@ export default function PetProfile() {
   async function downloadExport(format) {
     setExportBusy(format)
     setError('')
-    const path = format === 'pdf' ? 'export/pdf' : 'export'
+    const path =
+      format === 'pdf' ? 'export/pdf' : format === 'pass' ? 'vaccine-pass' : 'export'
     const res = await fetch(`${API_URL}/api/pets/${id}/${path}`, { headers: authHeaders() })
     setExportBusy('')
     if (res.status === 402) {
@@ -280,12 +278,15 @@ export default function PetProfile() {
       setError(t('pet.exportError'))
       return
     }
-    if (format === 'pdf') {
+    if (format === 'pdf' || format === 'pass') {
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `profipaws-${pet?.name || id}.pdf`
+      a.download =
+        format === 'pass'
+          ? `profipaws-pass-${pet?.name || id}.pdf`
+          : `profipaws-${pet?.name || id}.pdf`
       a.click()
       URL.revokeObjectURL(url)
       return
@@ -482,6 +483,17 @@ export default function PetProfile() {
               </span>
             )}
           </div>
+        )}
+
+        {!editingPet && (
+          <PetWeightHistory
+            petId={id}
+            canEdit={canEdit}
+            onPetWeightChange={(kg) => {
+              setPet((p) => (p ? { ...p, weight_kg: kg } : p))
+              setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
+            }}
+          />
         )}
 
         {/* Allergies */}
@@ -703,42 +715,40 @@ export default function PetProfile() {
           <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
             <Bell size={13} /> {t('pet.upcomingAlerts')}
           </p>
-          {isPro ? (
-            <>
-              {alerts.length === 0 ? (
-                <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('pet.noUpcomingAlerts')}</p>
-              ) : (
-                <ul className="space-y-1.5">
-                  {alerts.map((a) => {
-                    const typeKey =
-                      a.kind === 'vaccine' || a.event_type === 'vaccine'
-                        ? 'pet.vaccine'
-                        : a.event_type === 'medicine'
-                          ? 'pet.medicine'
-                          : a.event_type === 'other'
-                            ? 'pet.other'
-                            : 'pet.appointment'
-                    return (
-                    <li key={`${a.kind}-${a.id}`} className="text-xs text-cyan-900 dark:text-cyan-100">
-                      <span className="font-medium">{a.title}</span>
-                      <span className="text-cyan-600 dark:text-cyan-400">
-                        {' '}· {t(typeKey)} · {formatLocalDateTime(a.due_at, i18n.language) || String(a.due_at).slice(0, 16)}
-                      </span>
-                    </li>
-                    )
-                  })}
-                </ul>
-              )}
-              <p className="mt-2 text-[11px] text-cyan-600/80 dark:text-cyan-400/80">{t('pet.alertsHint')}</p>
-            </>
+          {alerts.length === 0 ? (
+            <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('pet.noUpcomingAlerts')}</p>
           ) : (
-            <p className="text-xs text-cyan-700 dark:text-cyan-300">
-              {t('pet.alertsProHint')}{' '}
+            <ul className="space-y-1.5">
+              {alerts.map((a) => {
+                const typeKey =
+                  a.kind === 'vaccine' || a.event_type === 'vaccine'
+                    ? 'pet.vaccine'
+                    : a.event_type === 'medicine'
+                      ? 'pet.medicine'
+                      : a.event_type === 'other'
+                        ? 'pet.other'
+                        : 'pet.appointment'
+                return (
+                  <li key={`${a.kind}-${a.id}`} className="text-xs text-cyan-900 dark:text-cyan-100">
+                    <span className="font-medium">{a.title}</span>
+                    <span className="text-cyan-600 dark:text-cyan-400">
+                      {' '}
+                      · {t(typeKey)} ·{' '}
+                      {formatLocalDateTime(a.due_at, i18n.language) || String(a.due_at).slice(0, 16)}
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          <p className="mt-2 text-[11px] text-cyan-600/80 dark:text-cyan-400/80">
+            {isPro ? t('pet.alertsHintPro') : t('pet.alertsHintFree')}{' '}
+            {!isPro && (
               <Link to="/pricing" className="font-medium underline-offset-2 hover:underline">
                 {t('pet.upgradeForPro')}
               </Link>
-            </p>
-          )}
+            )}
+          </p>
         </div>
           </>
         )}
@@ -773,6 +783,25 @@ export default function PetProfile() {
                 </Link>
               </div>
             )}
+            <div className="flex flex-col gap-3 rounded-lg border border-cyan-100/90 bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-cyan-800 dark:bg-cyan-950/50">
+              <div className="flex min-w-0 gap-3">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200">
+                  <ShieldCheck size={16} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-cyan-950 dark:text-cyan-50">{t('pet.vaccinePass')}</p>
+                  <p className="mt-0.5 text-xs leading-relaxed text-cyan-600 dark:text-cyan-400">{t('pet.vaccinePassDesc')}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-secondary shrink-0 px-3 py-1.5 text-xs sm:self-center"
+                disabled={!!exportBusy}
+                onClick={() => downloadExport('pass')}
+              >
+                {exportBusy === 'pass' ? t('pet.exporting') : t('pet.vaccinePassAction')}
+              </button>
+            </div>
             <div className="flex flex-col gap-3 rounded-lg border border-cyan-100/90 bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-cyan-800 dark:bg-cyan-950/50">
               <div className="flex min-w-0 gap-3">
                 <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200">

@@ -1,4 +1,4 @@
-"""Upcoming reminders and email dispatch for Pro subscribers."""
+"""Upcoming in-app reminders (all tiers) and email dispatch (Pro only)."""
 from __future__ import annotations
 
 import logging
@@ -19,6 +19,7 @@ from app.models import (
     User,
     Vaccine,
 )
+from app.services.pet_access import list_accessible_pets
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -40,12 +41,12 @@ def _pro_user_ids(db: Session) -> set[int]:
 
 
 def upcoming_for_owner(db: Session, user: User, days: int = 14) -> list[dict[str, Any]]:
-    """In-app alert list for one Pro owner."""
+    """In-app alert list for accessible pets (owned + shared)."""
     today = date.today()
     until = today + timedelta(days=days)
-    pets = db.query(Pet).filter(Pet.owner_id == user.id).all()
-    pet_map = {p.id: p for p in pets}
-    if not pets:
+    accessible = list_accessible_pets(db, user)
+    pet_map = {p.id: p for p, _role in accessible}
+    if not pet_map:
         return []
 
     pet_ids = list(pet_map.keys())

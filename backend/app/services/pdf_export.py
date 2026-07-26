@@ -156,3 +156,105 @@ def build_pet_passport_pdf(dossier: dict) -> bytes:
     )
     doc.build(story)
     return buf.getvalue()
+
+
+def build_vaccine_pass_pdf(dossier: dict) -> bytes:
+    """Compact vaccine certificate / Entry PASS style PDF (Free)."""
+    pet = dossier.get("pet") or {}
+    vaccines = dossier.get("vaccines") or []
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        leftMargin=1.8 * cm,
+        rightMargin=1.8 * cm,
+        topMargin=1.8 * cm,
+        bottomMargin=1.8 * cm,
+        title=f"Profipaws PASS — {pet.get('name', 'Pet')}",
+    )
+    styles = getSampleStyleSheet()
+    title = ParagraphStyle(
+        "PassTitle",
+        parent=styles["Heading1"],
+        textColor=colors.HexColor("#0e7490"),
+        spaceAfter=4,
+    )
+    h2 = ParagraphStyle(
+        "PassH2",
+        parent=styles["Heading2"],
+        textColor=colors.HexColor("#155e75"),
+        fontSize=13,
+        spaceBefore=12,
+        spaceAfter=6,
+    )
+    body = styles["BodyText"]
+    story = []
+
+    story.append(Paragraph("Profipaws — Certificado / PASS de vacunas", title))
+    story.append(
+        Paragraph(
+            "Documento para mostrar vacunación de la mascota (tutor / establecimientos).",
+            body,
+        )
+    )
+    story.append(Spacer(1, 0.25 * cm))
+    story.append(
+        Paragraph(
+            f"<b>{pet.get('name', '—')}</b> · {pet.get('species', '')}"
+            + (f" · {pet.get('breed')}" if pet.get("breed") else "")
+            + (f" · chip {pet.get('chip_id')}" if pet.get("chip_id") else ""),
+            body,
+        )
+    )
+    meta = []
+    if pet.get("birth_date"):
+        meta.append(f"Nacimiento: {pet['birth_date']}")
+    if pet.get("weight_kg") is not None:
+        meta.append(f"Peso: {pet['weight_kg']} kg")
+    if meta:
+        story.append(Paragraph(" · ".join(meta), body))
+
+    story.append(Paragraph("Vacunas registradas", h2))
+    if not vaccines:
+        story.append(Paragraph("Sin vacunas registradas.", body))
+    else:
+        rows = [
+            [
+                str(v.get("name") or ""),
+                str(v.get("administered_at") or ""),
+                str(v.get("next_due_at") or "—"),
+                str(v.get("clinic_name") or v.get("veterinarian") or "—"),
+            ]
+            for v in vaccines
+        ]
+        data = [["Vacuna", "Aplicada", "Próxima", "Clínica / Vet"]] + rows
+        table = Table(data, hAlign="LEFT", colWidths=[4.5 * cm, 3.2 * cm, 3.2 * cm, 5 * cm])
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#ecfeff")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0e7490")),
+                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                    ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#a5f3fc")),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+                ]
+            )
+        )
+        story.append(table)
+
+    story.append(Spacer(1, 0.8 * cm))
+    story.append(
+        Paragraph(
+            "<font size='8' color='#64748b'>Generado por Profipaws. Informativo; no sustituye un certificado oficial "
+            "si la normativa local exige uno emitido por un veterinario colegiado.</font>",
+            body,
+        )
+    )
+    doc.build(story)
+    return buf.getvalue()
