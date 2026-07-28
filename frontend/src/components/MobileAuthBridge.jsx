@@ -35,6 +35,7 @@ async function createHandoffCode(accessToken) {
     method: 'POST',
     headers: { Authorization: `Bearer ${accessToken}` },
   })
+  if (res.status === 404) return null
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
     throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo preparar el retorno a la app')
@@ -44,9 +45,10 @@ async function createHandoffCode(accessToken) {
   return data.code
 }
 
-function buildDeepLink(base, code) {
+function buildDeepLink(base, { code, accessToken }) {
   const join = base.includes('?') ? '&' : '?'
-  return `${base}${join}code=${encodeURIComponent(code)}`
+  if (code) return `${base}${join}code=${encodeURIComponent(code)}`
+  return `${base}${join}t=${encodeURIComponent(accessToken)}`
 }
 
 function openDeepLink(link) {
@@ -86,8 +88,20 @@ export default function MobileAuthBridge() {
 
   async function goToApp(session) {
     setStatus('exchanging')
-    const code = await createHandoffCode(session.access_token)
-    const link = buildDeepLink(redirectBase, code)
+    let code = null
+    try {
+      code = await createHandoffCode(session.access_token)
+    } catch (e) {
+      // If Railway hasn't deployed handoff yet, fall back to token-only deep link.
+      if (!/404|Failed to fetch|NetworkError/i.test(String(e.message))) {
+        // keep trying token fallback below
+      }
+      code = null
+    }
+    const link = buildDeepLink(redirectBase, {
+      code,
+      accessToken: session.access_token,
+    })
     setDeepLink(link)
     setStatus('redirecting')
     openDeepLink(link)
