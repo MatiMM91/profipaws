@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Profipaws",
+    "slug": "profipaws",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "profipaws",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ecfeff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.profipaws.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#ecfeff",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.profipaws.app",
+      "usesCleartextTraffic": true
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "apiUrl": "https://profipaws-api-production.up.railway.app",
+      "googleClientId": "",
+      "maintenanceMode": false
+    }
+  }
+}

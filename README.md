@@ -7,6 +7,7 @@ Pasaporte de Salud e Historial Médico Digital para Mascotas, con integración B
 | Capa | Tecnología | Despliegue |
 |------|------------|------------|
 | Frontend | React (Vite) + Tailwind CSS + Lucide + React Router | Vercel |
+| Mobile | React Native (Expo) + Expo Router | Expo / stores |
 | Backend | FastAPI + SQLAlchemy / SQLModel | Railway |
 | Base de datos | PostgreSQL (+ funciones/triggers PL/pgSQL) | Railway |
 | Auth | Google OAuth 2.0 → JWT | — |
@@ -24,6 +25,10 @@ profipaws/
 │   └── .env.example
 ├── frontend/         # React SPA
 │   ├── src/components/
+│   └── .env.example
+├── mobile/           # App React Native (Expo)
+│   ├── app/          # Pantallas (Expo Router)
+│   ├── src/          # Auth, API, tema, i18n, componentes
 │   └── .env.example
 └── README.md
 ```
@@ -60,8 +65,10 @@ pip install -r requirements.txt
 cp .env.example .env
 # Edita DATABASE_URL y secretos
 
-uvicorn app.main:app --reload --port 8000
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+> **Importante para Expo Go:** usa `--host 0.0.0.0` para que el móvil pueda alcanzar el API por la IP de tu Wi‑Fi (p. ej. `http://192.168.x.x:8000`). Sin eso, el servidor solo escucha en `localhost` y verás *Network request failed*.
 
 Docs interactivas: [http://localhost:8000/docs](http://localhost:8000/docs)
 
@@ -82,6 +89,17 @@ npm run dev
 ```
 
 Abre [http://localhost:5173](http://localhost:5173).
+
+### Mobile (Expo)
+
+```bash
+cd mobile
+cp .env.example .env
+npm install --legacy-peer-deps
+npx expo start
+```
+
+En un dispositivo físico, apunta `EXPO_PUBLIC_API_URL` a la IP local de tu máquina (el backend debe estar escuchando). Detalles en [`mobile/README.md`](mobile/README.md).
 
 ## API B2B para clínicas veterinarias
 
