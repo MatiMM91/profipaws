@@ -1,14 +1,39 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 import httpx
+import secrets
+import time
 from app.database import get_db
 from app.models import User, Subscription, SubscriptionTier, SubscriptionStatus
-from app.schemas import GoogleAuthRequest, TokenResponse, UserOut
-from app.services.auth import create_access_token, get_current_user, is_allowed_during_maintenance
+from app.schemas import (
+    GoogleAuthRequest,
+    TokenResponse,
+    UserOut,
+    MobileHandoffOut,
+    MobileHandoffExchange,
+)
+from app.services.auth import (
+    create_access_token,
+    get_current_user,
+    is_allowed_during_maintenance,
+    security,
+)
 from app.config import get_settings
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 settings = get_settings()
+
+# Short-lived one-time codes for Expo Go deep links (URL must stay tiny).
+_MOBILE_HANDOFFS: dict[str, dict] = {}
+_HANDOFF_TTL_SEC = 180
+
+
+def _purge_handoffs(now: float | None = None) -> None:
+    ts = now if now is not None else time.time()
+    expired = [k for k, v in _MOBILE_HANDOFFS.items() if v["exp"] <= ts]
+    for k in expired:
+        _MOBILE_HANDOFFS.pop(k, None)
 
 
 @router.post("/google", response_model=TokenResponse)
@@ -60,6 +85,39 @@ async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/mobile-handoff", response_model=MobileHandoffOut)
+def create_mobile_handoff(
+    current_user: User = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+):
+    """Create a tiny one-time code so Expo Go can deep-link without a huge JWT URL."""
+    if not credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    _purge_handoffs()
+    code = secrets.token_urlsafe(12)
+    _MOBILE_HANDOFFS[code] = {
+        "access_token": credentials.credentials,
+        "user_id": current_user.id,
+        "exp": time.time() + _HANDOFF_TTL_SEC,
+    }
+    return MobileHandoffOut(code=code)
+
+
+@router.post("/mobile-handoff/exchange", response_model=TokenResponse)
+def exchange_mobile_handoff(payload: MobileHandoffExchange, db: Session = Depends(get_db)):
+    _purge_handoffs()
+    entry = _MOBILE_HANDOFFS.pop(payload.code, None)
+    if not entry:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Código inválido o expirado. Vuelve a iniciar sesión.",
+        )
+    user = db.query(User).filter(User.id == entry["user_id"]).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return TokenResponse(access_token=entry["access_token"], user=UserOut.model_validate(user))
 
 
 async def _verify_google_token(id_token: str) -> dict:

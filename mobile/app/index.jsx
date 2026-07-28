@@ -44,19 +44,31 @@ function getAuthRedirectUri() {
 function parseAuthCallback(url) {
   const q = url.includes('?') ? url.slice(url.indexOf('?') + 1) : ''
   const params = new URLSearchParams(q)
-  let user = null
-  const userRaw = params.get('user')
-  if (userRaw) {
-    try {
-      user = JSON.parse(userRaw)
-    } catch {
-      user = null
-    }
-  }
   return {
-    accessToken: params.get('access_token'),
-    user,
+    code: params.get('code'),
+    accessToken: params.get('access_token') || params.get('t'),
   }
+}
+
+async function exchangeMobileCode(code) {
+  const res = await fetch(`${API_URL}/api/auth/mobile-handoff/exchange`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(typeof err.detail === 'string' ? err.detail : 'Código inválido o expirado')
+  }
+  return res.json()
+}
+
+async function fetchMe(accessToken) {
+  const res = await fetch(`${API_URL}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  })
+  if (!res.ok) return null
+  return res.json()
 }
 
 function networkHelpMessage(errMsg) {
@@ -98,7 +110,18 @@ export default function LandingScreen() {
         throw new Error(t('landing.loginFailed'))
       }
 
-      const { accessToken, user } = parseAuthCallback(result.url)
+      const { code, accessToken: tokenFromUrl } = parseAuthCallback(result.url)
+      let accessToken = tokenFromUrl
+      let user = null
+
+      if (code) {
+        const data = await exchangeMobileCode(code)
+        accessToken = data.access_token
+        user = data.user
+      } else if (accessToken) {
+        user = await fetchMe(accessToken)
+      }
+
       if (!accessToken) throw new Error(t('landing.loginFailed'))
 
       await setSession(accessToken, user)

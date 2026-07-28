@@ -35,6 +35,14 @@ class TokenResponse(BaseModel):
     user: "UserOut"
 
 
+class MobileHandoffOut(BaseModel):
+    code: str
+
+
+class MobileHandoffExchange(BaseModel):
+    code: str
+
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

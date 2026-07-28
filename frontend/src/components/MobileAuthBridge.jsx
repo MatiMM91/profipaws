@@ -30,18 +30,46 @@ async function exchangeGoogleToken(idToken) {
   return data
 }
 
-function buildDeepLink(base, data) {
-  const params = new URLSearchParams({
-    access_token: data.access_token,
-    user: JSON.stringify(data.user || {}),
+async function createHandoffCode(accessToken) {
+  const res = await fetch(`${API_URL}/api/auth/mobile-handoff`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
   })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo preparar el retorno a la app')
+  }
+  const data = await res.json()
+  if (!data.code) throw new Error('No se recibió código de retorno')
+  return data.code
+}
+
+function buildDeepLink(base, code) {
   const join = base.includes('?') ? '&' : '?'
-  return `${base}${join}${params.toString()}`
+  return `${base}${join}code=${encodeURIComponent(code)}`
+}
+
+function openDeepLink(link) {
+  // Prefer assign/replace so Custom Tabs can hand off to Expo.
+  try {
+    window.location.replace(link)
+  } catch {
+    window.location.href = link
+  }
+
+  // Android Custom Tabs often need an intent:// URL for exp://
+  if (/android/i.test(navigator.userAgent || '') && link.startsWith('exp://')) {
+    const rest = link.slice('exp://'.length)
+    const intent = `intent://${rest}#Intent;scheme=exp;package=host.exp.exponent;S.browser_fallback_url=${encodeURIComponent(link)};end`
+    window.setTimeout(() => {
+      window.location.href = intent
+    }, 250)
+  }
 }
 
 /**
  * HTTPS bridge for Expo Go Google Sign-In.
- * Returns to the app via the redirect_uri provided by Expo (exp://… or profipaws://…).
+ * Returns to the app via a tiny one-time `code` (JWT URLs are too long for deep links).
  */
 export default function MobileAuthBridge() {
   const googleBtnRef = useRef(null)
@@ -56,18 +84,14 @@ export default function MobileAuthBridge() {
     return FALLBACK_SCHEME
   }, [])
 
-  function goToApp(data) {
-    const link = buildDeepLink(redirectBase, data)
+  async function goToApp(session) {
+    setStatus('exchanging')
+    const code = await createHandoffCode(session.access_token)
+    const link = buildDeepLink(redirectBase, code)
     setDeepLink(link)
     setStatus('redirecting')
-
-    // Custom Tabs / Expo WebBrowser listen for this navigation.
-    window.location.replace(link)
-
-    // If the browser ignores the custom scheme, offer a manual escape hatch.
-    window.setTimeout(() => {
-      setStatus('manual')
-    }, 1200)
+    openDeepLink(link)
+    window.setTimeout(() => setStatus('manual'), 900)
   }
 
   useEffect(() => {
@@ -90,8 +114,10 @@ export default function MobileAuthBridge() {
         setError('')
         if (!response?.credential) throw new Error('No se recibió credencial de Google')
         const data = await exchangeGoogleToken(response.credential)
-        goToApp(data)
+        if (cancelled) return
+        await goToApp(data)
       } catch (e) {
+        if (cancelled) return
         setStatus('ready')
         setError(e.message || 'No se pudo iniciar sesión')
       }
@@ -223,22 +249,25 @@ export default function MobileAuthBridge() {
         ) : null}
 
         {status === 'manual' && deepLink ? (
-          <a
-            href={deepLink}
+          <button
+            type="button"
+            onClick={() => openDeepLink(deepLink)}
             style={{
               display: 'block',
+              width: '100%',
               marginTop: 20,
               borderRadius: 12,
+              border: 'none',
               background: '#0891b2',
               color: '#fff',
               fontWeight: 600,
-              fontSize: 15,
-              padding: '14px 16px',
-              textDecoration: 'none',
+              fontSize: 16,
+              padding: '16px 16px',
+              cursor: 'pointer',
             }}
           >
             Abrir Profipaws
-          </a>
+          </button>
         ) : null}
 
         {status !== 'manual' && (
