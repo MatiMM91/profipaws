@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Building2, Construction, QrCode, Shield } from 'lucide-react-native'
 import * as WebBrowser from 'expo-web-browser'
+import * as Linking from 'expo-linking'
 import Constants from 'expo-constants'
 import BrandLogo from '../src/components/BrandLogo'
 import PreferenceControls from '../src/components/PreferenceControls'
@@ -34,7 +35,29 @@ const FEATURES = [
 const isLocalApi = /localhost|127\.0\.0\.1|192\.168\.|10\.\d+\.|172\.(1[6-9]|2\d|3[0-1])\./i.test(API_URL)
 const isExpoGo = Constants.appOwnership === 'expo'
 const DEFAULT_WEB_URL = 'https://profipaws.vercel.app'
-const AUTH_RETURN = 'profipaws://auth'
+
+function getAuthRedirectUri() {
+  // Expo Go → exp://IP:8081/--/auth ; dev builds → profipaws://auth
+  return Linking.createURL('auth')
+}
+
+function parseAuthCallback(url) {
+  const q = url.includes('?') ? url.slice(url.indexOf('?') + 1) : ''
+  const params = new URLSearchParams(q)
+  let user = null
+  const userRaw = params.get('user')
+  if (userRaw) {
+    try {
+      user = JSON.parse(userRaw)
+    } catch {
+      user = null
+    }
+  }
+  return {
+    accessToken: params.get('access_token'),
+    user,
+  }
+}
 
 function networkHelpMessage(errMsg) {
   if (/network request failed|failed to fetch|network error/i.test(String(errMsg || ''))) {
@@ -67,24 +90,16 @@ export default function LandingScreen() {
     }
     setLoading(true)
     try {
-      const authUrl = `${webBase}/mobile-auth`
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, AUTH_RETURN)
+      const redirectUri = getAuthRedirectUri()
+      const authUrl = `${webBase}/mobile-auth?redirect_uri=${encodeURIComponent(redirectUri)}`
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri)
       if (result.type !== 'success' || !result.url) {
         if (result.type === 'cancel' || result.type === 'dismiss') return
         throw new Error(t('landing.loginFailed'))
       }
 
-      const parsed = new URL(result.url.replace('profipaws://', 'https://auth.local/'))
-      const accessToken = parsed.searchParams.get('access_token')
-      const userRaw = parsed.searchParams.get('user')
+      const { accessToken, user } = parseAuthCallback(result.url)
       if (!accessToken) throw new Error(t('landing.loginFailed'))
-
-      let user = null
-      try {
-        user = userRaw ? JSON.parse(userRaw) : null
-      } catch {
-        user = null
-      }
 
       await setSession(accessToken, user)
       if (typeof refreshSession === 'function') await refreshSession()
