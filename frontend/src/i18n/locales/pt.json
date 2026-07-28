@@ -173,7 +173,7 @@
     "titleField": "Título",
     "vaccineName": "Nome da vacina",
     "vaccineBrand": "Marca",
-    "vaccineCode": "Código",
+    "vaccineCode": "Código/Série",
     "administeredAt": "Data de aplicação",
     "nextDueAt": "Próxima aplicação",
     "notes": "Nota (opcional)",
