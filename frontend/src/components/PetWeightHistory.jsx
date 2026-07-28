@@ -117,6 +117,8 @@ export default function PetWeightHistory({ petId, canEdit, onPetWeightChange }) 
   }
 
   const latest = entries.length ? entries[entries.length - 1] : null
+  const recentEntries = entries.slice(-4)
+  const recentNewestFirst = [...recentEntries].reverse()
 
   return (
     <div className="mt-5 border-t border-cyan-100 pt-4 dark:border-cyan-800">
@@ -150,9 +152,9 @@ export default function PetWeightHistory({ petId, canEdit, onPetWeightChange }) 
               </span>
             </p>
           )}
-          {entries.length >= 2 && <WeightChart entries={entries} />}
-          <ul className="mt-2 max-h-36 space-y-1 overflow-y-auto">
-            {[...entries].reverse().map((e) => (
+          {recentEntries.length >= 2 && <WeightChart entries={recentEntries} />}
+          <ul className="mt-2 space-y-1">
+            {recentNewestFirst.map((e) => (
               <li
                 key={e.id}
                 className="flex items-center justify-between gap-2 rounded-lg bg-cyan-50/70 px-2.5 py-1.5 text-xs text-cyan-900 dark:bg-cyan-900/40 dark:text-cyan-100"
