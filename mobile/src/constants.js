@@ -37,6 +37,12 @@ function resolveApiUrl() {
 
 export const API_URL = resolveApiUrl()
 
+export const WEB_URL = (
+  process.env.EXPO_PUBLIC_WEB_URL ||
+  extra.webUrl ||
+  ''
+).replace(/\/$/, '')
+
 export const GOOGLE_CLIENT_ID =
   process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || extra.googleClientId || ''
 

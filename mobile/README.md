@@ -41,13 +41,8 @@ Luego abre en iOS Simulator, Android Emulator o escanea el QR con Expo Go.
 
 Por defecto la app usa el **API de Railway** (mismo que el frontend web), así el móvil no depende de Postgres local.
 
-1. En `mobile/.env` deja `EXPO_PUBLIC_API_URL` apuntando a Railway (ya configurado).
-2. Copia el Client ID de Google del frontend:
-
-```env
-EXPO_PUBLIC_GOOGLE_CLIENT_ID=<mismo valor que VITE_GOOGLE_CLIENT_ID en frontend/.env>
-```
-
+1. En `mobile/.env` deja `EXPO_PUBLIC_API_URL` apuntando a Railway y `EXPO_PUBLIC_WEB_URL=https://profipaws.vercel.app`.
+2. El login de Google en Expo Go abre la web en HTTPS (`/mobile-auth`) y vuelve a la app con el JWT (Google bloquea redirects `exp://`).
 3. Reinicia Expo con caché limpia:
 
 ```bash
@@ -55,7 +50,7 @@ cd mobile
 npx expo start -c
 ```
 
-4. En el móvil verás **Iniciar sesión con Google**.
+4. Tras desplegar el frontend (ruta `/mobile-auth`), en el móvil usa **Iniciar sesión con Google**.
 
 #### Backend local (opcional)
 

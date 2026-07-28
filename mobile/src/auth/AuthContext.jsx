@@ -53,6 +53,12 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const refreshSession = useCallback(async () => {
+    const [t, u] = await Promise.all([getToken(), getStoredUser()])
+    setToken(t)
+    setUser(u)
+  }, [])
+
   const value = useMemo(
     () => ({
       ready,
@@ -62,8 +68,9 @@ export function AuthProvider({ children }) {
       loginWithIdToken,
       loginDev,
       logout,
+      refreshSession,
     }),
-    [ready, token, user, loginWithIdToken, loginDev, logout],
+    [ready, token, user, loginWithIdToken, loginDev, logout, refreshSession],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

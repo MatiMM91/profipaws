@@ -42,6 +42,7 @@
     },
     "extra": {
       "apiUrl": "https://profipaws-api-production.up.railway.app",
+      "webUrl": "https://profipaws.vercel.app",
       "googleClientId": "",
       "maintenanceMode": false
     }
