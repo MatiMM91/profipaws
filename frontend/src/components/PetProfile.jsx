@@ -487,7 +487,7 @@ export default function PetProfile() {
           {canEdit && !editingPet && (
             <button
               type="button"
-              className="btn-secondary shrink-0 text-sm"
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-cyan-800 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-950/40"
               onClick={() => {
                 setEditingPet(true)
                 setError('')
@@ -495,7 +495,7 @@ export default function PetProfile() {
                 setDeleteName('')
               }}
             >
-              <Pencil size={14} /> {t('pet.editData')}
+              <Pencil size={12} /> {t('pet.editData')}
             </button>
           )}
         </div>
