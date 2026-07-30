@@ -14,7 +14,6 @@ import {
   Activity,
   Download,
   Bell,
-  Sparkles,
   Users,
   QrCode,
   ShieldCheck,
@@ -861,16 +860,13 @@ export default function PetProfile() {
         {tab === 'tools' && (
         <>
         <div className="mt-5 rounded-xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-800 dark:bg-cyan-950/40">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
-              <Sparkles size={13} /> {t('pet.tools')}
-            </p>
-            {!isPro && (
+          {!isPro && (
+            <div className="mb-3 flex justify-end">
               <Link to="/pricing" className="text-xs font-medium text-cyan-700 underline-offset-2 hover:underline dark:text-cyan-300">
                 {t('pet.upgradeForPro')}
               </Link>
-            )}
-          </div>
+            </div>
+          )}
           {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
           <div className="space-y-2">
             {isOwner && <PetSharePanel petId={id} variant="tool" />}
