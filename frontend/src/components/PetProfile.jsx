@@ -799,8 +799,6 @@ export default function PetProfile() {
           />
         )}
 
-        {isOwner && <PetSharePanel petId={id} embedded />}
-
         {/* Upcoming alerts */}
         <div className="mt-5 rounded-xl border border-cyan-100 bg-white/70 p-4 dark:border-cyan-800 dark:bg-cyan-950/30">
           <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
@@ -845,6 +843,7 @@ export default function PetProfile() {
         )}
 
         {tab === 'tools' && (
+        <>
         <div className="mt-5 rounded-xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-800 dark:bg-cyan-950/40">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
@@ -936,6 +935,8 @@ export default function PetProfile() {
             <p className="mt-3 text-xs text-cyan-700 dark:text-cyan-300">{t('pet.exportProHint')}</p>
           )}
         </div>
+        {isOwner && <PetSharePanel petId={id} />}
+        </>
         )}
 
         {tab === 'historial' && (
