@@ -50,6 +50,7 @@ def build_pet_passport_pdf(dossier: dict) -> bytes:
         Paragraph(
             f"<b>{pet.get('name', '—')}</b> · {pet.get('species', '')}"
             + (f" · {pet.get('breed')}" if pet.get("breed") else "")
+            + (f" · {pet.get('color')}" if pet.get("color") else "")
             + (f" · chip {pet.get('chip_id')}" if pet.get("chip_id") else ""),
             body,
         )
@@ -207,6 +208,7 @@ def build_vaccine_pass_pdf(dossier: dict) -> bytes:
         Paragraph(
             f"<b>{pet.get('name', '—')}</b> · {pet.get('species', '')}"
             + (f" · {pet.get('breed')}" if pet.get("breed") else "")
+            + (f" · {pet.get('color')}" if pet.get("color") else "")
             + (f" · chip {pet.get('chip_id')}" if pet.get("chip_id") else ""),
             body,
         )

@@ -155,6 +155,7 @@
     "deleteRecord": "Delete this medical record?",
     "deleteEvent": "Delete this reminder?",
     "breed": "Breed",
+    "color": "Color",
     "weight": "Weight (kg)",
     "weightHistory": "Weight history",
     "weightAdd": "Log weight",

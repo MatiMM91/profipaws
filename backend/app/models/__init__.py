@@ -110,6 +110,7 @@ class Pet(Base):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     species: Mapped[str] = mapped_column(String(80), nullable=False)  # dog, cat, etc.
     breed: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    color: Mapped[str | None] = mapped_column(String(80), nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     chip_id: Mapped[str | None] = mapped_column(String(64), unique=True, nullable=True, index=True)
     photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)

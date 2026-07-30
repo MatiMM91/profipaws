@@ -101,6 +101,7 @@ export default function PetProfileScreen() {
         name: petData.name || '',
         species: petData.species || 'dog',
         breed: petData.breed || '',
+        color: petData.color || '',
         chip_id: petData.chip_id || '',
         birth_date: petData.birth_date || '',
         weight_kg: petData.weight_kg != null ? String(petData.weight_kg) : '',
@@ -134,6 +135,7 @@ export default function PetProfileScreen() {
           name: form.name,
           species: form.species,
           breed: form.breed || null,
+          color: form.color || null,
           chip_id: form.chip_id || null,
           birth_date: form.birth_date || null,
           weight_kg: form.weight_kg ? Number(String(form.weight_kg).replace(',', '.')) : null,
@@ -258,6 +260,7 @@ export default function PetProfileScreen() {
             <Body muted>
               {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
               {pet.breed ? ` · ${pet.breed}` : ''}
+              {pet.color ? ` · ${pet.color}` : ''}
             </Body>
             <Body muted style={{ fontSize: 13 }}>
               {pet.chip_id ? `${t('pet.chip')}: ${pet.chip_id}` : t('pet.noChip')}
@@ -358,6 +361,11 @@ export default function PetProfileScreen() {
                   value={form.breed}
                   onChangeText={(v) => setForm((f) => ({ ...f, breed: v }))}
                   placeholder={t('pet.breed')}
+                />
+                <Field
+                  value={form.color}
+                  onChangeText={(v) => setForm((f) => ({ ...f, color: v }))}
+                  placeholder={t('pet.color')}
                 />
                 <Field
                   value={form.chip_id}

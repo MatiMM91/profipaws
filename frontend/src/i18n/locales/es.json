@@ -155,6 +155,7 @@
     "deleteRecord": "¿Borrar este registro médico?",
     "deleteEvent": "¿Borrar este recordatorio?",
     "breed": "Raza",
+    "color": "Color",
     "weight": "Peso (kg)",
     "weightHistory": "Historial de peso",
     "weightAdd": "Registrar peso",

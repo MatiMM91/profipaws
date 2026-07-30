@@ -108,6 +108,7 @@ class PetCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
     species: str = Field(..., min_length=1, max_length=80)
     breed: Optional[str] = None
+    color: Optional[str] = None
     birth_date: Optional[date] = None
     chip_id: Optional[str] = None
     weight_kg: Optional[float] = None
@@ -118,6 +119,7 @@ class PetUpdate(BaseModel):
     name: Optional[str] = None
     species: Optional[str] = None
     breed: Optional[str] = None
+    color: Optional[str] = None
     birth_date: Optional[date] = None
     chip_id: Optional[str] = None
     weight_kg: Optional[float] = None
@@ -132,6 +134,7 @@ class PetOut(BaseModel):
     name: str
     species: str
     breed: Optional[str] = None
+    color: Optional[str] = None
     birth_date: Optional[date] = None
     chip_id: Optional[str] = None
     weight_kg: Optional[float] = None

@@ -72,6 +72,7 @@ const emptyPetEdit = {
   name: '',
   species: 'dog',
   breed: '',
+  color: '',
   birth_date: '',
   chip_id: '',
   weight_kg: '',
@@ -195,6 +196,7 @@ export default function PetProfile() {
         name: data.name || '',
         species: data.species || 'dog',
         breed: data.breed || '',
+        color: data.color || '',
         birth_date: data.birth_date || '',
         chip_id: data.chip_id || '',
         weight_kg: data.weight_kg != null ? String(data.weight_kg) : '',
@@ -255,6 +257,7 @@ export default function PetProfile() {
         name: form.name.trim(),
         species: form.species,
         breed: form.breed.trim() || null,
+        color: form.color.trim() || null,
         birth_date: form.birth_date || null,
         chip_id: form.chip_id.trim() || null,
         weight_kg: form.weight_kg === '' ? null : Number(form.weight_kg),
@@ -433,6 +436,7 @@ export default function PetProfile() {
               <p className="mt-1 text-cyan-700 dark:text-cyan-300">
                 {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
                 {pet.breed ? ` · ${pet.breed}` : ''}
+                {pet.color ? ` · ${pet.color}` : ''}
                 {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
               </p>
             </div>
@@ -487,6 +491,7 @@ export default function PetProfile() {
               ))}
             </select>
             <input className="field px-3 py-2 text-sm" placeholder={t('pet.breed')} value={form.breed} onChange={(e) => setForm({ ...form, breed: e.target.value })} />
+            <input className="field px-3 py-2 text-sm" placeholder={t('pet.color')} value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} />
             <input type="date" className="field px-3 py-2 text-sm" value={form.birth_date} onChange={(e) => setForm({ ...form, birth_date: e.target.value })} />
             <input className="field px-3 py-2 text-sm" placeholder={t('pet.chipPlaceholder')} value={form.chip_id} onChange={(e) => setForm({ ...form, chip_id: e.target.value })} />
             <input type="number" step="0.1" className="field px-3 py-2 text-sm" placeholder={t('pet.weight')} value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />

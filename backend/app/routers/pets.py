@@ -300,6 +300,8 @@ def update_pet(
 
     if "breed" in data and data["breed"] is not None:
         data["breed"] = data["breed"].strip() or None
+    if "color" in data and data["color"] is not None:
+        data["color"] = data["color"].strip() or None
     if "allergies" in data and data["allergies"] is not None:
         data["allergies"] = data["allergies"].strip() or None
 
