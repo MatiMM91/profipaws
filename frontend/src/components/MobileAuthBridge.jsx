@@ -5,6 +5,16 @@ import { MAINTENANCE_MODE } from '../config'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
+function isAllowedReturn(uri) {
+  if (!uri || typeof uri !== 'string') return false
+  try {
+    const u = new URL(uri)
+    return u.origin === window.location.origin && u.pathname.startsWith('/mobile-auth-callback')
+  } catch {
+    return false
+  }
+}
+
 async function exchangeGoogleToken(idToken) {
   const res = await fetch(`${API_URL}/api/auth/google`, {
     method: 'POST',
@@ -20,28 +30,10 @@ async function exchangeGoogleToken(idToken) {
   return data
 }
 
-async function completeMobileSession(nonce, accessToken) {
-  const res = await fetch(`${API_URL}/api/auth/mobile-session/complete`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ nonce }),
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(
-      typeof err.detail === 'string'
-        ? err.detail
-        : 'No se pudo completar el login móvil. Cierra esta ventana y reintenta desde la app.',
-    )
-  }
-}
-
 /**
- * HTTPS bridge for Expo Go Google Sign-In.
- * Completes login via API polling (no deep links — Custom Tabs block exp:// clicks).
+ * HTTPS bridge for Expo Go.
+ * After Google login, redirects to /mobile-auth-callback?t=JWT so Expo's
+ * openAuthSessionAsync can capture an HTTPS return URL (exp:// is blocked).
  */
 export default function MobileAuthBridge() {
   const googleBtnRef = useRef(null)
@@ -49,9 +41,10 @@ export default function MobileAuthBridge() {
   const [status, setStatus] = useState('loading')
   const [googleReady, setGoogleReady] = useState(false)
 
-  const nonce = useMemo(() => {
-    const raw = new URLSearchParams(window.location.search).get('nonce')
-    return raw && raw.length >= 16 ? raw : ''
+  const returnTo = useMemo(() => {
+    const raw = new URLSearchParams(window.location.search).get('return_to')
+    if (isAllowedReturn(raw)) return raw
+    return `${window.location.origin}/mobile-auth-callback`
   }, [])
 
   useEffect(() => {
@@ -65,11 +58,6 @@ export default function MobileAuthBridge() {
       setError('Google Client ID no configurado en el frontend (VITE_GOOGLE_CLIENT_ID).')
       return undefined
     }
-    if (!nonce) {
-      setStatus('ready')
-      setError('Abre el login desde la app Profipaws (Expo Go), no desde el navegador.')
-      return undefined
-    }
 
     let cancelled = false
 
@@ -80,9 +68,9 @@ export default function MobileAuthBridge() {
         if (!response?.credential) throw new Error('No se recibió credencial de Google')
         const data = await exchangeGoogleToken(response.credential)
         if (cancelled) return
-        await completeMobileSession(nonce, data.access_token)
-        if (cancelled) return
-        setStatus('done')
+        setStatus('redirecting')
+        const url = `${returnTo}${returnTo.includes('?') ? '&' : '?'}t=${encodeURIComponent(data.access_token)}`
+        window.location.replace(url)
       } catch (e) {
         if (cancelled) return
         setStatus('ready')
@@ -142,7 +130,7 @@ export default function MobileAuthBridge() {
     return () => {
       cancelled = true
     }
-  }, [nonce])
+  }, [returnTo])
 
   function promptGoogle() {
     setError('')
@@ -157,7 +145,7 @@ export default function MobileAuthBridge() {
     })
   }
 
-  const busy = status === 'loading' || status === 'exchanging'
+  const busy = status === 'loading' || status === 'exchanging' || status === 'redirecting'
 
   return (
     <div
@@ -194,7 +182,7 @@ export default function MobileAuthBridge() {
         <p style={{ marginTop: 10, fontSize: 15, color: 'rgba(14,116,144,0.85)', lineHeight: 1.45 }}>
           {status === 'loading' && 'Cargando inicio de sesión…'}
           {status === 'exchanging' && 'Validando con Profipaws…'}
-          {status === 'done' && '¡Listo! Vuelve a la app: ya puedes cerrar esta ventana.'}
+          {status === 'redirecting' && 'Volviendo a la app…'}
           {status === 'ready' && 'Inicia sesión para continuar en la app móvil.'}
         </p>
 
@@ -214,54 +202,33 @@ export default function MobileAuthBridge() {
           </p>
         ) : null}
 
-        {status === 'done' ? (
-          <p
-            style={{
-              marginTop: 20,
-              borderRadius: 12,
-              background: '#ecfeff',
-              color: '#0e7490',
-              padding: '14px 12px',
-              fontSize: 14,
-              fontWeight: 600,
-            }}
-          >
-            La app detectará el login automáticamente.
-          </p>
-        ) : (
+        {!busy && (
           <>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', minHeight: 44 }}>
               <div ref={googleBtnRef} />
             </div>
-
-            {!busy && (
-              <button
-                type="button"
-                onClick={promptGoogle}
-                disabled={!googleReady && !GOOGLE_CLIENT_ID}
-                style={{
-                  marginTop: 16,
-                  width: '100%',
-                  borderRadius: 12,
-                  border: 'none',
-                  background: '#0891b2',
-                  color: '#fff',
-                  fontWeight: 600,
-                  fontSize: 15,
-                  padding: '12px 16px',
-                  cursor: 'pointer',
-                  opacity: !googleReady && !GOOGLE_CLIENT_ID ? 0.55 : 1,
-                }}
-              >
-                Continuar con Google
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={promptGoogle}
+              disabled={!googleReady && !GOOGLE_CLIENT_ID}
+              style={{
+                marginTop: 16,
+                width: '100%',
+                borderRadius: 12,
+                border: 'none',
+                background: '#0891b2',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: 15,
+                padding: '12px 16px',
+                cursor: 'pointer',
+                opacity: !googleReady && !GOOGLE_CLIENT_ID ? 0.55 : 1,
+              }}
+            >
+              Continuar con Google
+            </button>
           </>
         )}
-
-        <p style={{ marginTop: 20, fontSize: 12, color: 'rgba(8,145,178,0.75)' }}>
-          No hace falta pulsar ningún enlace especial: cierra esta pestaña cuando veas el mensaje de éxito.
-        </p>
       </div>
     </div>
   )

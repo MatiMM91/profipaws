@@ -35,54 +35,27 @@ const isLocalApi = /localhost|127\.0\.0\.1|192\.168\.|10\.\d+\.|172\.(1[6-9]|2\d
 const isExpoGo = Constants.appOwnership === 'expo'
 const DEFAULT_WEB_URL = 'https://profipaws.vercel.app'
 
-function createNonce() {
-  const bytes = new Uint8Array(24)
-  if (globalThis.crypto?.getRandomValues) {
-    globalThis.crypto.getRandomValues(bytes)
-  } else {
-    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256)
-  }
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+function parseTokenFromCallback(url) {
+  const q = url.includes('?') ? url.slice(url.indexOf('?') + 1) : ''
+  const hash = url.includes('#') ? url.slice(url.indexOf('#') + 1) : ''
+  const params = new URLSearchParams(q || hash)
+  return params.get('t') || params.get('access_token')
 }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-async function startMobileSession(nonce) {
-  const res = await fetch(`${API_URL}/api/auth/mobile-session/start`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nonce }),
+async function fetchMe(accessToken) {
+  const res = await fetch(`${API_URL}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo iniciar el login móvil')
-  }
-}
-
-async function pollMobileSession(nonce, { signal, timeoutMs = 180000 } = {}) {
-  const started = Date.now()
-  while (Date.now() - started < timeoutMs) {
-    if (signal?.aborted) throw new Error('Login cancelado')
-    const res = await fetch(`${API_URL}/api/auth/mobile-session/${encodeURIComponent(nonce)}`)
-    if (!res.ok) {
-      await sleep(1200)
-      continue
-    }
-    const data = await res.json()
-    if (data.status === 'ready' && data.access_token) return data
-    if (data.status === 'expired') {
-      throw new Error('La sesión de login expiró. Inténtalo de nuevo.')
-    }
-    await sleep(1200)
-  }
-  throw new Error('Tiempo de espera agotado. Cierra el navegador e inténtalo otra vez.')
+  if (!res.ok) return null
+  return res.json()
 }
 
 function networkHelpMessage(errMsg) {
   if (/network request failed|failed to fetch|network error/i.test(String(errMsg || ''))) {
     return `No se pudo alcanzar el API:\n${API_URL}\n\nComprueba la conexión o reinicia Expo tras cambiar .env (npx expo start -c).`
+  }
+  if (/not found/i.test(String(errMsg || ''))) {
+    return 'El servicio de login móvil no está disponible todavía. Reinicia Expo y asegúrate de tener la última web desplegada.'
   }
   return null
 }
@@ -110,42 +83,25 @@ export default function LandingScreen() {
       return
     }
     setLoading(true)
-    const controller = new AbortController()
     try {
-      const nonce = createNonce()
-      await startMobileSession(nonce)
-      const authUrl = `${webBase}/mobile-auth?nonce=${encodeURIComponent(nonce)}`
+      const returnTo = `${webBase}/mobile-auth-callback`
+      const authUrl = `${webBase}/mobile-auth?return_to=${encodeURIComponent(returnTo)}`
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, returnTo)
 
-      const pollPromise = pollMobileSession(nonce, { signal: controller.signal })
-      // openBrowserAsync: no deep links needed; app polls API and dismisses the browser.
-      const browserPromise = WebBrowser.openBrowserAsync(authUrl, {
-        createTask: false,
-        showInRecents: true,
-      })
-
-      const data = await pollPromise
-      controller.abort()
-      try {
-        await WebBrowser.dismissBrowser()
-      } catch {
-        /* browser may already be closed */
+      if (result.type !== 'success' || !result.url) {
+        if (result.type === 'cancel' || result.type === 'dismiss') return
+        throw new Error(t('landing.loginFailed'))
       }
-      await browserPromise.catch(() => null)
 
-      if (!data?.access_token) throw new Error(t('landing.loginFailed'))
-      await setSession(data.access_token, data.user || null)
+      const accessToken = parseTokenFromCallback(result.url)
+      if (!accessToken) throw new Error(t('landing.loginFailed'))
+
+      const user = await fetchMe(accessToken)
+      await setSession(accessToken, user)
       if (typeof refreshSession === 'function') await refreshSession()
       router.replace('/dashboard')
     } catch (e) {
-      controller.abort()
-      try {
-        await WebBrowser.dismissBrowser()
-      } catch {
-        /* ignore */
-      }
-      if (!/cancel|abort/i.test(String(e.message))) {
-        Alert.alert('Error', networkHelpMessage(e.message) || e.message || t('landing.loginFailed'))
-      }
+      Alert.alert('Error', networkHelpMessage(e.message) || e.message || t('landing.loginFailed'))
     } finally {
       setLoading(false)
     }
@@ -271,7 +227,7 @@ export default function LandingScreen() {
               API: {API_URL}
             </Body>
             <Body muted style={{ fontSize: 12 }}>
-              {isExpoGo ? 'Expo Go' : 'Dev build'} · login Google vía web + polling
+              {isExpoGo ? 'Expo Go' : 'Dev build'} · login Google (HTTPS callback)
             </Body>
             {canDevLogin && (
               <>

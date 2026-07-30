@@ -5,6 +5,7 @@ import PetProfile from './components/PetProfile'
 import PricingSection from './components/PricingSection'
 import VetAccessQR from './components/VetAccessQR'
 import MobileAuthBridge from './components/MobileAuthBridge'
+import MobileAuthCallback from './components/MobileAuthCallback'
 import Layout from './components/Layout'
 import MaintenanceGate from './components/MaintenanceGate'
 import RequireAuth from './components/RequireAuth'
@@ -14,6 +15,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/mobile-auth" element={<MobileAuthBridge />} />
+        <Route path="/mobile-auth-callback" element={<MobileAuthCallback />} />
         <Route element={<MaintenanceGate />}>
           <Route path="/" element={<LandingPage />} />
           <Route element={<RequireAuth />}>
