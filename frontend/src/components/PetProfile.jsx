@@ -498,7 +498,7 @@ export default function PetProfile() {
         </nav>
 
         {tab === 'profile' && (
-          <div className="mt-4 border-t border-cyan-100 pt-4 dark:border-cyan-800">
+          <div className={editingPet ? 'mt-4 border-t border-cyan-100 pt-4 dark:border-cyan-800' : 'mt-0'}>
         {error && !editingPet && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
         {editingPet && (
