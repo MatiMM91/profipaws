@@ -458,12 +458,51 @@ export default function PetProfile() {
           )}
         </div>
 
+        {!editingPet && (
+          <div className="mt-4 flex flex-wrap gap-4 text-sm text-cyan-800 dark:text-cyan-200">
+            {pet.weight_kg != null && (
+              <span className="inline-flex items-center gap-1.5">
+                <Weight size={14} /> {pet.weight_kg} kg
+              </span>
+            )}
+            {pet.chip_id ? (
+              <span className="inline-flex items-center gap-1.5">
+                <Cpu size={14} /> {t('pet.chip')} {pet.chip_id}
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-cyan-500">
+                <Cpu size={14} /> {t('pet.noChip')}
+              </span>
+            )}
+          </div>
+        )}
+
+        <nav
+          className="mt-4 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-1.5"
+          aria-label={t('pet.tabsLabel')}
+        >
+          {PET_TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => selectTab(item.id)}
+              className={`rounded-lg px-2.5 py-2 text-center text-xs font-semibold transition sm:shrink-0 sm:px-3.5 sm:text-sm ${
+                tab === item.id
+                  ? 'bg-cyan-700 text-white dark:bg-cyan-500 dark:text-cyan-950'
+                  : 'bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-900/60 dark:text-cyan-100 dark:hover:bg-cyan-800'
+              }`}
+            >
+              {t(item.labelKey)}
+            </button>
+          ))}
+        </nav>
+
         {tab === 'profile' && (
-          <>
-        {error && !editingPet && <p className="mt-3 text-sm text-red-600">{error}</p>}
+          <div className="mt-4 border-t border-cyan-100 pt-4 dark:border-cyan-800">
+        {error && !editingPet && <p className="mb-3 text-sm text-red-600">{error}</p>}
 
         {editingPet && (
-          <form onSubmit={savePet} className="mt-5 grid gap-3 sm:grid-cols-2">
+          <form onSubmit={savePet} className="grid gap-3 sm:grid-cols-2">
             <input className="field px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
             <select className="field px-3 py-2 text-sm" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
               {SPECIES_OPTIONS.map((key) => (
@@ -533,25 +572,6 @@ export default function PetProfile() {
                   </button>
                 </div>
               </div>
-            )}
-          </div>
-        )}
-
-        {!editingPet && (
-          <div className="mt-4 flex flex-wrap gap-4 text-sm text-cyan-800 dark:text-cyan-200">
-            {pet.weight_kg != null && (
-              <span className="inline-flex items-center gap-1.5">
-                <Weight size={14} /> {pet.weight_kg} kg
-              </span>
-            )}
-            {pet.chip_id ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Cpu size={14} /> {t('pet.chip')} {pet.chip_id}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-cyan-500">
-                <Cpu size={14} /> {t('pet.noChip')}
-              </span>
             )}
           </div>
         )}
@@ -821,28 +841,8 @@ export default function PetProfile() {
             )}
           </p>
         </div>
-          </>
+          </div>
         )}
-
-        <nav
-          className={`${tab === 'profile' ? 'mt-6 border-t border-cyan-100 pt-4 dark:border-cyan-800' : 'mt-4'} grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-1.5`}
-          aria-label={t('pet.tabsLabel')}
-        >
-          {PET_TABS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => selectTab(item.id)}
-              className={`rounded-lg px-2.5 py-2 text-center text-xs font-semibold transition sm:shrink-0 sm:px-3.5 sm:text-sm ${
-                tab === item.id
-                  ? 'bg-cyan-700 text-white dark:bg-cyan-500 dark:text-cyan-950'
-                  : 'bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-900/60 dark:text-cyan-100 dark:hover:bg-cyan-800'
-              }`}
-            >
-              {t(item.labelKey)}
-            </button>
-          ))}
-        </nav>
 
         {tab === 'tools' && (
         <div className="mt-5 rounded-xl border border-cyan-100 bg-cyan-50/50 p-4 dark:border-cyan-800 dark:bg-cyan-950/40">
