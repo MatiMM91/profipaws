@@ -18,7 +18,6 @@ import PetConsultations from '../../../src/components/PetConsultations'
 import PetHistorial from '../../../src/components/PetHistorial'
 import PetTools from '../../../src/components/PetTools'
 import SpeciesIcon from '../../../src/components/SpeciesIcon'
-import WeightHistory from '../../../src/components/WeightHistory'
 import {
   Body,
   Field,
@@ -507,19 +506,14 @@ export default function PetProfileScreen() {
         )}
 
         {tab === 'historial' && (
-          <View style={{ gap: 16 }}>
-            <Surface>
-              <WeightHistory
-                petId={petId}
-                canEdit={canEdit}
-                onPetWeightChange={(kg) => {
-                  setPet((p) => (p ? { ...p, weight_kg: kg } : p))
-                  setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
-                }}
-              />
-            </Surface>
-            <PetHistorial petId={petId} canEdit={canEdit} />
-          </View>
+          <PetHistorial
+            petId={petId}
+            canEdit={canEdit}
+            onPetWeightChange={(kg) => {
+              setPet((p) => (p ? { ...p, weight_kg: kg } : p))
+              setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
+            }}
+          />
         )}
         {tab === 'seguimiento' && <PetConsultations petId={petId} canEdit={canEdit} />}
         {tab === 'calendario' && <PetCalendar petId={petId} canEdit={canEdit} />}

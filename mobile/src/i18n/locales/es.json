@@ -2,6 +2,9 @@
   "nav": {
     "plans": "Planes",
     "dashboard": "Dashboard",
+    "pets": "Mascotas",
+    "alerts": "Alertas",
+    "settings": "Ajustes",
     "signInGoogle": "Iniciar sesión con Google",
     "language": "Idioma",
     "theme": "Tema",
@@ -167,6 +170,7 @@
   "historial": {
     "title": "Historial",
     "tabVaccines": "Vacunas",
+    "tabWeight": "Historial de peso",
     "tabDiseases": "Enfermedades",
     "tabSurgeries": "Cirugías",
     "tabExams": "Exámenes",
@@ -228,6 +232,12 @@
     "deleteConfirm": "¿Borrar esta nota del diario?",
     "moodLabel": "ánimo",
     "appetiteLabel": "apetito"
+  },
+  "alerts": {
+    "loading": "Cargando alertas…",
+    "subtitle": "Recordatorios de vacunas y calendario de los próximos 30 días.",
+    "empty": "Sin alertas próximas",
+    "emptyHint": "Cuando tengas vacunas o eventos próximos, aparecerán aquí."
   },
   "vet": {
     "back": "Volver al perfil",
@@ -297,7 +307,8 @@
     "cancel": "Cancelar",
     "edit": "Editar",
     "delete": "Borrar",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "seeAll": "Ver todas"
   },
   "share": {
     "title": "Compartir mascota",

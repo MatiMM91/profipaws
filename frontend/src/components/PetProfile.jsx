@@ -23,7 +23,6 @@ import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 import PetSharePanel from './PetSharePanel'
 import PetHistorial from './PetHistorial'
 import PetConsultations from './PetConsultations'
-import PetWeightHistory from './PetWeightHistory'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -957,16 +956,7 @@ export default function PetProfile() {
         )}
 
         {tab === 'historial' && (
-          <div className="mt-5 space-y-5">
-            <PetWeightHistory
-              petId={id}
-              canEdit={canEdit}
-              refreshKey={weightHistoryKey}
-              onPetWeightChange={(kg) => {
-                setPet((p) => (p ? { ...p, weight_kg: kg } : p))
-                setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
-              }}
-            />
+          <div className="mt-5">
             <PetHistorial
               petId={id}
               vaccines={vaccines}
@@ -974,6 +964,11 @@ export default function PetProfile() {
               canEdit={canEdit}
               onRefresh={load}
               hideTitle
+              weightRefreshKey={weightHistoryKey}
+              onPetWeightChange={(kg) => {
+                setPet((p) => (p ? { ...p, weight_kg: kg } : p))
+                setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
+              }}
             />
           </div>
         )}

@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { FileText, Plus, Pencil, Trash2, Check, X, Download, Paperclip, Syringe } from 'lucide-react'
+import { FileText, Plus, Pencil, Trash2, Check, X, Download, Paperclip, Syringe, Weight } from 'lucide-react'
+import PetWeightHistory from './PetWeightHistory'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const TABS = [
+  { id: 'weight', labelKey: 'historial.tabWeight' },
   { id: 'vaccine', labelKey: 'historial.tabVaccines' },
   { id: 'disease', labelKey: 'historial.tabDiseases' },
   { id: 'surgery', labelKey: 'historial.tabSurgeries' },
@@ -42,6 +44,8 @@ export default function PetHistorial({
   canEdit,
   onRefresh,
   hideTitle = false,
+  weightRefreshKey = 0,
+  onPetWeightChange,
 }) {
   const { t } = useTranslation()
   const [tab, setTab] = useState('vaccine')
@@ -52,8 +56,11 @@ export default function PetHistorial({
   const [editVaccineForm, setEditVaccineForm] = useState(emptyVaccineForm)
   const [uploadingId, setUploadingId] = useState(null)
 
+  const isWeight = tab === 'weight'
   const isVaccine = tab === 'vaccine'
-  const items = isVaccine
+  const items = isWeight
+    ? []
+    : isVaccine
     ? [...vaccines].sort((a, b) => String(b.administered_at).localeCompare(String(a.administered_at)))
     : records
         .filter((r) => r.record_type === tab)
@@ -214,12 +221,23 @@ export default function PetHistorial({
                 : 'bg-cyan-50 text-cyan-800 hover:bg-cyan-100 dark:bg-cyan-900/50 dark:text-cyan-100'
             }`}
           >
+            {tabItem.id === 'weight' && <Weight size={11} className="mr-1 inline" />}
             {tabItem.id === 'vaccine' && <Syringe size={11} className="mr-1 inline" />}
             {t(tabItem.labelKey)}
           </button>
         ))}
       </div>
 
+      {isWeight ? (
+        <PetWeightHistory
+          petId={petId}
+          canEdit={canEdit}
+          refreshKey={weightRefreshKey}
+          onPetWeightChange={onPetWeightChange}
+          embedded
+        />
+      ) : (
+      <>
       {canEdit && isVaccine && (
         <form onSubmit={addItem} className="grid gap-2 rounded-xl border border-cyan-100 bg-white p-4 dark:border-cyan-800 dark:bg-cyan-900/40 sm:grid-cols-2">
           <input
@@ -453,6 +471,8 @@ export default function PetHistorial({
           )
         })}
       </ul>
+      </>
+      )}
     </section>
   )
 }

@@ -2,6 +2,9 @@
   "nav": {
     "plans": "Planos",
     "dashboard": "Dashboard",
+    "pets": "Pets",
+    "alerts": "Alertas",
+    "settings": "Definições",
     "signInGoogle": "Entrar com Google",
     "language": "Idioma",
     "theme": "Tema",
@@ -167,6 +170,7 @@
   "historial": {
     "title": "Histórico",
     "tabVaccines": "Vacinas",
+    "tabWeight": "Histórico de peso",
     "tabDiseases": "Doenças",
     "tabSurgeries": "Cirurgias",
     "tabExams": "Exames",
@@ -228,6 +232,12 @@
     "deleteConfirm": "Apagar esta nota do diário?",
     "moodLabel": "humor",
     "appetiteLabel": "apetite"
+  },
+  "alerts": {
+    "loading": "A carregar alertas…",
+    "subtitle": "Lembretes de vacinas e calendário dos próximos 30 dias.",
+    "empty": "Sem alertas próximos",
+    "emptyHint": "Quando tiver vacinas ou eventos próximos, aparecerão aqui."
   },
   "vet": {
     "back": "Voltar ao perfil",
@@ -297,7 +307,8 @@
     "cancel": "Cancelar",
     "edit": "Editar",
     "delete": "Apagar",
-    "loading": "A carregar…"
+    "loading": "A carregar…",
+    "seeAll": "Ver todas"
   },
   "share": {
     "title": "Partilhar pet",

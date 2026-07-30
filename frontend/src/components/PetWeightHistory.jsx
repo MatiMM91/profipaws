@@ -50,7 +50,7 @@ function WeightChart({ entries }) {
   )
 }
 
-export default function PetWeightHistory({ petId, canEdit, onPetWeightChange, refreshKey = 0 }) {
+export default function PetWeightHistory({ petId, canEdit, onPetWeightChange, refreshKey = 0, embedded = false }) {
   const { t, i18n } = useTranslation()
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
@@ -131,7 +131,8 @@ export default function PetWeightHistory({ petId, canEdit, onPetWeightChange, re
   const recentNewestFirst = [...recentEntries].reverse()
 
   return (
-    <div className="mt-5 border-t border-cyan-100 pt-4 dark:border-cyan-800">
+    <div className={embedded ? '' : 'mt-5 border-t border-cyan-100 pt-4 dark:border-cyan-800'}>
+      {!embedded && (
       <div className="mb-2 flex items-center justify-between gap-2">
         <p className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
           <Weight size={13} /> {t('pet.weightHistory')}
@@ -146,6 +147,18 @@ export default function PetWeightHistory({ petId, canEdit, onPetWeightChange, re
           </button>
         )}
       </div>
+      )}
+      {embedded && canEdit && !showForm && (
+        <div className="mb-2 flex justify-end">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-cyan-800 hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-950/40"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus size={12} /> {t('pet.weightAdd')}
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('common.loading')}</p>

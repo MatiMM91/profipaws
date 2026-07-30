@@ -6,8 +6,10 @@ import { api } from '../api/client'
 import { useTheme } from '../theme/ThemeContext'
 import { Body, Field, PrimaryButton } from './ui'
 import { formatDue, todayISO } from '../utils/dates'
+import WeightHistory from './WeightHistory'
 
 const RECORD_TABS = [
+  { key: 'weight', labelKey: 'historial.tabWeight' },
   { key: 'vaccines', labelKey: 'historial.tabVaccines' },
   { key: 'disease', labelKey: 'historial.tabDiseases' },
   { key: 'surgery', labelKey: 'historial.tabSurgeries' },
@@ -15,7 +17,7 @@ const RECORD_TABS = [
   { key: 'treatment', labelKey: 'historial.tabTreatments' },
 ]
 
-export default function PetHistorial({ petId, canEdit }) {
+export default function PetHistorial({ petId, canEdit, onPetWeightChange }) {
   const { t, i18n } = useTranslation()
   const { colors } = useTheme()
   const [tab, setTab] = useState('vaccines')
@@ -37,10 +39,13 @@ export default function PetHistorial({ petId, canEdit }) {
     load().catch(() => {})
   }, [petId])
 
+  const isWeight = tab === 'weight'
   const list =
-    tab === 'vaccines'
-      ? vaccines
-      : records.filter((r) => r.record_type === tab || r.type === tab)
+    isWeight
+      ? []
+      : tab === 'vaccines'
+        ? vaccines
+        : records.filter((r) => r.record_type === tab || r.type === tab)
 
   async function add() {
     setSaving(true)
@@ -123,74 +128,80 @@ export default function PetHistorial({ petId, canEdit }) {
         })}
       </View>
 
-      {canEdit && (
-        <View style={{ gap: 8 }}>
-          <Field
-            placeholder={tab === 'vaccines' ? t('historial.vaccineName') : t('historial.titleField')}
-            value={tab === 'vaccines' ? form.name : form.title}
-            onChangeText={(v) =>
-              setForm((f) => (tab === 'vaccines' ? { ...f, name: v } : { ...f, title: v }))
-            }
-          />
-          <Field
-            placeholder={t('historial.administeredAt')}
-            value={form.administered_at}
-            onChangeText={(v) => setForm((f) => ({ ...f, administered_at: v }))}
-          />
-          {tab === 'vaccines' && (
-            <Field
-              placeholder={t('historial.nextDueAt')}
-              value={form.next_due_at}
-              onChangeText={(v) => setForm((f) => ({ ...f, next_due_at: v }))}
-            />
-          )}
-          <Field
-            placeholder={t('historial.notes')}
-            value={form.notes}
-            onChangeText={(v) => setForm((f) => ({ ...f, notes: v }))}
-          />
-          <PrimaryButton title={t('historial.add')} onPress={add} loading={saving} />
-        </View>
-      )}
-
-      {list.length === 0 ? (
-        <Body muted>{t('historial.empty')}</Body>
+      {isWeight ? (
+        <WeightHistory petId={petId} canEdit={canEdit} onPetWeightChange={onPetWeightChange} embedded />
       ) : (
-        list.map((item) => (
-          <View
-            key={item.id}
-            style={{
-              borderWidth: 1,
-              borderColor: colors.surfaceBorder,
-              borderRadius: 14,
-              padding: 12,
-              backgroundColor: colors.surface,
-              gap: 4,
-            }}
-          >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-              <Text style={{ flex: 1, fontFamily: 'DMSans_600SemiBold', color: colors.text, fontSize: 16 }}>
-                {item.name || item.title}
-              </Text>
-              {canEdit && (
-                <Pressable onPress={() => remove(item)} hitSlop={8}>
-                  <Trash2 size={16} color={colors.danger} />
-                </Pressable>
+        <>
+          {canEdit && (
+            <View style={{ gap: 8 }}>
+              <Field
+                placeholder={tab === 'vaccines' ? t('historial.vaccineName') : t('historial.titleField')}
+                value={tab === 'vaccines' ? form.name : form.title}
+                onChangeText={(v) =>
+                  setForm((f) => (tab === 'vaccines' ? { ...f, name: v } : { ...f, title: v }))
+                }
+              />
+              <Field
+                placeholder={t('historial.administeredAt')}
+                value={form.administered_at}
+                onChangeText={(v) => setForm((f) => ({ ...f, administered_at: v }))}
+              />
+              {tab === 'vaccines' && (
+                <Field
+                  placeholder={t('historial.nextDueAt')}
+                  value={form.next_due_at}
+                  onChangeText={(v) => setForm((f) => ({ ...f, next_due_at: v }))}
+                />
               )}
+              <Field
+                placeholder={t('historial.notes')}
+                value={form.notes}
+                onChangeText={(v) => setForm((f) => ({ ...f, notes: v }))}
+              />
+              <PrimaryButton title={t('historial.add')} onPress={add} loading={saving} />
             </View>
-            {(item.administered_at || item.occurred_at) && (
-              <Body muted style={{ fontSize: 13 }}>
-                {formatDue(item.administered_at || item.occurred_at, i18n.language)}
-              </Body>
-            )}
-            {item.next_due_at && (
-              <Body muted style={{ fontSize: 13 }}>
-                {t('pet.next')}: {formatDue(item.next_due_at, i18n.language)}
-              </Body>
-            )}
-            {item.notes ? <Body style={{ fontSize: 13 }}>{item.notes}</Body> : null}
-          </View>
-        ))
+          )}
+
+          {list.length === 0 ? (
+            <Body muted>{t('historial.empty')}</Body>
+          ) : (
+            list.map((item) => (
+              <View
+                key={item.id}
+                style={{
+                  borderWidth: 1,
+                  borderColor: colors.surfaceBorder,
+                  borderRadius: 14,
+                  padding: 12,
+                  backgroundColor: colors.surface,
+                  gap: 4,
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+                  <Text style={{ flex: 1, fontFamily: 'DMSans_600SemiBold', color: colors.text, fontSize: 16 }}>
+                    {item.name || item.title}
+                  </Text>
+                  {canEdit && (
+                    <Pressable onPress={() => remove(item)} hitSlop={8}>
+                      <Trash2 size={16} color={colors.danger} />
+                    </Pressable>
+                  )}
+                </View>
+                {(item.administered_at || item.occurred_at) && (
+                  <Body muted style={{ fontSize: 13 }}>
+                    {formatDue(item.administered_at || item.occurred_at, i18n.language)}
+                  </Body>
+                )}
+                {item.next_due_at && (
+                  <Body muted style={{ fontSize: 13 }}>
+                    {t('pet.next')}: {formatDue(item.next_due_at, i18n.language)}
+                  </Body>
+                )}
+                {item.notes ? <Body style={{ fontSize: 13 }}>{item.notes}</Body> : null}
+              </View>
+            ))
+          )}
+        </>
       )}
     </View>
   )

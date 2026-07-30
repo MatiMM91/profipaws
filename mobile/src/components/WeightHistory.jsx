@@ -7,7 +7,7 @@ import { useTheme } from '../theme/ThemeContext'
 import { Field, PrimaryButton, Body } from './ui'
 import { formatDue } from '../utils/dates'
 
-export default function WeightHistory({ petId, canEdit, onPetWeightChange }) {
+export default function WeightHistory({ petId, canEdit, onPetWeightChange, embedded = false }) {
   const { t, i18n } = useTranslation()
   const { colors } = useTheme()
   const [items, setItems] = useState([])
@@ -72,9 +72,11 @@ export default function WeightHistory({ petId, canEdit, onPetWeightChange }) {
 
   return (
     <View style={{ gap: 12 }}>
-      <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: 17, color: colors.text }}>
-        {t('pet.weightHistory')}
-      </Text>
+      {!embedded && (
+        <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: 17, color: colors.text }}>
+          {t('pet.weightHistory')}
+        </Text>
+      )}
       {canEdit && (
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Field

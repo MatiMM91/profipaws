@@ -2,6 +2,9 @@
   "nav": {
     "plans": "Plans",
     "dashboard": "Dashboard",
+    "pets": "Pets",
+    "alerts": "Alerts",
+    "settings": "Settings",
     "signInGoogle": "Sign in with Google",
     "language": "Language",
     "theme": "Theme",
@@ -167,6 +170,7 @@
   "historial": {
     "title": "History",
     "tabVaccines": "Vaccines",
+    "tabWeight": "Weight history",
     "tabDiseases": "Diseases",
     "tabSurgeries": "Surgeries",
     "tabExams": "Exams",
@@ -228,6 +232,12 @@
     "deleteConfirm": "Delete this diary note?",
     "moodLabel": "mood",
     "appetiteLabel": "appetite"
+  },
+  "alerts": {
+    "loading": "Loading alerts…",
+    "subtitle": "Vaccine and calendar reminders for the next 30 days.",
+    "empty": "No upcoming alerts",
+    "emptyHint": "When you have upcoming vaccines or events, they will show up here."
   },
   "vet": {
     "back": "Back to profile",
@@ -297,7 +307,8 @@
     "cancel": "Cancel",
     "edit": "Edit",
     "delete": "Delete",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "seeAll": "See all"
   },
   "share": {
     "title": "Share pet",

@@ -208,6 +208,7 @@
   "historial": {
     "title": "History",
     "tabVaccines": "Vaccines",
+    "tabWeight": "Weight history",
     "tabDiseases": "Diseases",
     "tabSurgeries": "Surgeries",
     "tabExams": "Exams",
