@@ -418,64 +418,20 @@ export default function PetProfile() {
   return (
     <div className="space-y-8">
       <div className="surface p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex min-w-0 items-start gap-3">
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
-              <SpeciesIcon species={pet.species} size={28} />
-            </span>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">{pet.name}</h1>
-                {!isOwner && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-teal-800 dark:bg-teal-900/40 dark:text-teal-200">
-                    <Users size={11} />
-                    {canEdit ? t('share.canEdit') : t('share.canRead')}
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 text-cyan-700 dark:text-cyan-300">
-                {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
-                {pet.breed ? ` · ${pet.breed}` : ''}
-                {pet.color ? ` · ${pet.color}` : ''}
-                {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
-              </p>
-            </div>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
+            <SpeciesIcon species={pet.species} size={28} />
+          </span>
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">{pet.name}</h1>
+            {!isOwner && (
+              <span className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-teal-800 dark:bg-teal-900/40 dark:text-teal-200">
+                <Users size={11} />
+                {canEdit ? t('share.canEdit') : t('share.canRead')}
+              </span>
+            )}
           </div>
-
-          {canEdit && tab === 'profile' && (
-            <button
-              type="button"
-              className="btn-secondary shrink-0 text-sm"
-              onClick={() => {
-                setEditingPet((v) => !v)
-                setError('')
-                setConfirmDelete(false)
-                setDeleteName('')
-              }}
-            >
-              <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
-            </button>
-          )}
         </div>
-
-        {!editingPet && (
-          <div className="mt-4 flex flex-wrap gap-4 text-sm text-cyan-800 dark:text-cyan-200">
-            {pet.weight_kg != null && (
-              <span className="inline-flex items-center gap-1.5">
-                <Weight size={14} /> {pet.weight_kg} kg
-              </span>
-            )}
-            {pet.chip_id ? (
-              <span className="inline-flex items-center gap-1.5">
-                <Cpu size={14} /> {t('pet.chip')} {pet.chip_id}
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-cyan-500">
-                <Cpu size={14} /> {t('pet.noChip')}
-              </span>
-            )}
-          </div>
-        )}
 
         <nav
           className="mt-4 grid grid-cols-2 gap-1.5 sm:flex sm:flex-wrap sm:gap-1.5"
@@ -498,11 +454,56 @@ export default function PetProfile() {
         </nav>
 
         {tab === 'profile' && (
-          <div className={editingPet ? 'mt-4 border-t border-cyan-100 pt-4 dark:border-cyan-800' : 'mt-0'}>
-        {error && !editingPet && <p className="mb-3 text-sm text-red-600">{error}</p>}
+          <div className="mt-4 border-t border-cyan-100 pt-4 dark:border-cyan-800">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            {!editingPet && (
+              <>
+                <p className="text-cyan-700 dark:text-cyan-300">
+                  {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
+                  {pet.breed ? ` · ${pet.breed}` : ''}
+                  {pet.color ? ` · ${pet.color}` : ''}
+                  {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-4 text-sm text-cyan-800 dark:text-cyan-200">
+                  {pet.weight_kg != null && (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Weight size={14} /> {pet.weight_kg} kg
+                    </span>
+                  )}
+                  {pet.chip_id ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <Cpu size={14} /> {t('pet.chip')} {pet.chip_id}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-cyan-500">
+                      <Cpu size={14} /> {t('pet.noChip')}
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+          {canEdit && (
+            <button
+              type="button"
+              className="btn-secondary shrink-0 text-sm"
+              onClick={() => {
+                setEditingPet((v) => !v)
+                setError('')
+                setConfirmDelete(false)
+                setDeleteName('')
+              }}
+            >
+              <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
+            </button>
+          )}
+        </div>
+
+        {error && !editingPet && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
         {editingPet && (
-          <form onSubmit={savePet} className="grid gap-3 sm:grid-cols-2">
+          <form onSubmit={savePet} className="mt-4 grid gap-3 sm:grid-cols-2">
             <input className="field px-3 py-2 text-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
             <select className="field px-3 py-2 text-sm" value={form.species} onChange={(e) => setForm({ ...form, species: e.target.value })}>
               {SPECIES_OPTIONS.map((key) => (
