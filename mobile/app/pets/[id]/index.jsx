@@ -506,7 +506,21 @@ export default function PetProfileScreen() {
           </View>
         )}
 
-        {tab === 'historial' && <PetHistorial petId={petId} canEdit={canEdit} />}
+        {tab === 'historial' && (
+          <View style={{ gap: 16 }}>
+            <Surface>
+              <WeightHistory
+                petId={petId}
+                canEdit={canEdit}
+                onPetWeightChange={(kg) => {
+                  setPet((p) => (p ? { ...p, weight_kg: kg } : p))
+                  setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
+                }}
+              />
+            </Surface>
+            <PetHistorial petId={petId} canEdit={canEdit} />
+          </View>
+        )}
         {tab === 'seguimiento' && <PetConsultations petId={petId} canEdit={canEdit} />}
         {tab === 'calendario' && <PetCalendar petId={petId} canEdit={canEdit} />}
         {tab === 'herramientas' && (
