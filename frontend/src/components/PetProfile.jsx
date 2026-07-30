@@ -873,6 +873,7 @@ export default function PetProfile() {
           </div>
           {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
           <div className="space-y-2">
+            {isOwner && <PetSharePanel petId={id} variant="tool" />}
             {isOwner && (
               <div className="flex flex-col gap-3 rounded-lg border border-cyan-100/90 bg-white/80 p-3 sm:flex-row sm:items-center sm:justify-between dark:border-cyan-800 dark:bg-cyan-950/50">
                 <div className="flex min-w-0 gap-3">
@@ -951,7 +952,6 @@ export default function PetProfile() {
             <p className="mt-3 text-xs text-cyan-700 dark:text-cyan-300">{t('pet.exportProHint')}</p>
           )}
         </div>
-        {isOwner && <PetSharePanel petId={id} />}
         </>
         )}
 

@@ -347,6 +347,8 @@
     "email": "Correo del usuario",
     "add": "Compartir",
     "sharing": "Compartiendo…",
+    "action": "Abrir",
+    "close": "Cerrar",
     "canRead": "Solo leer",
     "canEdit": "Puede editar",
     "empty": "Aún no está compartida con nadie.",

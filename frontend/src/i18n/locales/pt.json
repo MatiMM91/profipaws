@@ -347,6 +347,8 @@
     "email": "Email do utilizador",
     "add": "Partilhar",
     "sharing": "A partilhar…",
+    "action": "Abrir",
+    "close": "Fechar",
     "canRead": "Só ler",
     "canEdit": "Pode editar",
     "empty": "Ainda não está partilhado com ninguém.",
