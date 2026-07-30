@@ -484,18 +484,18 @@ export default function PetProfile() {
               </>
             )}
           </div>
-          {canEdit && (
+          {canEdit && !editingPet && (
             <button
               type="button"
               className="btn-secondary shrink-0 text-sm"
               onClick={() => {
-                setEditingPet((v) => !v)
+                setEditingPet(true)
                 setError('')
                 setConfirmDelete(false)
                 setDeleteName('')
               }}
             >
-              <Pencil size={14} /> {editingPet ? t('pet.cancel') : t('pet.editData')}
+              <Pencil size={14} /> {t('pet.editData')}
             </button>
           )}
         </div>
@@ -516,7 +516,24 @@ export default function PetProfile() {
             <input className="field px-3 py-2 text-sm" placeholder={t('pet.chipPlaceholder')} value={form.chip_id} onChange={(e) => setForm({ ...form, chip_id: e.target.value })} />
             <input type="number" step="0.1" className="field px-3 py-2 text-sm" placeholder={t('pet.weight')} value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })} />
             {error && <p className="text-sm text-red-600 sm:col-span-2">{error}</p>}
-            <button type="submit" className="btn-primary sm:col-span-2" disabled={saving}>{saving ? t('pet.saving') : t('pet.saveChanges')}</button>
+            <div className="flex flex-wrap gap-2 sm:col-span-2">
+              <button type="submit" className="btn-primary" disabled={saving}>
+                {saving ? t('pet.saving') : t('common.save')}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={saving}
+                onClick={() => {
+                  setEditingPet(false)
+                  setError('')
+                  setConfirmDelete(false)
+                  setDeleteName('')
+                }}
+              >
+                {t('common.cancel')}
+              </button>
+            </div>
           </form>
         )}
 
