@@ -462,10 +462,6 @@ export default function PetProfileScreen() {
               )}
             </Surface>
 
-            <Surface>
-              <WeightHistory petId={petId} canEdit={canEdit} />
-            </Surface>
-
             {isOwner && (
               <Surface style={{ gap: 10, backgroundColor: colors.dangerBg }}>
                 <Text style={{ fontFamily: 'DMSans_700Bold', color: colors.danger }}>
