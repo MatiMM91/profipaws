@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
+import LoginModal from './LoginModal'
 import { useTheme } from '../theme/ThemeProvider'
 import { MAINTENANCE_MODE } from '../config'
 import { getToken, setSession } from '../auth'
@@ -76,7 +77,11 @@ export default function LandingPage() {
   const { theme } = useTheme()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [googleReady, setGoogleReady] = useState(false)
   const googleBtnRef = useRef(null)
+  const [showOfficialButton, setShowOfficialButton] = useState(false)
   const isDark = theme === 'dark'
 
   function goAfterLogin() {
@@ -94,21 +99,39 @@ export default function LandingPage() {
     }
   }, [navigate])
 
-  async function loginWithGoogle() {
-    if (GOOGLE_CLIENT_ID && window.google?.accounts?.id) {
-      window.google.accounts.id.prompt()
-      return
-    }
+  function openLogin() {
     if (MAINTENANCE_MODE) {
       alert(t('landing.maintenanceLoginDenied'))
       return
     }
-    const email = prompt('Dev login — email:') || 'demo@profipaws.com'
+    // Official Google button lives in the modal (not the nav) — reliable + compact header.
+    setShowOfficialButton(Boolean(GOOGLE_CLIENT_ID))
+    setLoginOpen(true)
+  }
+
+  async function continueWithGoogle() {
+    if (MAINTENANCE_MODE) {
+      alert(t('landing.maintenanceLoginDenied'))
+      return
+    }
+
+    if (GOOGLE_CLIENT_ID) {
+      setShowOfficialButton(true)
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.prompt()
+      }
+      return
+    }
+
+    const email = window.prompt('Dev login — email:') || 'demo@profipaws.com'
+    setLoginLoading(true)
     try {
       await exchangeGoogleToken(`dev:${email}`)
       goAfterLogin()
     } catch (e) {
       alert(e.message)
+    } finally {
+      setLoginLoading(false)
     }
   }
 
@@ -121,6 +144,7 @@ export default function LandingPage() {
         client_id: GOOGLE_CLIENT_ID,
         callback: async (response) => {
           try {
+            setLoginLoading(true)
             if (!response?.credential) {
               throw new Error(t('landing.loginFailed'))
             }
@@ -128,36 +152,52 @@ export default function LandingPage() {
             goAfterLogin()
           } catch (e) {
             alert(e.message || t('landing.maintenanceLoginDenied'))
+          } finally {
+            setLoginLoading(false)
           }
         },
         auto_select: false,
+        cancel_on_tap_outside: true,
         ux_mode: 'popup',
       })
-      if (googleBtnRef.current) {
-        googleBtnRef.current.innerHTML = ''
-        window.google.accounts.id.renderButton(googleBtnRef.current, {
-          theme: isDark ? 'filled_black' : 'outline',
-          size: 'large',
-          text: 'signin_with',
-          shape: 'pill',
-          width: 260,
-        })
-      }
+      setGoogleReady(true)
     }
 
     if (window.google?.accounts?.id) {
       initGoogle()
-    } else {
-      const script = document.createElement('script')
-      script.src = 'https://accounts.google.com/gsi/client'
-      script.async = true
-      script.defer = true
-      script.onload = initGoogle
-      document.body.appendChild(script)
-      return () => script.remove()
+      return undefined
     }
-    return undefined
-  }, [isDark, t, searchParams])
+
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.onload = initGoogle
+    document.body.appendChild(script)
+    return () => script.remove()
+  }, [t, searchParams])
+
+
+  useEffect(() => {
+    if (!loginOpen || !showOfficialButton || !googleReady) return undefined
+    let cancelled = false
+    const frame = window.requestAnimationFrame(() => {
+      if (cancelled || !googleBtnRef.current || !window.google?.accounts?.id) return
+      googleBtnRef.current.innerHTML = ''
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        theme: isDark ? 'filled_black' : 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'pill',
+        width: 320,
+        logo_alignment: 'left',
+      })
+    })
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(frame)
+    }
+  }, [loginOpen, showOfficialButton, googleReady, isDark])
 
   const muted = isDark ? 'text-cyan-100/80' : 'text-cyan-800/90'
   const soft = isDark ? 'text-cyan-100/70' : 'text-cyan-700/80'
@@ -205,17 +245,31 @@ export default function LandingPage() {
               </Link>
             </>
           )}
-          {GOOGLE_CLIENT_ID ? (
-            <div ref={googleBtnRef} className="min-h-10" />
-          ) : (
-            !MAINTENANCE_MODE && (
-              <button type="button" onClick={loginWithGoogle} className="btn-primary bg-cyan-500 hover:bg-cyan-400">
-                {t('nav.signInGoogle')}
-              </button>
-            )
+          {!MAINTENANCE_MODE && (
+            <button
+              type="button"
+              onClick={openLogin}
+              className={`inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold transition ${
+                isDark
+                  ? 'bg-white text-cyan-950 hover:bg-cyan-50'
+                  : 'bg-cyan-700 text-white hover:bg-cyan-800'
+              }`}
+            >
+              {t('nav.signIn')}
+            </button>
           )}
         </div>
       </nav>
+
+      <LoginModal
+        open={loginOpen}
+        onClose={() => !loginLoading && setLoginOpen(false)}
+        onContinue={continueWithGoogle}
+        loading={loginLoading || (Boolean(GOOGLE_CLIENT_ID) && !googleReady)}
+        isDark={isDark}
+        googleBtnRef={googleBtnRef}
+        showOfficialButton={showOfficialButton}
+      />
 
       {/* Hero — keep focused */}
       <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-10 lg:grid-cols-2 lg:pb-20 lg:pt-16">
@@ -243,7 +297,7 @@ export default function LandingPage() {
               </div>
             ) : (
               <>
-                <button type="button" onClick={loginWithGoogle} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
+                <button type="button" onClick={openLogin} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
                   {t('landing.ctaStart')} <ArrowRight size={16} />
                 </button>
                 <Link
@@ -361,7 +415,7 @@ export default function LandingPage() {
               {t('landing.ctaBottomSubtitle')}
             </p>
             <div className="relative mt-8 flex flex-wrap items-center justify-center gap-3">
-              <button type="button" onClick={loginWithGoogle} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
+              <button type="button" onClick={openLogin} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
                 {t('landing.ctaStart')} <ArrowRight size={16} />
               </button>
               <Link
