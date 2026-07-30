@@ -12,6 +12,9 @@ from app.schemas import (
     UserOut,
     MobileHandoffOut,
     MobileHandoffExchange,
+    MobileSessionStart,
+    MobileSessionComplete,
+    MobileSessionPoll,
 )
 from app.services.auth import (
     create_access_token,
@@ -24,9 +27,11 @@ from app.config import get_settings
 router = APIRouter(prefix="/auth", tags=["Auth"])
 settings = get_settings()
 
-# Short-lived one-time codes for Expo Go deep links (URL must stay tiny).
+# Short-lived one-time codes / sessions for Expo Go (no deep-link JWT URLs).
 _MOBILE_HANDOFFS: dict[str, dict] = {}
+_MOBILE_SESSIONS: dict[str, dict] = {}
 _HANDOFF_TTL_SEC = 180
+_SESSION_TTL_SEC = 300
 
 
 def _purge_handoffs(now: float | None = None) -> None:
@@ -34,6 +39,13 @@ def _purge_handoffs(now: float | None = None) -> None:
     expired = [k for k, v in _MOBILE_HANDOFFS.items() if v["exp"] <= ts]
     for k in expired:
         _MOBILE_HANDOFFS.pop(k, None)
+
+
+def _purge_sessions(now: float | None = None) -> None:
+    ts = now if now is not None else time.time()
+    expired = [k for k, v in _MOBILE_SESSIONS.items() if v["exp"] <= ts]
+    for k in expired:
+        _MOBILE_SESSIONS.pop(k, None)
 
 
 @router.post("/google", response_model=TokenResponse)
@@ -118,6 +130,68 @@ def exchange_mobile_handoff(payload: MobileHandoffExchange, db: Session = Depend
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
     return TokenResponse(access_token=entry["access_token"], user=UserOut.model_validate(user))
+
+
+@router.post("/mobile-session/start")
+def start_mobile_session(payload: MobileSessionStart):
+    """App creates a nonce, then polls until the web bridge completes Google login."""
+    _purge_sessions()
+    nonce = payload.nonce.strip()
+    _MOBILE_SESSIONS[nonce] = {
+        "status": "pending",
+        "exp": time.time() + _SESSION_TTL_SEC,
+    }
+    return {"ok": True, "nonce": nonce}
+
+
+@router.post("/mobile-session/complete")
+def complete_mobile_session(
+    payload: MobileSessionComplete,
+    current_user: User = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+):
+    """Web bridge calls this after Google login succeeds."""
+    if not credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    _purge_sessions()
+    nonce = payload.nonce.strip()
+    entry = _MOBILE_SESSIONS.get(nonce)
+    if not entry or entry["exp"] <= time.time():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Sesión móvil expirada. Cierra el navegador y vuelve a intentarlo desde la app.",
+        )
+    _MOBILE_SESSIONS[nonce] = {
+        "status": "ready",
+        "access_token": credentials.credentials,
+        "user_id": current_user.id,
+        "exp": time.time() + _SESSION_TTL_SEC,
+    }
+    return {"ok": True}
+
+
+@router.get("/mobile-session/{nonce}", response_model=MobileSessionPoll)
+def poll_mobile_session(nonce: str, db: Session = Depends(get_db)):
+    _purge_sessions()
+    entry = _MOBILE_SESSIONS.get(nonce)
+    if not entry:
+        return MobileSessionPoll(status="expired")
+    if entry["exp"] <= time.time():
+        _MOBILE_SESSIONS.pop(nonce, None)
+        return MobileSessionPoll(status="expired")
+    if entry.get("status") != "ready":
+        return MobileSessionPoll(status="pending")
+
+    done = _MOBILE_SESSIONS.pop(nonce, None)
+    user = db.query(User).filter(User.id == done["user_id"]).first()
+    if not user or not user.is_active:
+        return MobileSessionPoll(status="expired")
+    return MobileSessionPoll(
+        status="ready",
+        access_token=done["access_token"],
+        token_type="bearer",
+        user=UserOut.model_validate(user),
+    )
 
 
 async def _verify_google_token(id_token: str) -> dict:

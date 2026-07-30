@@ -43,6 +43,21 @@ class MobileHandoffExchange(BaseModel):
     code: str
 
 
+class MobileSessionStart(BaseModel):
+    nonce: str = Field(min_length=16, max_length=128)
+
+
+class MobileSessionComplete(BaseModel):
+    nonce: str = Field(min_length=16, max_length=128)
+
+
+class MobileSessionPoll(BaseModel):
+    status: str  # pending | ready | expired
+    access_token: Optional[str] = None
+    token_type: Optional[str] = "bearer"
+    user: Optional["UserOut"] = None
+
+
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

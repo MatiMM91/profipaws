@@ -4,16 +4,6 @@ import { MAINTENANCE_MODE } from '../config'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-const FALLBACK_SCHEME = 'profipaws://auth'
-
-function isAllowedRedirect(uri) {
-  if (!uri || typeof uri !== 'string') return false
-  return (
-    uri.startsWith('profipaws://') ||
-    uri.startsWith('exp://') ||
-    uri.startsWith('exps://')
-  )
-}
 
 async function exchangeGoogleToken(idToken) {
   const res = await fetch(`${API_URL}/api/auth/google`, {
@@ -30,83 +20,39 @@ async function exchangeGoogleToken(idToken) {
   return data
 }
 
-async function createHandoffCode(accessToken) {
-  const res = await fetch(`${API_URL}/api/auth/mobile-handoff`, {
+async function completeMobileSession(nonce, accessToken) {
+  const res = await fetch(`${API_URL}/api/auth/mobile-session/complete`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ nonce }),
   })
-  if (res.status === 404) return null
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo preparar el retorno a la app')
-  }
-  const data = await res.json()
-  if (!data.code) throw new Error('No se recibió código de retorno')
-  return data.code
-}
-
-function buildDeepLink(base, { code, accessToken }) {
-  const join = base.includes('?') ? '&' : '?'
-  if (code) return `${base}${join}code=${encodeURIComponent(code)}`
-  return `${base}${join}t=${encodeURIComponent(accessToken)}`
-}
-
-function openDeepLink(link) {
-  // Prefer assign/replace so Custom Tabs can hand off to Expo.
-  try {
-    window.location.replace(link)
-  } catch {
-    window.location.href = link
-  }
-
-  // Android Custom Tabs often need an intent:// URL for exp://
-  if (/android/i.test(navigator.userAgent || '') && link.startsWith('exp://')) {
-    const rest = link.slice('exp://'.length)
-    const intent = `intent://${rest}#Intent;scheme=exp;package=host.exp.exponent;S.browser_fallback_url=${encodeURIComponent(link)};end`
-    window.setTimeout(() => {
-      window.location.href = intent
-    }, 250)
+    throw new Error(
+      typeof err.detail === 'string'
+        ? err.detail
+        : 'No se pudo completar el login móvil. Cierra esta ventana y reintenta desde la app.',
+    )
   }
 }
 
 /**
  * HTTPS bridge for Expo Go Google Sign-In.
- * Returns to the app via a tiny one-time `code` (JWT URLs are too long for deep links).
+ * Completes login via API polling (no deep links — Custom Tabs block exp:// clicks).
  */
 export default function MobileAuthBridge() {
   const googleBtnRef = useRef(null)
   const [error, setError] = useState('')
   const [status, setStatus] = useState('loading')
   const [googleReady, setGoogleReady] = useState(false)
-  const [deepLink, setDeepLink] = useState('')
 
-  const redirectBase = useMemo(() => {
-    const raw = new URLSearchParams(window.location.search).get('redirect_uri')
-    if (isAllowedRedirect(raw)) return raw
-    return FALLBACK_SCHEME
+  const nonce = useMemo(() => {
+    const raw = new URLSearchParams(window.location.search).get('nonce')
+    return raw && raw.length >= 16 ? raw : ''
   }, [])
-
-  async function goToApp(session) {
-    setStatus('exchanging')
-    let code = null
-    try {
-      code = await createHandoffCode(session.access_token)
-    } catch (e) {
-      // If Railway hasn't deployed handoff yet, fall back to token-only deep link.
-      if (!/404|Failed to fetch|NetworkError/i.test(String(e.message))) {
-        // keep trying token fallback below
-      }
-      code = null
-    }
-    const link = buildDeepLink(redirectBase, {
-      code,
-      accessToken: session.access_token,
-    })
-    setDeepLink(link)
-    setStatus('redirecting')
-    openDeepLink(link)
-    window.setTimeout(() => setStatus('manual'), 900)
-  }
 
   useEffect(() => {
     if (MAINTENANCE_MODE) {
@@ -119,6 +65,11 @@ export default function MobileAuthBridge() {
       setError('Google Client ID no configurado en el frontend (VITE_GOOGLE_CLIENT_ID).')
       return undefined
     }
+    if (!nonce) {
+      setStatus('ready')
+      setError('Abre el login desde la app Profipaws (Expo Go), no desde el navegador.')
+      return undefined
+    }
 
     let cancelled = false
 
@@ -129,7 +80,9 @@ export default function MobileAuthBridge() {
         if (!response?.credential) throw new Error('No se recibió credencial de Google')
         const data = await exchangeGoogleToken(response.credential)
         if (cancelled) return
-        await goToApp(data)
+        await completeMobileSession(nonce, data.access_token)
+        if (cancelled) return
+        setStatus('done')
       } catch (e) {
         if (cancelled) return
         setStatus('ready')
@@ -189,7 +142,7 @@ export default function MobileAuthBridge() {
     return () => {
       cancelled = true
     }
-  }, [redirectBase])
+  }, [nonce])
 
   function promptGoogle() {
     setError('')
@@ -204,7 +157,7 @@ export default function MobileAuthBridge() {
     })
   }
 
-  const busy = status === 'loading' || status === 'exchanging' || status === 'redirecting'
+  const busy = status === 'loading' || status === 'exchanging'
 
   return (
     <div
@@ -241,8 +194,7 @@ export default function MobileAuthBridge() {
         <p style={{ marginTop: 10, fontSize: 15, color: 'rgba(14,116,144,0.85)', lineHeight: 1.45 }}>
           {status === 'loading' && 'Cargando inicio de sesión…'}
           {status === 'exchanging' && 'Validando con Profipaws…'}
-          {status === 'redirecting' && 'Volviendo a la app…'}
-          {status === 'manual' && 'Casi listo. Pulsa el botón para abrir Expo Go.'}
+          {status === 'done' && '¡Listo! Vuelve a la app: ya puedes cerrar esta ventana.'}
           {status === 'ready' && 'Inicia sesión para continuar en la app móvil.'}
         </p>
 
@@ -262,29 +214,21 @@ export default function MobileAuthBridge() {
           </p>
         ) : null}
 
-        {status === 'manual' && deepLink ? (
-          <button
-            type="button"
-            onClick={() => openDeepLink(deepLink)}
+        {status === 'done' ? (
+          <p
             style={{
-              display: 'block',
-              width: '100%',
               marginTop: 20,
               borderRadius: 12,
-              border: 'none',
-              background: '#0891b2',
-              color: '#fff',
+              background: '#ecfeff',
+              color: '#0e7490',
+              padding: '14px 12px',
+              fontSize: 14,
               fontWeight: 600,
-              fontSize: 16,
-              padding: '16px 16px',
-              cursor: 'pointer',
             }}
           >
-            Abrir Profipaws
-          </button>
-        ) : null}
-
-        {status !== 'manual' && (
+            La app detectará el login automáticamente.
+          </p>
+        ) : (
           <>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', minHeight: 44 }}>
               <div ref={googleBtnRef} />
@@ -316,7 +260,7 @@ export default function MobileAuthBridge() {
         )}
 
         <p style={{ marginTop: 20, fontSize: 12, color: 'rgba(8,145,178,0.75)' }}>
-          Tras iniciar sesión volverás automáticamente a Expo Go.
+          No hace falta pulsar ningún enlace especial: cierra esta pestaña cuando veas el mensaje de éxito.
         </p>
       </div>
     </div>

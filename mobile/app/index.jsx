@@ -13,7 +13,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Building2, Construction, QrCode, Shield } from 'lucide-react-native'
 import * as WebBrowser from 'expo-web-browser'
-import * as Linking from 'expo-linking'
 import Constants from 'expo-constants'
 import BrandLogo from '../src/components/BrandLogo'
 import PreferenceControls from '../src/components/PreferenceControls'
@@ -36,39 +35,49 @@ const isLocalApi = /localhost|127\.0\.0\.1|192\.168\.|10\.\d+\.|172\.(1[6-9]|2\d
 const isExpoGo = Constants.appOwnership === 'expo'
 const DEFAULT_WEB_URL = 'https://profipaws.vercel.app'
 
-function getAuthRedirectUri() {
-  // Expo Go → exp://IP:8081/--/auth ; dev builds → profipaws://auth
-  return Linking.createURL('auth')
-}
-
-function parseAuthCallback(url) {
-  const q = url.includes('?') ? url.slice(url.indexOf('?') + 1) : ''
-  const params = new URLSearchParams(q)
-  return {
-    code: params.get('code'),
-    accessToken: params.get('access_token') || params.get('t'),
+function createNonce() {
+  const bytes = new Uint8Array(24)
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(bytes)
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256)
   }
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-async function exchangeMobileCode(code) {
-  const res = await fetch(`${API_URL}/api/auth/mobile-handoff/exchange`, {
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function startMobileSession(nonce) {
+  const res = await fetch(`${API_URL}/api/auth/mobile-session/start`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ nonce }),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(typeof err.detail === 'string' ? err.detail : 'Código inválido o expirado')
+    throw new Error(typeof err.detail === 'string' ? err.detail : 'No se pudo iniciar el login móvil')
   }
-  return res.json()
 }
 
-async function fetchMe(accessToken) {
-  const res = await fetch(`${API_URL}/api/auth/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  })
-  if (!res.ok) return null
-  return res.json()
+async function pollMobileSession(nonce, { signal, timeoutMs = 180000 } = {}) {
+  const started = Date.now()
+  while (Date.now() - started < timeoutMs) {
+    if (signal?.aborted) throw new Error('Login cancelado')
+    const res = await fetch(`${API_URL}/api/auth/mobile-session/${encodeURIComponent(nonce)}`)
+    if (!res.ok) {
+      await sleep(1200)
+      continue
+    }
+    const data = await res.json()
+    if (data.status === 'ready' && data.access_token) return data
+    if (data.status === 'expired') {
+      throw new Error('La sesión de login expiró. Inténtalo de nuevo.')
+    }
+    await sleep(1200)
+  }
+  throw new Error('Tiempo de espera agotado. Cierra el navegador e inténtalo otra vez.')
 }
 
 function networkHelpMessage(errMsg) {
@@ -101,34 +110,42 @@ export default function LandingScreen() {
       return
     }
     setLoading(true)
+    const controller = new AbortController()
     try {
-      const redirectUri = getAuthRedirectUri()
-      const authUrl = `${webBase}/mobile-auth?redirect_uri=${encodeURIComponent(redirectUri)}`
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUri)
-      if (result.type !== 'success' || !result.url) {
-        if (result.type === 'cancel' || result.type === 'dismiss') return
-        throw new Error(t('landing.loginFailed'))
+      const nonce = createNonce()
+      await startMobileSession(nonce)
+      const authUrl = `${webBase}/mobile-auth?nonce=${encodeURIComponent(nonce)}`
+
+      const pollPromise = pollMobileSession(nonce, { signal: controller.signal })
+      // openBrowserAsync: no deep links needed; app polls API and dismisses the browser.
+      const browserPromise = WebBrowser.openBrowserAsync(authUrl, {
+        createTask: false,
+        showInRecents: true,
+      })
+
+      const data = await pollPromise
+      controller.abort()
+      try {
+        await WebBrowser.dismissBrowser()
+      } catch {
+        /* browser may already be closed */
       }
+      await browserPromise.catch(() => null)
 
-      const { code, accessToken: tokenFromUrl } = parseAuthCallback(result.url)
-      let accessToken = tokenFromUrl
-      let user = null
-
-      if (code) {
-        const data = await exchangeMobileCode(code)
-        accessToken = data.access_token
-        user = data.user
-      } else if (accessToken) {
-        user = await fetchMe(accessToken)
-      }
-
-      if (!accessToken) throw new Error(t('landing.loginFailed'))
-
-      await setSession(accessToken, user)
+      if (!data?.access_token) throw new Error(t('landing.loginFailed'))
+      await setSession(data.access_token, data.user || null)
       if (typeof refreshSession === 'function') await refreshSession()
       router.replace('/dashboard')
     } catch (e) {
-      Alert.alert('Error', networkHelpMessage(e.message) || e.message || t('landing.loginFailed'))
+      controller.abort()
+      try {
+        await WebBrowser.dismissBrowser()
+      } catch {
+        /* ignore */
+      }
+      if (!/cancel|abort/i.test(String(e.message))) {
+        Alert.alert('Error', networkHelpMessage(e.message) || e.message || t('landing.loginFailed'))
+      }
     } finally {
       setLoading(false)
     }
@@ -254,7 +271,7 @@ export default function LandingScreen() {
               API: {API_URL}
             </Body>
             <Body muted style={{ fontSize: 12 }}>
-              {isExpoGo ? 'Expo Go' : 'Dev build'} · login vía {webBase}/mobile-auth
+              {isExpoGo ? 'Expo Go' : 'Dev build'} · login Google vía web + polling
             </Body>
             {canDevLogin && (
               <>
