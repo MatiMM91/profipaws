@@ -7,19 +7,30 @@ import { useTheme } from '../theme/ThemeContext'
 import { Field, PrimaryButton, Body } from './ui'
 import { formatDue } from '../utils/dates'
 
-export default function WeightHistory({ petId, canEdit }) {
+export default function WeightHistory({ petId, canEdit, onPetWeightChange }) {
   const { t, i18n } = useTranslation()
   const { colors } = useTheme()
   const [items, setItems] = useState([])
   const [value, setValue] = useState('')
   const [saving, setSaving] = useState(false)
 
+  function latestKg(list) {
+    if (!list.length) return null
+    const latest = list.reduce((a, b) =>
+      a.recorded_at > b.recorded_at || (a.recorded_at === b.recorded_at && a.id > b.id) ? a : b
+    )
+    return latest.weight_kg
+  }
+
   async function load() {
     try {
       const data = await api(`/api/pets/${petId}/weights`)
-      setItems(Array.isArray(data) ? data : data?.items || [])
+      const list = Array.isArray(data) ? data : data?.items || []
+      setItems(list)
+      onPetWeightChange?.(latestKg(list))
     } catch {
       setItems([])
+      onPetWeightChange?.(null)
     }
   }
 

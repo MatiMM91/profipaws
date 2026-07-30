@@ -816,18 +816,6 @@ export default function PetProfile() {
           )}
         </div>
 
-        {!editingPet && (
-          <PetWeightHistory
-            petId={id}
-            canEdit={canEdit}
-            refreshKey={weightHistoryKey}
-            onPetWeightChange={(kg) => {
-              setPet((p) => (p ? { ...p, weight_kg: kg } : p))
-              setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
-            }}
-          />
-        )}
-
         {/* Upcoming alerts */}
         <div className="mt-5 rounded-xl border border-cyan-100 bg-white/70 p-4 dark:border-cyan-800 dark:bg-cyan-950/30">
           <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-cyan-800 dark:text-cyan-200">
@@ -969,7 +957,16 @@ export default function PetProfile() {
         )}
 
         {tab === 'historial' && (
-          <div className="mt-5">
+          <div className="mt-5 space-y-5">
+            <PetWeightHistory
+              petId={id}
+              canEdit={canEdit}
+              refreshKey={weightHistoryKey}
+              onPetWeightChange={(kg) => {
+                setPet((p) => (p ? { ...p, weight_kg: kg } : p))
+                setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
+              }}
+            />
             <PetHistorial
               petId={id}
               vaccines={vaccines}
