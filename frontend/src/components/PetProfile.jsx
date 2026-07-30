@@ -576,17 +576,6 @@ export default function PetProfile() {
           </div>
         )}
 
-        {!editingPet && (
-          <PetWeightHistory
-            petId={id}
-            canEdit={canEdit}
-            onPetWeightChange={(kg) => {
-              setPet((p) => (p ? { ...p, weight_kg: kg } : p))
-              setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
-            }}
-          />
-        )}
-
         {/* Allergies */}
         <div className="mt-5 border-t border-cyan-100 pt-4 dark:border-cyan-800">
           <div className="mb-2 flex items-center justify-between gap-2">
@@ -798,6 +787,17 @@ export default function PetProfile() {
             </ul>
           )}
         </div>
+
+        {!editingPet && (
+          <PetWeightHistory
+            petId={id}
+            canEdit={canEdit}
+            onPetWeightChange={(kg) => {
+              setPet((p) => (p ? { ...p, weight_kg: kg } : p))
+              setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))
+            }}
+          />
+        )}
 
         {isOwner && <PetSharePanel petId={id} embedded />}
 
