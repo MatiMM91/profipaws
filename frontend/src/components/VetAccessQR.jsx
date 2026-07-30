@@ -66,7 +66,7 @@ export default function VetAccessQR() {
             {qrUrl && (
               <img
                 src={qrUrl}
-                alt="QR"
+                alt={t('vet.scanCodeAlt')}
                 className="mx-auto rounded-xl border border-cyan-100 dark:border-cyan-800"
                 width={220}
                 height={220}

@@ -63,7 +63,7 @@ async function fetchMe(accessToken) {
 
 function networkHelpMessage(errMsg) {
   if (/network request failed|failed to fetch|network error/i.test(String(errMsg || ''))) {
-    return `No se pudo alcanzar el API:\n${API_URL}\n\nComprueba la conexión o reinicia Expo tras cambiar .env (npx expo start -c).`
+    return `No se pudo conectar con el servidor:\n${API_URL}\n\nComprueba la conexión o reinicia Expo tras cambiar .env (npx expo start -c).`
   }
   return null
 }
@@ -314,7 +314,7 @@ export default function LandingScreen() {
             }}
           >
             <Body muted style={{ fontSize: 12 }}>
-              API: {API_URL}
+              Servidor: {API_URL}
             </Body>
             <Body muted style={{ fontSize: 12 }}>
               {isExpoGo ? 'Expo Go' : 'Dev build'} · login Google (copiar/pegar)
