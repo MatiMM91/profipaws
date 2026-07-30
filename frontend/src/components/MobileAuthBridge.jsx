@@ -1,19 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import BrandLogo from './BrandLogo'
 import { MAINTENANCE_MODE } from '../config'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-
-function isAllowedReturn(uri) {
-  if (!uri || typeof uri !== 'string') return false
-  try {
-    const u = new URL(uri)
-    return u.origin === window.location.origin && u.pathname.startsWith('/mobile-auth-callback')
-  } catch {
-    return false
-  }
-}
+const CLIP_PREFIX = 'PROFIPAWS_AUTH_V1:'
 
 async function exchangeGoogleToken(idToken) {
   const res = await fetch(`${API_URL}/api/auth/google`, {
@@ -30,22 +21,54 @@ async function exchangeGoogleToken(idToken) {
   return data
 }
 
+function buildPayload(data) {
+  return (
+    CLIP_PREFIX +
+    JSON.stringify({
+      access_token: data.access_token,
+      user: data.user || null,
+      ts: Date.now(),
+    })
+  )
+}
+
+function copyText(text) {
+  try {
+    const ta = document.createElement('textarea')
+    ta.value = text
+    ta.setAttribute('readonly', '')
+    ta.style.position = 'fixed'
+    ta.style.left = '-9999px'
+    document.body.appendChild(ta)
+    ta.select()
+    ta.setSelectionRange(0, text.length)
+    const ok = document.execCommand('copy')
+    ta.remove()
+    if (ok) return true
+  } catch {
+    /* fall through */
+  }
+  if (navigator.clipboard?.writeText) {
+    return navigator.clipboard.writeText(text).then(
+      () => true,
+      () => false,
+    )
+  }
+  return false
+}
+
 /**
- * HTTPS bridge for Expo Go.
- * After Google login, redirects to /mobile-auth-callback?t=JWT so Expo's
- * openAuthSessionAsync can capture an HTTPS return URL (exp:// is blocked).
+ * Google login bridge for Expo Go.
+ * Copies a one-time auth payload to the clipboard so the app can finish
+ * login without relying on Custom Tab HTTPS/deep-link redirects (broken on Android).
  */
 export default function MobileAuthBridge() {
   const googleBtnRef = useRef(null)
+  const payloadRef = useRef('')
   const [error, setError] = useState('')
   const [status, setStatus] = useState('loading')
   const [googleReady, setGoogleReady] = useState(false)
-
-  const returnTo = useMemo(() => {
-    const raw = new URLSearchParams(window.location.search).get('return_to')
-    if (isAllowedReturn(raw)) return raw
-    return `${window.location.origin}/mobile-auth-callback`
-  }, [])
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (MAINTENANCE_MODE) {
@@ -68,9 +91,11 @@ export default function MobileAuthBridge() {
         if (!response?.credential) throw new Error('No se recibió credencial de Google')
         const data = await exchangeGoogleToken(response.credential)
         if (cancelled) return
-        setStatus('redirecting')
-        const url = `${returnTo}${returnTo.includes('?') ? '&' : '?'}t=${encodeURIComponent(data.access_token)}`
-        window.location.replace(url)
+        const payload = buildPayload(data)
+        payloadRef.current = payload
+        const ok = await copyText(payload)
+        setCopied(Boolean(ok))
+        setStatus('done')
       } catch (e) {
         if (cancelled) return
         setStatus('ready')
@@ -130,7 +155,19 @@ export default function MobileAuthBridge() {
     return () => {
       cancelled = true
     }
-  }, [returnTo])
+  }, [])
+
+  async function handleSendToApp() {
+    const payload = payloadRef.current
+    if (!payload) return
+    const ok = await copyText(payload)
+    setCopied(Boolean(ok))
+    try {
+      window.location.href = 'profipaws://auth-done'
+    } catch {
+      /* ignore */
+    }
+  }
 
   function promptGoogle() {
     setError('')
@@ -145,7 +182,7 @@ export default function MobileAuthBridge() {
     })
   }
 
-  const busy = status === 'loading' || status === 'exchanging' || status === 'redirecting'
+  const busy = status === 'loading' || status === 'exchanging'
 
   return (
     <div
@@ -182,8 +219,11 @@ export default function MobileAuthBridge() {
         <p style={{ marginTop: 10, fontSize: 15, color: 'rgba(14,116,144,0.85)', lineHeight: 1.45 }}>
           {status === 'loading' && 'Cargando inicio de sesión…'}
           {status === 'exchanging' && 'Validando con Profipaws…'}
-          {status === 'redirecting' && 'Volviendo a la app…'}
           {status === 'ready' && 'Inicia sesión para continuar en la app móvil.'}
+          {status === 'done' &&
+            (copied
+              ? '¡Listo! Vuelve a Expo Go: la app detectará el login sola.'
+              : '¡Listo! Pulsa el botón de abajo y vuelve a Expo Go.')}
         </p>
 
         {error ? (
@@ -202,7 +242,28 @@ export default function MobileAuthBridge() {
           </p>
         ) : null}
 
-        {!busy && (
+        {status === 'done' ? (
+          <button
+            type="button"
+            onClick={handleSendToApp}
+            style={{
+              marginTop: 24,
+              width: '100%',
+              borderRadius: 12,
+              border: 'none',
+              background: '#0891b2',
+              color: '#fff',
+              fontWeight: 600,
+              fontSize: 15,
+              padding: '12px 16px',
+              cursor: 'pointer',
+            }}
+          >
+            Enviar sesión a la app
+          </button>
+        ) : null}
+
+        {!busy && status !== 'done' && (
           <>
             <div style={{ marginTop: 24, display: 'flex', justifyContent: 'center', minHeight: 44 }}>
               <div ref={googleBtnRef} />

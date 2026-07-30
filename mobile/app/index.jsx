@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Alert,
+  AppState,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Building2, Construction, QrCode, Shield } from 'lucide-react-native'
 import * as WebBrowser from 'expo-web-browser'
+import * as Clipboard from 'expo-clipboard'
 import Constants from 'expo-constants'
 import BrandLogo from '../src/components/BrandLogo'
 import PreferenceControls from '../src/components/PreferenceControls'
@@ -34,12 +36,76 @@ const FEATURES = [
 const isLocalApi = /localhost|127\.0\.0\.1|192\.168\.|10\.\d+\.|172\.(1[6-9]|2\d|3[0-1])\./i.test(API_URL)
 const isExpoGo = Constants.appOwnership === 'expo'
 const DEFAULT_WEB_URL = 'https://profipaws.vercel.app'
+const CLIP_PREFIX = 'PROFIPAWS_AUTH_V1:'
+const AUTH_TIMEOUT_MS = 5 * 60 * 1000
 
-function parseTokenFromCallback(url) {
-  const q = url.includes('?') ? url.slice(url.indexOf('?') + 1) : ''
-  const hash = url.includes('#') ? url.slice(url.indexOf('#') + 1) : ''
-  const params = new URLSearchParams(q || hash)
-  return params.get('t') || params.get('access_token')
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function parseClipboardAuth(raw) {
+  if (!raw || typeof raw !== 'string') return null
+  const text = raw.trim()
+  if (!text.startsWith(CLIP_PREFIX)) return null
+  try {
+    const data = JSON.parse(text.slice(CLIP_PREFIX.length))
+    if (!data?.access_token || typeof data.access_token !== 'string') return null
+    if (data.ts && Date.now() - Number(data.ts) > AUTH_TIMEOUT_MS) return null
+    return {
+      access_token: data.access_token,
+      user: data.user || null,
+    }
+  } catch {
+    return null
+  }
+}
+
+async function readClipboardAuth() {
+  try {
+    const raw = await Clipboard.getStringAsync()
+    return parseClipboardAuth(raw)
+  } catch {
+    return null
+  }
+}
+
+async function clearClipboardAuth() {
+  try {
+    const raw = await Clipboard.getStringAsync()
+    if (raw?.startsWith(CLIP_PREFIX)) await Clipboard.setStringAsync('')
+  } catch {
+    /* ignore */
+  }
+}
+
+async function waitForClipboardAuth(timeoutMs = AUTH_TIMEOUT_MS) {
+  const started = Date.now()
+  let resolveAuth
+  const authPromise = new Promise((resolve) => {
+    resolveAuth = resolve
+  })
+
+  const tryRead = async () => {
+    const handoff = await readClipboardAuth()
+    if (handoff) resolveAuth(handoff)
+  }
+
+  const interval = setInterval(() => {
+    tryRead()
+  }, 700)
+
+  const appSub = AppState.addEventListener('change', (state) => {
+    if (state === 'active') tryRead()
+  })
+
+  tryRead()
+
+  const timeout = sleep(timeoutMs).then(() => null)
+  const handoff = await Promise.race([authPromise, timeout])
+  clearInterval(interval)
+  appSub.remove()
+  if (!handoff) throw new Error('Tiempo de espera agotado. Vuelve a intentarlo.')
+  return handoff
 }
 
 async function fetchMe(accessToken) {
@@ -54,8 +120,8 @@ function networkHelpMessage(errMsg) {
   if (/network request failed|failed to fetch|network error/i.test(String(errMsg || ''))) {
     return `No se pudo alcanzar el API:\n${API_URL}\n\nComprueba la conexión o reinicia Expo tras cambiar .env (npx expo start -c).`
   }
-  if (/not found/i.test(String(errMsg || ''))) {
-    return 'El servicio de login móvil no está disponible todavía. Reinicia Expo y asegúrate de tener la última web desplegada.'
+  if (/tiempo de espera|timeout/i.test(String(errMsg || ''))) {
+    return 'No llegó la sesión desde el navegador. En la web pulsa “Enviar sesión a la app” y vuelve a Expo Go.'
   }
   return null
 }
@@ -84,20 +150,36 @@ export default function LandingScreen() {
     }
     setLoading(true)
     try {
-      const returnTo = `${webBase}/mobile-auth-callback`
-      const authUrl = `${webBase}/mobile-auth?return_to=${encodeURIComponent(returnTo)}`
-      const result = await WebBrowser.openAuthSessionAsync(authUrl, returnTo)
+      await clearClipboardAuth()
+      const authUrl = `${webBase}/mobile-auth`
+      // openBrowserAsync blocks until dismiss; race clipboard handoff in parallel.
+      const handoffPromise = waitForClipboardAuth(AUTH_TIMEOUT_MS)
+      const browserPromise = WebBrowser.openBrowserAsync(authUrl)
 
-      if (result.type !== 'success' || !result.url) {
-        if (result.type === 'cancel' || result.type === 'dismiss') return
-        throw new Error(t('landing.loginFailed'))
+      let handoff
+      try {
+        handoff = await handoffPromise
+      } catch (e) {
+        try {
+          await WebBrowser.dismissBrowser()
+        } catch {
+          /* ignore */
+        }
+        await browserPromise.catch(() => {})
+        throw e
       }
 
-      const accessToken = parseTokenFromCallback(result.url)
-      if (!accessToken) throw new Error(t('landing.loginFailed'))
+      try {
+        await WebBrowser.dismissBrowser()
+      } catch {
+        /* ignore */
+      }
+      await browserPromise.catch(() => {})
+      await clearClipboardAuth()
 
-      const user = await fetchMe(accessToken)
-      await setSession(accessToken, user)
+      const user = handoff.user || (await fetchMe(handoff.access_token))
+      if (!user) throw new Error(t('landing.loginFailed'))
+      await setSession(handoff.access_token, user)
       if (typeof refreshSession === 'function') await refreshSession()
       router.replace('/dashboard')
     } catch (e) {
@@ -227,7 +309,7 @@ export default function LandingScreen() {
               API: {API_URL}
             </Body>
             <Body muted style={{ fontSize: 12 }}>
-              {isExpoGo ? 'Expo Go' : 'Dev build'} · login Google (HTTPS callback)
+              {isExpoGo ? 'Expo Go' : 'Dev build'} · login Google vía web
             </Body>
             {canDevLogin && (
               <>
