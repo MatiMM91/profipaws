@@ -189,8 +189,28 @@ def _record_weight(db: Session, pet: Pet, weight_kg: float, recorded_at: date | 
         recorded_at=recorded_at or date.today(),
     )
     db.add(entry)
-    pet.weight_kg = weight_kg
+    db.flush()
+    _sync_pet_weight_from_history(db, pet)
     return entry
+
+
+def _sync_pet_weight_from_history(db: Session, pet: Pet) -> None:
+    """Keep pet.weight_kg aligned with the chronologically latest history entry."""
+    latest = (
+        db.query(WeightEntry)
+        .filter(WeightEntry.pet_id == pet.id)
+        .order_by(WeightEntry.recorded_at.desc(), WeightEntry.id.desc())
+        .first()
+    )
+    pet.weight_kg = latest.weight_kg if latest else None
+
+
+def _weights_differ(a: float | None, b: float | None) -> bool:
+    if a is None and b is None:
+        return False
+    if a is None or b is None:
+        return True
+    return abs(float(a) - float(b)) > 1e-6
 
 
 def _ensure_legacy_weight_entry(db: Session, pet: Pet) -> None:
@@ -305,7 +325,12 @@ def update_pet(
     if "allergies" in data and data["allergies"] is not None:
         data["allergies"] = data["allergies"].strip() or None
 
-    weight_changed = "weight_kg" in data and data["weight_kg"] is not None and data["weight_kg"] != pet.weight_kg
+    weight_changed = "weight_kg" in data and data["weight_kg"] is not None and _weights_differ(
+        data["weight_kg"], pet.weight_kg
+    )
+    # Clearing the profile weight field should not wipe history; keep current weight.
+    if "weight_kg" in data and data["weight_kg"] is None:
+        data.pop("weight_kg")
 
     for key, value in data.items():
         setattr(pet, key, value)
@@ -1076,7 +1101,8 @@ def create_weight(
         notes=notes,
     )
     db.add(entry)
-    pet.weight_kg = payload.weight_kg
+    db.flush()
+    _sync_pet_weight_from_history(db, pet)
     db.commit()
     db.refresh(entry)
     return entry
@@ -1098,18 +1124,11 @@ def delete_weight(
     if not entry:
         raise HTTPException(status_code=404, detail="Weight entry not found")
     db.delete(entry)
-    db.commit()
-    # Keep pet.weight_kg aligned with latest remaining entry
-    latest = (
-        db.query(WeightEntry)
-        .filter(WeightEntry.pet_id == pet_id)
-        .order_by(WeightEntry.recorded_at.desc(), WeightEntry.id.desc())
-        .first()
-    )
+    db.flush()
     pet = db.query(Pet).filter(Pet.id == pet_id).first()
     if pet:
-        pet.weight_kg = latest.weight_kg if latest else None
-        db.commit()
+        _sync_pet_weight_from_history(db, pet)
+    db.commit()
 
 
 def _export_pet(db: Session, pet: Pet) -> PetExportOut:

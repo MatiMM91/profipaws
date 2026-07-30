@@ -113,6 +113,7 @@ export default function PetProfile() {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleteName, setDeleteName] = useState('')
   const [deleting, setDeleting] = useState(false)
+  const [weightHistoryKey, setWeightHistoryKey] = useState(0)
 
   const [eventForm, setEventForm] = useState({
     event_type: 'appointment',
@@ -250,19 +251,22 @@ export default function PetProfile() {
     e.preventDefault()
     setSaving(true)
     setError('')
+    const body = {
+      name: form.name.trim(),
+      species: form.species,
+      breed: form.breed.trim() || null,
+      color: form.color.trim() || null,
+      birth_date: form.birth_date || null,
+      chip_id: form.chip_id.trim() || null,
+      allergies: form.allergies.trim() || null,
+    }
+    if (form.weight_kg !== '') {
+      body.weight_kg = Number(form.weight_kg)
+    }
     const res = await fetch(`${API_URL}/api/pets/${id}`, {
       method: 'PATCH',
       headers: authHeaders(),
-      body: JSON.stringify({
-        name: form.name.trim(),
-        species: form.species,
-        breed: form.breed.trim() || null,
-        color: form.color.trim() || null,
-        birth_date: form.birth_date || null,
-        chip_id: form.chip_id.trim() || null,
-        weight_kg: form.weight_kg === '' ? null : Number(form.weight_kg),
-        allergies: form.allergies.trim() || null,
-      }),
+      body: JSON.stringify(body),
     })
     setSaving(false)
     if (!res.ok) {
@@ -270,10 +274,16 @@ export default function PetProfile() {
       setError(typeof err.detail === 'string' ? err.detail : 'No se pudo guardar')
       return
     }
-    setPet(await res.json())
+    const updated = await res.json()
+    setPet(updated)
+    setForm((f) => ({
+      ...f,
+      weight_kg: updated.weight_kg != null ? String(updated.weight_kg) : '',
+    }))
     setEditingPet(false)
     setConfirmDelete(false)
     setDeleteName('')
+    setWeightHistoryKey((k) => k + 1)
   }
 
   async function deletePet() {
@@ -810,6 +820,7 @@ export default function PetProfile() {
           <PetWeightHistory
             petId={id}
             canEdit={canEdit}
+            refreshKey={weightHistoryKey}
             onPetWeightChange={(kg) => {
               setPet((p) => (p ? { ...p, weight_kg: kg } : p))
               setForm((f) => ({ ...f, weight_kg: kg != null ? String(kg) : '' }))

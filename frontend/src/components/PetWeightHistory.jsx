@@ -50,7 +50,7 @@ function WeightChart({ entries }) {
   )
 }
 
-export default function PetWeightHistory({ petId, canEdit, onPetWeightChange }) {
+export default function PetWeightHistory({ petId, canEdit, onPetWeightChange, refreshKey = 0 }) {
   const { t, i18n } = useTranslation()
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
@@ -62,7 +62,16 @@ export default function PetWeightHistory({ petId, canEdit, onPetWeightChange }) 
     setLoading(true)
     try {
       const res = await fetch(`${API_URL}/api/pets/${petId}/weights`, { headers: authHeaders() })
-      if (res.ok) setEntries(await res.json())
+      if (res.ok) {
+        const data = await res.json()
+        setEntries(data)
+        const latestEntry = data.length
+          ? data.reduce((a, b) =>
+              a.recorded_at > b.recorded_at || (a.recorded_at === b.recorded_at && a.id > b.id) ? a : b
+            )
+          : null
+        onPetWeightChange?.(latestEntry ? latestEntry.weight_kg : null)
+      }
     } finally {
       setLoading(false)
     }
@@ -70,7 +79,7 @@ export default function PetWeightHistory({ petId, canEdit, onPetWeightChange }) 
 
   useEffect(() => {
     load()
-  }, [petId])
+  }, [petId, refreshKey])
 
   async function addEntry(e) {
     e.preventDefault()
@@ -95,7 +104,6 @@ export default function PetWeightHistory({ petId, canEdit, onPetWeightChange }) 
       setForm({ weight_kg: '', recorded_at: todayISO(), notes: '' })
       setShowForm(false)
       await load()
-      onPetWeightChange?.(weight)
     } finally {
       setSaving(false)
     }
@@ -109,15 +117,17 @@ export default function PetWeightHistory({ petId, canEdit, onPetWeightChange }) 
     })
     if (!res.ok) return
     await load()
-    const remaining = entries.filter((x) => x.id !== entryId)
-    const latest = remaining.length
-      ? remaining.reduce((a, b) => (a.recorded_at > b.recorded_at ? a : b))
-      : null
-    onPetWeightChange?.(latest ? latest.weight_kg : null)
   }
 
-  const latest = entries.length ? entries[entries.length - 1] : null
-  const recentEntries = entries.slice(-4)
+  const latest = entries.length
+    ? entries.reduce((a, b) =>
+        a.recorded_at > b.recorded_at || (a.recorded_at === b.recorded_at && a.id > b.id) ? a : b
+      )
+    : null
+  const sortedAsc = [...entries].sort((a, b) =>
+    a.recorded_at === b.recorded_at ? a.id - b.id : a.recorded_at.localeCompare(b.recorded_at)
+  )
+  const recentEntries = sortedAsc.slice(-4)
   const recentNewestFirst = [...recentEntries].reverse()
 
   return (
