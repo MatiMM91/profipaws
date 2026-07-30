@@ -32,35 +32,32 @@ function buildPayload(data) {
   )
 }
 
-function copyText(text) {
+function copyTextSync(text) {
+  const ta = document.createElement('textarea')
+  ta.value = text
+  ta.setAttribute('readonly', '')
+  ta.style.position = 'fixed'
+  ta.style.top = '0'
+  ta.style.left = '0'
+  ta.style.opacity = '0'
+  document.body.appendChild(ta)
+  ta.focus()
+  ta.select()
+  ta.setSelectionRange(0, text.length)
+  let ok = false
   try {
-    const ta = document.createElement('textarea')
-    ta.value = text
-    ta.setAttribute('readonly', '')
-    ta.style.position = 'fixed'
-    ta.style.left = '-9999px'
-    document.body.appendChild(ta)
-    ta.select()
-    ta.setSelectionRange(0, text.length)
-    const ok = document.execCommand('copy')
-    ta.remove()
-    if (ok) return true
+    ok = document.execCommand('copy')
   } catch {
-    /* fall through */
+    ok = false
   }
-  if (navigator.clipboard?.writeText) {
-    return navigator.clipboard.writeText(text).then(
-      () => true,
-      () => false,
-    )
-  }
-  return false
+  ta.remove()
+  return ok
 }
 
 /**
  * Google login bridge for Expo Go.
- * Copies a one-time auth payload to the clipboard so the app can finish
- * login without relying on Custom Tab HTTPS/deep-link redirects (broken on Android).
+ * After Google, user must tap "Copiar sesión" (user gesture), then return to the app
+ * and tap "Ya inicié sesión". No deep links / AuthSession required.
  */
 export default function MobileAuthBridge() {
   const googleBtnRef = useRef(null)
@@ -88,13 +85,11 @@ export default function MobileAuthBridge() {
       try {
         setStatus('exchanging')
         setError('')
+        setCopied(false)
         if (!response?.credential) throw new Error('No se recibió credencial de Google')
         const data = await exchangeGoogleToken(response.credential)
         if (cancelled) return
-        const payload = buildPayload(data)
-        payloadRef.current = payload
-        const ok = await copyText(payload)
-        setCopied(Boolean(ok))
+        payloadRef.current = buildPayload(data)
         setStatus('done')
       } catch (e) {
         if (cancelled) return
@@ -157,15 +152,23 @@ export default function MobileAuthBridge() {
     }
   }, [])
 
-  async function handleSendToApp() {
+  async function handleCopy() {
     const payload = payloadRef.current
     if (!payload) return
-    const ok = await copyText(payload)
-    setCopied(Boolean(ok))
-    try {
-      window.location.href = 'profipaws://auth-done'
-    } catch {
-      /* ignore */
+    let ok = copyTextSync(payload)
+    if (!ok && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(payload)
+        ok = true
+      } catch {
+        ok = false
+      }
+    }
+    setCopied(ok)
+    if (!ok) {
+      setError('No se pudo copiar automáticamente. Mantén pulsado el texto de abajo y elige Copiar.')
+    } else {
+      setError('')
     }
   }
 
@@ -216,15 +219,42 @@ export default function MobileAuthBridge() {
         <h1 style={{ fontFamily: '"DM Sans", system-ui, sans-serif', fontSize: 28, margin: 0 }}>
           Profipaws
         </h1>
-        <p style={{ marginTop: 10, fontSize: 15, color: 'rgba(14,116,144,0.85)', lineHeight: 1.45 }}>
-          {status === 'loading' && 'Cargando inicio de sesión…'}
-          {status === 'exchanging' && 'Validando con Profipaws…'}
-          {status === 'ready' && 'Inicia sesión para continuar en la app móvil.'}
-          {status === 'done' &&
-            (copied
-              ? '¡Listo! Vuelve a Expo Go: la app detectará el login sola.'
-              : '¡Listo! Pulsa el botón de abajo y vuelve a Expo Go.')}
-        </p>
+
+        {status !== 'done' ? (
+          <p style={{ marginTop: 10, fontSize: 15, color: 'rgba(14,116,144,0.85)', lineHeight: 1.45 }}>
+            {status === 'loading' && 'Cargando inicio de sesión…'}
+            {status === 'exchanging' && 'Validando con Profipaws…'}
+            {status === 'ready' && 'Inicia sesión con Google para continuar en la app.'}
+          </p>
+        ) : (
+          <div style={{ marginTop: 14, textAlign: 'left' }}>
+            <p
+              style={{
+                margin: 0,
+                fontFamily: '"DM Sans", system-ui, sans-serif',
+                fontSize: 20,
+                fontWeight: 700,
+                color: '#0e7490',
+                textAlign: 'center',
+              }}
+            >
+              Sesión lista
+            </p>
+            <ol
+              style={{
+                margin: '14px 0 0',
+                paddingLeft: 20,
+                fontSize: 15,
+                lineHeight: 1.55,
+                color: 'rgba(8,51,68,0.9)',
+              }}
+            >
+              <li>Pulsa <strong>Copiar sesión</strong></li>
+              <li>Vuelve a <strong>Expo Go / Profipaws</strong></li>
+              <li>Pulsa <strong>Ya inicié sesión</strong></li>
+            </ol>
+          </div>
+        )}
 
         {error ? (
           <p
@@ -243,24 +273,49 @@ export default function MobileAuthBridge() {
         ) : null}
 
         {status === 'done' ? (
-          <button
-            type="button"
-            onClick={handleSendToApp}
-            style={{
-              marginTop: 24,
-              width: '100%',
-              borderRadius: 12,
-              border: 'none',
-              background: '#0891b2',
-              color: '#fff',
-              fontWeight: 600,
-              fontSize: 15,
-              padding: '12px 16px',
-              cursor: 'pointer',
-            }}
-          >
-            Enviar sesión a la app
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={handleCopy}
+              style={{
+                marginTop: 22,
+                width: '100%',
+                borderRadius: 12,
+                border: 'none',
+                background: copied ? '#0f766e' : '#0891b2',
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: 16,
+                padding: '14px 16px',
+                cursor: 'pointer',
+              }}
+            >
+              {copied ? '✓ Copiado — vuelve a la app' : '1. Copiar sesión'}
+            </button>
+            <textarea
+              readOnly
+              value={payloadRef.current}
+              onFocus={(e) => e.target.select()}
+              aria-label="Sesión para pegar en la app"
+              style={{
+                marginTop: 12,
+                width: '100%',
+                minHeight: 72,
+                borderRadius: 10,
+                border: '1px solid #a5f3fc',
+                padding: 10,
+                fontSize: 11,
+                lineHeight: 1.35,
+                color: '#083344',
+                background: '#ecfeff',
+                resize: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+            <p style={{ marginTop: 8, fontSize: 12, color: 'rgba(14,116,144,0.75)', textAlign: 'center' }}>
+              Si el botón falla, mantén pulsado el texto y elige Copiar.
+            </p>
+          </>
         ) : null}
 
         {!busy && status !== 'done' && (

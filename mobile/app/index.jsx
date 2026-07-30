@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import {
   Alert,
-  AppState,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   Text,
@@ -13,7 +13,6 @@ import { useRouter } from 'expo-router'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Building2, Construction, QrCode, Shield } from 'lucide-react-native'
-import * as WebBrowser from 'expo-web-browser'
 import * as Clipboard from 'expo-clipboard'
 import Constants from 'expo-constants'
 import BrandLogo from '../src/components/BrandLogo'
@@ -24,8 +23,6 @@ import { useTheme } from '../src/theme/ThemeContext'
 import { API_URL, GOOGLE_CLIENT_ID, MAINTENANCE_MODE, WEB_URL } from '../src/constants'
 import { brand } from '../src/theme/colors'
 import { setSession } from '../src/auth/session'
-
-WebBrowser.maybeCompleteAuthSession()
 
 const FEATURES = [
   { titleKey: 'landing.featureClinical', descKey: 'landing.featureClinicalDesc', icon: Shield },
@@ -39,11 +36,7 @@ const DEFAULT_WEB_URL = 'https://profipaws.vercel.app'
 const CLIP_PREFIX = 'PROFIPAWS_AUTH_V1:'
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function parseClipboardAuth(raw) {
+function parseAuthPayload(raw) {
   if (!raw || typeof raw !== 'string') return null
   const text = raw.trim()
   if (!text.startsWith(CLIP_PREFIX)) return null
@@ -60,54 +53,6 @@ function parseClipboardAuth(raw) {
   }
 }
 
-async function readClipboardAuth() {
-  try {
-    const raw = await Clipboard.getStringAsync()
-    return parseClipboardAuth(raw)
-  } catch {
-    return null
-  }
-}
-
-async function clearClipboardAuth() {
-  try {
-    const raw = await Clipboard.getStringAsync()
-    if (raw?.startsWith(CLIP_PREFIX)) await Clipboard.setStringAsync('')
-  } catch {
-    /* ignore */
-  }
-}
-
-async function waitForClipboardAuth(timeoutMs = AUTH_TIMEOUT_MS) {
-  const started = Date.now()
-  let resolveAuth
-  const authPromise = new Promise((resolve) => {
-    resolveAuth = resolve
-  })
-
-  const tryRead = async () => {
-    const handoff = await readClipboardAuth()
-    if (handoff) resolveAuth(handoff)
-  }
-
-  const interval = setInterval(() => {
-    tryRead()
-  }, 700)
-
-  const appSub = AppState.addEventListener('change', (state) => {
-    if (state === 'active') tryRead()
-  })
-
-  tryRead()
-
-  const timeout = sleep(timeoutMs).then(() => null)
-  const handoff = await Promise.race([authPromise, timeout])
-  clearInterval(interval)
-  appSub.remove()
-  if (!handoff) throw new Error('Tiempo de espera agotado. Vuelve a intentarlo.')
-  return handoff
-}
-
 async function fetchMe(accessToken) {
   const res = await fetch(`${API_URL}/api/auth/me`, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -120,9 +65,6 @@ function networkHelpMessage(errMsg) {
   if (/network request failed|failed to fetch|network error/i.test(String(errMsg || ''))) {
     return `No se pudo alcanzar el API:\n${API_URL}\n\nComprueba la conexión o reinicia Expo tras cambiar .env (npx expo start -c).`
   }
-  if (/tiempo de espera|timeout/i.test(String(errMsg || ''))) {
-    return 'No llegó la sesión desde el navegador. En la web pulsa “Enviar sesión a la app” y vuelve a Expo Go.'
-  }
   return null
 }
 
@@ -134,6 +76,8 @@ export default function LandingScreen() {
   const { ready, isAuthenticated, loginDev, refreshSession } = useAuth()
   const [email, setEmail] = useState('demo@profipaws.com')
   const [loading, setLoading] = useState(false)
+  const [awaitingPaste, setAwaitingPaste] = useState(false)
+  const [pasteText, setPasteText] = useState('')
   const canDevLogin = isLocalApi && !GOOGLE_CLIENT_ID
   const webBase = WEB_URL || DEFAULT_WEB_URL
 
@@ -143,45 +87,61 @@ export default function LandingScreen() {
     }
   }, [ready, isAuthenticated, router])
 
-  async function handleGoogleBridge() {
+  async function finishWithHandoff(handoff) {
+    const user = handoff.user || (await fetchMe(handoff.access_token))
+    if (!user) throw new Error(t('landing.loginFailed'))
+    await setSession(handoff.access_token, user)
+    if (typeof refreshSession === 'function') await refreshSession()
+    setAwaitingPaste(false)
+    setPasteText('')
+    try {
+      const raw = await Clipboard.getStringAsync()
+      if (raw?.startsWith(CLIP_PREFIX)) await Clipboard.setStringAsync('')
+    } catch {
+      /* ignore */
+    }
+    router.replace('/dashboard')
+  }
+
+  async function handleOpenGoogleLogin() {
+    if (MAINTENANCE_MODE) {
+      Alert.alert(t('landing.maintenanceLoginDenied'))
+      return
+    }
+    const authUrl = `${webBase}/mobile-auth`
+    setPasteText('')
+    setAwaitingPaste(true)
+    try {
+      const supported = await Linking.canOpenURL(authUrl)
+      if (!supported) throw new Error('No se pudo abrir el navegador')
+      await Linking.openURL(authUrl)
+    } catch (e) {
+      setAwaitingPaste(false)
+      Alert.alert('Error', networkHelpMessage(e.message) || e.message || t('landing.loginFailed'))
+    }
+  }
+
+  async function handleCompleteLogin() {
     if (MAINTENANCE_MODE) {
       Alert.alert(t('landing.maintenanceLoginDenied'))
       return
     }
     setLoading(true)
     try {
-      await clearClipboardAuth()
-      const authUrl = `${webBase}/mobile-auth`
-      // openBrowserAsync blocks until dismiss; race clipboard handoff in parallel.
-      const handoffPromise = waitForClipboardAuth(AUTH_TIMEOUT_MS)
-      const browserPromise = WebBrowser.openBrowserAsync(authUrl)
-
-      let handoff
-      try {
-        handoff = await handoffPromise
-      } catch (e) {
+      let handoff = parseAuthPayload(pasteText)
+      if (!handoff) {
         try {
-          await WebBrowser.dismissBrowser()
+          handoff = parseAuthPayload(await Clipboard.getStringAsync())
         } catch {
-          /* ignore */
+          handoff = null
         }
-        await browserPromise.catch(() => {})
-        throw e
       }
-
-      try {
-        await WebBrowser.dismissBrowser()
-      } catch {
-        /* ignore */
+      if (!handoff) {
+        throw new Error(
+          'No se encontró la sesión. En el navegador pulsa “Copiar sesión”, vuelve aquí y pulsa de nuevo.',
+        )
       }
-      await browserPromise.catch(() => {})
-      await clearClipboardAuth()
-
-      const user = handoff.user || (await fetchMe(handoff.access_token))
-      if (!user) throw new Error(t('landing.loginFailed'))
-      await setSession(handoff.access_token, user)
-      if (typeof refreshSession === 'function') await refreshSession()
-      router.replace('/dashboard')
+      await finishWithHandoff(handoff)
     } catch (e) {
       Alert.alert('Error', networkHelpMessage(e.message) || e.message || t('landing.loginFailed'))
     } finally {
@@ -195,7 +155,7 @@ export default function LandingScreen() {
       return
     }
     if (!canDevLogin) {
-      await handleGoogleBridge()
+      await handleOpenGoogleLogin()
       return
     }
     setLoading(true)
@@ -226,6 +186,7 @@ export default function LandingScreen() {
             paddingHorizontal: 20,
             gap: 28,
           }}
+          keyboardShouldPersistTaps="handled"
         >
           {MAINTENANCE_MODE && (
             <View
@@ -274,26 +235,73 @@ export default function LandingScreen() {
             <Subtitle style={{ fontSize: 17, lineHeight: 26 }}>{t('landing.subtitle')}</Subtitle>
           </View>
 
-          <View style={{ gap: 12 }}>
-            <PrimaryButton
-              title={canDevLogin ? t('landing.ctaStart') : t('nav.signInGoogle')}
-              onPress={canDevLogin ? handleDevLogin : handleGoogleBridge}
-              loading={loading}
-              icon={<ArrowRight size={18} color={colors.primaryText} />}
-            />
-            <SecondaryButton
-              title={t('landing.ctaPlans')}
-              onPress={() => {
-                if (isAuthenticated) router.push('/pricing')
-                else {
-                  Alert.alert(
-                    t('nav.signInGoogle'),
-                    'Inicia sesión primero para ver y gestionar tu plan.',
-                  )
-                }
+          {!awaitingPaste ? (
+            <View style={{ gap: 12 }}>
+              <PrimaryButton
+                title={canDevLogin ? t('landing.ctaStart') : t('nav.signInGoogle')}
+                onPress={canDevLogin ? handleDevLogin : handleOpenGoogleLogin}
+                loading={loading}
+                icon={<ArrowRight size={18} color={colors.primaryText} />}
+              />
+              <SecondaryButton
+                title={t('landing.ctaPlans')}
+                onPress={() => {
+                  if (isAuthenticated) router.push('/pricing')
+                  else {
+                    Alert.alert(
+                      t('nav.signInGoogle'),
+                      'Inicia sesión primero para ver y gestionar tu plan.',
+                    )
+                  }
+                }}
+              />
+            </View>
+          ) : (
+            <View
+              style={{
+                gap: 12,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: colors.primary,
+                backgroundColor: colors.surface,
+                padding: 16,
               }}
-            />
-          </View>
+            >
+              <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 18, color: colors.text }}>
+                Completar login
+              </Text>
+              <Body muted style={{ fontSize: 14, lineHeight: 21 }}>
+                1. En el navegador inicia sesión con Google{'\n'}
+                2. Pulsa “Copiar sesión”{'\n'}
+                3. Vuelve aquí y pulsa el botón de abajo
+              </Body>
+              <PrimaryButton
+                title="Ya inicié sesión"
+                onPress={handleCompleteLogin}
+                loading={loading}
+              />
+              <Field
+                value={pasteText}
+                onChangeText={setPasteText}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="O pega aquí el texto de la sesión"
+                multiline
+                style={{ minHeight: 72, textAlignVertical: 'top' }}
+              />
+              <SecondaryButton
+                title="Abrir navegador otra vez"
+                onPress={handleOpenGoogleLogin}
+              />
+              <SecondaryButton
+                title="Cancelar"
+                onPress={() => {
+                  setAwaitingPaste(false)
+                  setPasteText('')
+                }}
+              />
+            </View>
+          )}
 
           <View
             style={{
@@ -309,7 +317,7 @@ export default function LandingScreen() {
               API: {API_URL}
             </Body>
             <Body muted style={{ fontSize: 12 }}>
-              {isExpoGo ? 'Expo Go' : 'Dev build'} · login Google vía web
+              {isExpoGo ? 'Expo Go' : 'Dev build'} · login Google (copiar/pegar)
             </Body>
             {canDevLogin && (
               <>
