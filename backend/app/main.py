@@ -20,6 +20,7 @@ from app.models import (  # noqa: F401 — ensure models are registered
     WeightEntry,
 )
 from app.routers import auth, pets, subscriptions, external, alerts
+from app.services import pet_access as _pet_access  # noqa: F401 — register pet touch listeners
 
 
 settings = get_settings()

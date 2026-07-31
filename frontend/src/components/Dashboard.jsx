@@ -101,7 +101,7 @@ export default function Dashboard() {
         return
       }
       const pet = await res.json()
-      setPets((prev) => [...prev, pet])
+      setPets((prev) => [pet, ...prev])
       setShowForm(false)
       setForm({ name: '', species: 'dog', breed: '', chip_id: '' })
     } finally {

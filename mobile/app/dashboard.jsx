@@ -119,7 +119,7 @@ export default function DashboardScreen() {
           chip_id: form.chip_id || null,
         },
       })
-      setPets((prev) => [...prev, pet])
+      setPets((prev) => [pet, ...prev])
       setShowForm(false)
       setForm({ name: '', species: 'dog', breed: '', chip_id: '' })
     } catch (e) {
