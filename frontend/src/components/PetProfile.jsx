@@ -22,6 +22,7 @@ import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 import PetSharePanel from './PetSharePanel'
 import PetHistorial from './PetHistorial'
 import PetConsultations from './PetConsultations'
+import { formatPetAge, formatPetSummaryLine } from '../utils/petAge'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -468,12 +469,17 @@ export default function PetProfile() {
             {!editingPet && (
               <>
                 <p className="text-cyan-700 dark:text-cyan-300">
-                  {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
-                  {pet.breed ? ` · ${pet.breed}` : ''}
-                  {pet.color ? ` · ${pet.color}` : ''}
-                  {pet.birth_date ? ` · ${t('pet.born')} ${pet.birth_date}` : ''}
+                  {formatPetSummaryLine(pet, t)}
                 </p>
-                <div className="mt-3 flex flex-wrap gap-4 text-sm text-cyan-800 dark:text-cyan-200">
+                {(() => {
+                  const ageLabel = formatPetAge(pet.birth_date, t)
+                  return ageLabel ? (
+                    <p className="mt-1 text-sm font-medium text-cyan-800 dark:text-cyan-200">
+                      {ageLabel}
+                    </p>
+                  ) : null
+                })()}
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-cyan-800 dark:text-cyan-200">
                   {pet.weight_kg != null && (
                     <span className="inline-flex items-center gap-1.5">
                       <Weight size={14} /> {pet.weight_kg} kg

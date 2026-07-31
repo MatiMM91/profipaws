@@ -165,7 +165,11 @@
     "noUpcomingAlerts": "Nada pendiente en los próximos 14 días.",
     "alertsHint": "Los recordatorios del calendario también pueden enviarse por email (Pro).",
     "alertsHintFree": "Las alertas en la app son Free. Los emails de recordatorio son Pro.",
-    "alertsHintPro": "También puedes recibir emails de recordatorio del calendario (Pro)."
+    "alertsHintPro": "También puedes recibir emails de recordatorio del calendario (Pro).",
+    "noBreed": "Sin raza",
+    "ageYears": "{{count}} años",
+    "ageMonths": "{{count}} meses",
+    "ageWeeks": "{{count}} semanas"
   },
   "historial": {
     "title": "Historial",

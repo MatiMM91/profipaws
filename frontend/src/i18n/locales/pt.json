@@ -209,7 +209,11 @@
     "noUpcomingAlerts": "Nada pendente nos próximos 14 dias.",
     "alertsHint": "Os lembretes do calendário também podem ser enviados por email (Pro).",
     "alertsHintFree": "As alertas na app são Free. Os emails de lembrete são Pro.",
-    "alertsHintPro": "Também pode receber emails de lembrete do calendário (Pro)."
+    "alertsHintPro": "Também pode receber emails de lembrete do calendário (Pro).",
+    "noBreed": "Sem raça",
+    "ageYears": "{{count}} anos",
+    "ageMonths": "{{count}} meses",
+    "ageWeeks": "{{count}} semanas"
   },
   "historial": {
     "title": "Histórico",

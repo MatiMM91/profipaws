@@ -18,6 +18,7 @@ import PetConsultations from '../../../src/components/PetConsultations'
 import PetHistorial from '../../../src/components/PetHistorial'
 import PetTools from '../../../src/components/PetTools'
 import SpeciesIcon from '../../../src/components/SpeciesIcon'
+import { formatPetAge, formatPetSummaryLine } from '../../../src/utils/petAge'
 import {
   Body,
   Field,
@@ -256,14 +257,25 @@ export default function PetProfileScreen() {
             <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 22, color: colors.text }}>
               {pet.name}
             </Text>
-            <Body muted>
-              {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
-              {pet.breed ? ` · ${pet.breed}` : ''}
-              {pet.color ? ` · ${pet.color}` : ''}
-            </Body>
-            <Body muted style={{ fontSize: 13 }}>
-              {pet.chip_id ? `${t('pet.chip')}: ${pet.chip_id}` : t('pet.noChip')}
-            </Body>
+            {(() => {
+              const ageLabel = formatPetAge(pet.birth_date, t)
+              return (
+                <>
+                  <Body muted>{formatPetSummaryLine(pet, t)}</Body>
+                  {ageLabel ? (
+                    <Body style={{ fontSize: 14, fontFamily: 'DMSans_600SemiBold' }}>{ageLabel}</Body>
+                  ) : null}
+                  <Body muted style={{ fontSize: 13 }}>
+                    {[
+                      pet.weight_kg != null ? `${pet.weight_kg} kg` : null,
+                      pet.chip_id ? `${t('pet.chip')} ${pet.chip_id}` : t('pet.noChip'),
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Body>
+                </>
+              )
+            })()}
           </View>
         </Surface>
 

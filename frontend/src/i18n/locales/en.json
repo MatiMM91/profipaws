@@ -209,7 +209,11 @@
     "noUpcomingAlerts": "Nothing due in the next 14 days.",
     "alertsHint": "Calendar reminders can also be emailed (Pro).",
     "alertsHintFree": "In-app alerts are Free. Reminder emails are Pro.",
-    "alertsHintPro": "You can also receive calendar reminder emails (Pro)."
+    "alertsHintPro": "You can also receive calendar reminder emails (Pro).",
+    "noBreed": "No breed",
+    "ageYears": "{{count}} years",
+    "ageMonths": "{{count}} months",
+    "ageWeeks": "{{count}} weeks"
   },
   "historial": {
     "title": "History",
