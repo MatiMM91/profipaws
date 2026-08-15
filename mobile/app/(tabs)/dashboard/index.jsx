@@ -22,7 +22,6 @@ import {
   LoadingState,
   PrimaryButton,
   Screen,
-  SecondaryButton,
   Surface,
   Title,
 } from '../../../src/components/ui'
@@ -377,13 +376,6 @@ export default function DashboardScreen() {
                   </View>
 
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                    <SecondaryButton
-                      title={t('dashboard.profile')}
-                      onPress={() =>
-                        router.push({ pathname: '/pets/[id]', params: { id: String(pet.id) } })
-                      }
-                      style={{ paddingVertical: 8, minHeight: 36, paddingHorizontal: 12 }}
-                    />
                     {pet.my_role === 'owner' && (
                       <Pressable
                         onPress={() =>

@@ -203,7 +203,7 @@ export default function Dashboard() {
           {pets.map((pet) => {
             const next = nextAlertFor(pet.id)
             return (
-              <li key={pet.id}>
+              <li key={pet.id} className="h-full">
                 <div
                   role="link"
                   tabIndex={0}
@@ -214,7 +214,7 @@ export default function Dashboard() {
                       navigate(`/pets/${pet.id}`)
                     }
                   }}
-                  className="surface cursor-pointer p-5 shadow-sm shadow-cyan-900/5 transition hover:border-cyan-300 dark:hover:border-cyan-600"
+                  className="surface flex h-full cursor-pointer flex-col p-5 shadow-sm shadow-cyan-900/5 transition hover:border-cyan-300 dark:hover:border-cyan-600"
                 >
                   <div className="flex items-start gap-3">
                     <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-100">
@@ -257,8 +257,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs" onClick={(e) => e.stopPropagation()}>
-                    <Link to={`/pets/${pet.id}`} className="btn-secondary px-3 py-1.5 text-xs">{t('dashboard.profile')}</Link>
+                  <div className="mt-auto flex flex-wrap gap-2 pt-4 text-xs" onClick={(e) => e.stopPropagation()}>
                     {pet.my_role === 'owner' && (
                       <Link to={`/pets/${pet.id}/vet-access`} className="inline-flex items-center gap-1 rounded-lg bg-teal-50 px-3 py-1.5 text-teal-800 dark:bg-teal-900/50 dark:text-teal-100">
                         <QrCode size={12} /> {t('dashboard.vetPin')}
