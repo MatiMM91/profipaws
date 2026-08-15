@@ -211,9 +211,9 @@
     "alertsHintFree": "In-app alerts are Free. Reminder emails are Pro.",
     "alertsHintPro": "You can also receive calendar reminder emails (Pro).",
     "noBreed": "No breed",
-    "ageYears": "{{count}} years",
-    "ageMonths": "{{count}} months",
-    "ageWeeks": "{{count}} weeks"
+    "ageYears": "{{age}} years",
+    "ageMonths": "{{age}} months",
+    "ageWeeks": "{{age}} weeks"
   },
   "historial": {
     "title": "History",
@@ -295,6 +295,13 @@
   "pricing": {
     "title": "Simple, clear plans",
     "subtitle": "A generous Free plan for daily use. Pro for extra convenience and unlimited pets.",
+    "publicTitle": "Simple, clear plans",
+    "publicSubtitle": "Start free. Upgrade to Pro when you want more pets and extras.",
+    "accountTitle": "Your plan",
+    "accountSubtitle": "See your subscription and switch plans whenever you need.",
+    "backHome": "Back to home",
+    "getStarted": "Start for free",
+    "managePlan": "Manage my plan",
     "free": "Free",
     "freePrice": "€0",
     "forever": "forever",

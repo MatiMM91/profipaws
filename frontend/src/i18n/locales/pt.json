@@ -211,9 +211,9 @@
     "alertsHintFree": "As alertas na app são Free. Os emails de lembrete são Pro.",
     "alertsHintPro": "Também pode receber emails de lembrete do calendário (Pro).",
     "noBreed": "Sem raça",
-    "ageYears": "{{count}} anos",
-    "ageMonths": "{{count}} meses",
-    "ageWeeks": "{{count}} semanas"
+    "ageYears": "{{age}} anos",
+    "ageMonths": "{{age}} meses",
+    "ageWeeks": "{{age}} semanas"
   },
   "historial": {
     "title": "Histórico",
@@ -295,6 +295,13 @@
   "pricing": {
     "title": "Planos simples e claros",
     "subtitle": "Free generoso para o dia a dia. Pro para comodidade extra e pets ilimitados.",
+    "publicTitle": "Planos simples e claros",
+    "publicSubtitle": "Comece grátis. Passe a Pro quando quiser mais pets e extras.",
+    "accountTitle": "O seu plano",
+    "accountSubtitle": "Consulte a sua subscrição e mude de plano quando precisar.",
+    "backHome": "Voltar ao início",
+    "getStarted": "Começar grátis",
+    "managePlan": "Gerir o meu plano",
     "free": "Grátis",
     "freePrice": "0 €",
     "forever": "para sempre",

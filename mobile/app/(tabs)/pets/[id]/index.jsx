@@ -13,11 +13,13 @@ import {
   Activity,
   AlertTriangle,
   Check,
+  Cpu,
   Pencil,
   Plus,
   QrCode,
   Share2,
   Trash2,
+  Weight,
   Wrench,
   X,
 } from 'lucide-react-native'
@@ -28,6 +30,7 @@ import PetCalendar from '../../../../src/components/PetCalendar'
 import PetConsultations from '../../../../src/components/PetConsultations'
 import PetHistorial from '../../../../src/components/PetHistorial'
 import SpeciesIcon from '../../../../src/components/SpeciesIcon'
+import { formatPetAge, formatPetSummaryLine } from '../../../../src/utils/petAge'
 import {
   Body,
   Field,
@@ -135,6 +138,7 @@ export default function PetProfileScreen() {
         name: petData.name || '',
         species: petData.species || 'dog',
         breed: petData.breed || '',
+        color: petData.color || '',
         chip_id: petData.chip_id || '',
         birth_date: petData.birth_date || '',
         weight_kg: petData.weight_kg != null ? String(petData.weight_kg) : '',
@@ -168,6 +172,7 @@ export default function PetProfileScreen() {
           name: form.name,
           species: form.species,
           breed: form.breed || null,
+          color: form.color || null,
           chip_id: form.chip_id || null,
           birth_date: form.birth_date || null,
           weight_kg: form.weight_kg ? Number(String(form.weight_kg).replace(',', '.')) : null,
@@ -176,6 +181,8 @@ export default function PetProfileScreen() {
       })
       setPet(updated)
       setEditing(false)
+      setShowDelete(false)
+      setDeleteConfirm('')
     } catch (e) {
       Alert.alert(e.message || t('common.save'))
     } finally {
@@ -326,51 +333,12 @@ export default function PetProfileScreen() {
           >
             <SpeciesIcon species={pet.species} size={28} />
           </View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={{ fontFamily: 'DMSans_700Bold', fontSize: 22, color: colors.text }}>
-              {pet.name}
-            </Text>
-            <Body muted>
-              {t(`dashboard.${pet.species}`, { defaultValue: pet.species })}
-              {pet.breed ? ` · ${pet.breed}` : ''}
-              {pet.color ? ` · ${pet.color}` : ''}
-            </Body>
-            <Body muted style={{ fontSize: 13 }}>
-              {pet.chip_id ? `${t('pet.chip')}: ${pet.chip_id}` : t('pet.noChip')}
-            </Body>
-          </View>
-          {canEdit && !editing ? (
-            <Pressable
-              onPress={() => {
-                setTab('perfil')
-                setEditing(true)
-              }}
-              hitSlop={8}
-              accessibilityLabel={t('pet.editData')}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                paddingHorizontal: 10,
-                paddingVertical: 8,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: colors.secondaryBorder,
-                backgroundColor: colors.secondaryBg,
-              }}
-            >
-              <Pencil size={14} color={colors.secondaryText} />
-              <Text
-                style={{
-                  fontFamily: 'SourceSans3_600SemiBold',
-                  fontSize: 12,
-                  color: colors.secondaryText,
-                }}
-              >
-                {t('pet.editData')}
-              </Text>
-            </Pressable>
-          ) : null}
+          <Text
+            numberOfLines={1}
+            style={{ flex: 1, fontFamily: 'DMSans_700Bold', fontSize: 22, color: colors.text }}
+          >
+            {pet.name}
+          </Text>
         </Surface>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -403,87 +371,228 @@ export default function PetProfileScreen() {
 
         {tab === 'perfil' && (
           <View style={{ gap: 16 }}>
-            {editing ? (
-              <>
-                <Surface style={{ gap: 10 }}>
-                <Field
-                  value={form.name}
-                  onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
-                  placeholder={t('dashboard.name')}
-                />
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                  {SPECIES_OPTIONS.map((key) => {
-                    const active = form.species === key
-                    return (
-                      <Pressable
-                        key={key}
-                        onPress={() => setForm((f) => ({ ...f, species: key }))}
+            <Surface style={{ gap: 0, paddingVertical: 4 }}>
+              {/* Datos */}
+              <View style={{ paddingTop: 12, paddingBottom: 12, gap: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <Text
+                    style={{
+                      fontFamily: 'SourceSans3_600SemiBold',
+                      fontSize: 12,
+                      letterSpacing: 0.8,
+                      textTransform: 'uppercase',
+                      color: colors.primary,
+                    }}
+                  >
+                    {t('pet.tabProfile')}
+                  </Text>
+                  {canEdit && !editing ? (
+                    <Pressable
+                      onPress={() => setEditing(true)}
+                      hitSlop={8}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4 }}
+                    >
+                      <Pencil size={12} color={colors.primary} />
+                      <Text
                         style={{
-                          paddingHorizontal: 10,
-                          paddingVertical: 8,
-                          borderRadius: 10,
-                          backgroundColor: active ? colors.primary : colors.iconBg,
+                          fontFamily: 'SourceSans3_600SemiBold',
+                          fontSize: 12,
+                          color: colors.primary,
                         }}
                       >
-                        <Text
-                          style={{
-                            fontFamily: 'SourceSans3_600SemiBold',
-                            fontSize: 12,
-                            color: active ? colors.primaryText : colors.icon,
-                          }}
-                        >
-                          {t(`dashboard.${key}`)}
-                        </Text>
-                      </Pressable>
-                    )
-                  })}
+                        {t('pet.editData')}
+                      </Text>
+                    </Pressable>
+                  ) : null}
                 </View>
-                <Field
-                  value={form.breed}
-                  onChangeText={(v) => setForm((f) => ({ ...f, breed: v }))}
-                  placeholder={t('pet.breed')}
-                />
-                <Field
-                  value={form.chip_id}
-                  onChangeText={(v) => setForm((f) => ({ ...f, chip_id: v }))}
-                  placeholder={t('pet.chipPlaceholder')}
-                />
-                <Field
-                  value={form.birth_date}
-                  onChangeText={(v) => setForm((f) => ({ ...f, birth_date: v }))}
-                  placeholder={`${t('pet.born')} (YYYY-MM-DD)`}
-                />
-                <Field
-                  value={form.weight_kg}
-                  onChangeText={(v) => setForm((f) => ({ ...f, weight_kg: v }))}
-                  placeholder={t('pet.weight')}
-                  keyboardType="decimal-pad"
-                />
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                  <SecondaryButton
-                    title={t('pet.cancel')}
-                    onPress={() => {
-                      setEditing(false)
-                      load()
-                    }}
-                    style={{ flex: 1 }}
-                  />
-                  <PrimaryButton
-                    title={saving ? t('pet.saving') : t('pet.saveChanges')}
-                    onPress={savePet}
-                    loading={saving}
-                    style={{ flex: 1 }}
-                  />
-                </View>
-              </Surface>
-              </>
-            ) : null}
 
-            <Surface style={{ gap: 0, paddingVertical: 4 }}>
+                {editing ? (
+                  <View style={{ gap: 10 }}>
+                    <Field
+                      value={form.name}
+                      onChangeText={(v) => setForm((f) => ({ ...f, name: v }))}
+                      placeholder={t('dashboard.name')}
+                    />
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                      {SPECIES_OPTIONS.map((key) => {
+                        const active = form.species === key
+                        return (
+                          <Pressable
+                            key={key}
+                            onPress={() => setForm((f) => ({ ...f, species: key }))}
+                            style={{
+                              paddingHorizontal: 10,
+                              paddingVertical: 8,
+                              borderRadius: 10,
+                              backgroundColor: active ? colors.primary : colors.iconBg,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontFamily: 'SourceSans3_600SemiBold',
+                                fontSize: 12,
+                                color: active ? colors.primaryText : colors.icon,
+                              }}
+                            >
+                              {t(`dashboard.${key}`)}
+                            </Text>
+                          </Pressable>
+                        )
+                      })}
+                    </View>
+                    <Field
+                      value={form.breed}
+                      onChangeText={(v) => setForm((f) => ({ ...f, breed: v }))}
+                      placeholder={t('pet.breed')}
+                    />
+                    <Field
+                      value={form.color}
+                      onChangeText={(v) => setForm((f) => ({ ...f, color: v }))}
+                      placeholder={t('pet.color')}
+                    />
+                    <Field
+                      value={form.chip_id}
+                      onChangeText={(v) => setForm((f) => ({ ...f, chip_id: v }))}
+                      placeholder={t('pet.chipPlaceholder')}
+                    />
+                    <Field
+                      value={form.birth_date}
+                      onChangeText={(v) => setForm((f) => ({ ...f, birth_date: v }))}
+                      placeholder={`${t('pet.born')} (YYYY-MM-DD)`}
+                    />
+                    <Field
+                      value={form.weight_kg}
+                      onChangeText={(v) => setForm((f) => ({ ...f, weight_kg: v }))}
+                      placeholder={t('pet.weight')}
+                      keyboardType="decimal-pad"
+                    />
+                    <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                      <SecondaryButton
+                        title={t('pet.cancel')}
+                        onPress={() => {
+                          setEditing(false)
+                          setShowDelete(false)
+                          setDeleteConfirm('')
+                          load()
+                        }}
+                        style={{ flex: 1 }}
+                      />
+                      <PrimaryButton
+                        title={saving ? t('pet.saving') : t('pet.saveChanges')}
+                        onPress={savePet}
+                        loading={saving}
+                        style={{ flex: 1 }}
+                      />
+                    </View>
+
+                    {isOwner ? (
+                      <View
+                        style={{
+                          marginTop: 8,
+                          gap: 10,
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: isDark ? 'rgba(127,29,29,0.6)' : '#fecaca',
+                          backgroundColor: colors.dangerBg,
+                          padding: 14,
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <AlertTriangle size={13} color={colors.danger} />
+                          <Text
+                            style={{
+                              fontFamily: 'SourceSans3_600SemiBold',
+                              fontSize: 12,
+                              letterSpacing: 0.8,
+                              textTransform: 'uppercase',
+                              color: colors.danger,
+                            }}
+                          >
+                            {t('pet.deletePetZone')}
+                          </Text>
+                        </View>
+                        <Body style={{ fontSize: 14, color: colors.danger }}>{t('pet.deletePetWarning')}</Body>
+                        {!showDelete ? (
+                          <PrimaryButton
+                            title={t('pet.deletePet')}
+                            onPress={() => {
+                              setShowDelete(true)
+                              setDeleteConfirm('')
+                            }}
+                            icon={<Trash2 size={14} color={colors.primaryText} />}
+                            style={{ backgroundColor: colors.danger, alignSelf: 'flex-start' }}
+                          />
+                        ) : (
+                          <View style={{ gap: 8 }}>
+                            <Body style={{ fontFamily: 'DMSans_600SemiBold', color: colors.danger }}>
+                              {t('pet.deletePetConfirm', { name: pet.name })}
+                            </Body>
+                            <Field
+                              value={deleteConfirm}
+                              onChangeText={setDeleteConfirm}
+                              placeholder={pet.name}
+                              autoCapitalize="none"
+                            />
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                              <SecondaryButton
+                                title={t('common.cancel')}
+                                onPress={() => {
+                                  setShowDelete(false)
+                                  setDeleteConfirm('')
+                                }}
+                                style={{ flex: 1 }}
+                              />
+                              <PrimaryButton
+                                title={t('pet.deletePetConfirmAction')}
+                                onPress={confirmDeletePet}
+                                disabled={deleteConfirm !== pet.name}
+                                icon={<Trash2 size={14} color={colors.primaryText} />}
+                                style={{ flex: 1, backgroundColor: colors.danger }}
+                              />
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                    ) : null}
+                  </View>
+                ) : (
+                  <View style={{ gap: 10 }}>
+                    {(() => {
+                      const ageLabel = formatPetAge(pet.birth_date)
+                      return (
+                        <>
+                          <Body muted>{formatPetSummaryLine(pet, t)}</Body>
+                          {ageLabel ? (
+                            <Body style={{ fontSize: 14, fontFamily: 'DMSans_600SemiBold' }}>{ageLabel}</Body>
+                          ) : null}
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14 }}>
+                            {pet.weight_kg != null ? (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                <Weight size={14} color={colors.icon} />
+                                <Body style={{ fontSize: 14 }}>{pet.weight_kg} kg</Body>
+                              </View>
+                            ) : null}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Cpu size={14} color={pet.chip_id ? colors.icon : colors.textMuted} />
+                              <Body style={{ fontSize: 14, color: pet.chip_id ? colors.text : colors.textMuted }}>
+                                {pet.chip_id ? `${t('pet.chip')} ${pet.chip_id}` : t('pet.noChip')}
+                              </Body>
+                            </View>
+                          </View>
+                        </>
+                      )
+                    })()}
+                  </View>
+                )}
+              </View>
+
+              {/* Allergies */}
             <View
               style={{
-                paddingTop: 12,
+                paddingTop: 16,
                 paddingBottom: 4,
+                borderTopWidth: 1,
+                borderTopColor: colors.surfaceBorder,
                 gap: 10,
               }}
             >
@@ -830,48 +939,6 @@ export default function PetProfileScreen() {
               )}
             </View>
             </Surface>
-
-            {isOwner && (
-              <Surface style={{ gap: 10, backgroundColor: colors.dangerBg }}>
-                <Text style={{ fontFamily: 'DMSans_700Bold', color: colors.danger }}>
-                  {t('pet.deletePetZone')}
-                </Text>
-                <Body muted>{t('pet.deletePetWarning')}</Body>
-                {!showDelete ? (
-                  <PrimaryButton
-                    title={t('pet.deletePet')}
-                    onPress={() => setShowDelete(true)}
-                    style={{ backgroundColor: colors.danger }}
-                  />
-                ) : (
-                  <View style={{ gap: 8 }}>
-                    <Body>{t('pet.deletePetConfirm', { name: pet.name })}</Body>
-                    <Field
-                      value={deleteConfirm}
-                      onChangeText={setDeleteConfirm}
-                      placeholder={pet.name}
-                      autoCapitalize="none"
-                    />
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <SecondaryButton
-                        title={t('common.cancel')}
-                        onPress={() => {
-                          setShowDelete(false)
-                          setDeleteConfirm('')
-                        }}
-                        style={{ flex: 1 }}
-                      />
-                      <PrimaryButton
-                        title={t('pet.deletePetConfirmAction')}
-                        onPress={confirmDeletePet}
-                        disabled={deleteConfirm !== pet.name}
-                        style={{ flex: 1, backgroundColor: colors.danger }}
-                      />
-                    </View>
-                  </View>
-                )}
-              </Surface>
-            )}
           </View>
         )}
 

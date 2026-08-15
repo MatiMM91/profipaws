@@ -4,7 +4,7 @@ import { useFocusEffect, useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { api } from '../src/api/client'
+import { api } from '../../src/api/client'
 import {
   Body,
   LoadingState,
@@ -14,8 +14,8 @@ import {
   Surface,
   Subtitle,
   Title,
-} from '../src/components/ui'
-import { useTheme } from '../src/theme/ThemeContext'
+} from '../../src/components/ui'
+import { useTheme } from '../../src/theme/ThemeContext'
 
 export default function PricingScreen() {
   const { t } = useTranslation()

@@ -17,16 +17,16 @@ export function formatPetAge(birthDate, t) {
 
   if (days < 14) {
     const weeks = Math.max(1, Math.floor(days / 7))
-    return t('pet.ageWeeks', { count: weeks })
+    return t('pet.ageWeeks', { age: weeks })
   }
   if (yearsExact < 1) {
     const months = Math.max(1, Math.floor(yearsExact * 12))
-    return t('pet.ageMonths', { count: months })
+    return t('pet.ageMonths', { age: months })
   }
 
   const rounded = Math.round(yearsExact * 10) / 10
   const value = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)
-  return t('pet.ageYears', { count: value })
+  return t('pet.ageYears', { age: value })
 }
 
 /** First profile line: Species - Breed - Color */

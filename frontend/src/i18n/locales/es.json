@@ -211,9 +211,9 @@
     "alertsHintFree": "Las alertas en la app son Free. Los emails de recordatorio son Pro.",
     "alertsHintPro": "También puedes recibir emails de recordatorio del calendario (Pro).",
     "noBreed": "Sin raza",
-    "ageYears": "{{count}} años",
-    "ageMonths": "{{count}} meses",
-    "ageWeeks": "{{count}} semanas"
+    "ageYears": "{{age}} años",
+    "ageMonths": "{{age}} meses",
+    "ageWeeks": "{{age}} semanas"
   },
   "historial": {
     "title": "Historial",
@@ -295,6 +295,13 @@
   "pricing": {
     "title": "Planes simples y claros",
     "subtitle": "Free generoso para el día a día. Pro para comodidad extra y mascotas ilimitadas.",
+    "publicTitle": "Planes simples y claros",
+    "publicSubtitle": "Empieza gratis. Pasa a Pro cuando quieras más mascotas y extras.",
+    "accountTitle": "Tu plan",
+    "accountSubtitle": "Consulta tu suscripción y cambia de plan cuando lo necesites.",
+    "backHome": "Volver al inicio",
+    "getStarted": "Empezar gratis",
+    "managePlan": "Gestionar mi plan",
     "free": "Gratis",
     "freePrice": "0 €",
     "forever": "para siempre",

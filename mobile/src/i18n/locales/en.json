@@ -167,9 +167,9 @@
     "alertsHintFree": "In-app alerts are Free. Reminder emails are Pro.",
     "alertsHintPro": "You can also receive calendar reminder emails (Pro).",
     "noBreed": "No breed",
-    "ageYears": "{{count}} years",
-    "ageMonths": "{{count}} months",
-    "ageWeeks": "{{count}} weeks"
+    "ageYears": "{{age}} years",
+    "ageMonths": "{{age}} months",
+    "ageWeeks": "{{age}} weeks"
   },
   "historial": {
     "title": "History",

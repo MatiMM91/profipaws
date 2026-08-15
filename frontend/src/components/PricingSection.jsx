@@ -74,7 +74,7 @@ export default function PricingSection() {
   async function startCheckout() {
     const token = localStorage.getItem('profipaws_token')
     if (!token) {
-      window.location.href = '/'
+      window.location.href = '/?login=1'
       return
     }
     setBusy(true)
@@ -128,10 +128,10 @@ export default function PricingSection() {
     <div className="space-y-10">
       <div className="text-center">
         <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50 sm:text-4xl">
-          {t('pricing.title')}
+          {t('pricing.accountTitle')}
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-cyan-700/80 dark:text-cyan-300/80">
-          {t('pricing.subtitle')}
+          {t('pricing.accountSubtitle')}
         </p>
 
         <div

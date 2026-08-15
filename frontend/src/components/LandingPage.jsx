@@ -85,8 +85,13 @@ export default function LandingPage() {
   const isDark = theme === 'dark'
 
   function goAfterLogin() {
+    // Always land on pets after login (ignore marketing ?next=/pricing, etc.)
     const next = searchParams.get('next')
-    if (next && next.startsWith('/') && !next.startsWith('//')) {
+    if (
+      next &&
+      next.startsWith('/pets/') &&
+      !next.startsWith('//')
+    ) {
       window.location.href = next
       return
     }
@@ -98,6 +103,13 @@ export default function LandingPage() {
       navigate('/dashboard', { replace: true })
     }
   }, [navigate])
+
+  useEffect(() => {
+    if (searchParams.get('login') === '1' && !MAINTENANCE_MODE && !getToken()) {
+      setShowOfficialButton(Boolean(GOOGLE_CLIENT_ID))
+      setLoginOpen(true)
+    }
+  }, [searchParams])
 
   function openLogin() {
     if (MAINTENANCE_MODE) {
@@ -240,7 +252,7 @@ export default function LandingPage() {
               <a href="#funciones" className={`hidden text-sm sm:inline ${isDark ? 'text-cyan-100/80 hover:text-white' : 'text-cyan-700 hover:text-cyan-900'}`}>
                 {t('landing.navFeatures')}
               </a>
-              <Link to="/pricing" className={`hidden text-sm sm:inline ${isDark ? 'text-cyan-100/80 hover:text-white' : 'text-cyan-700 hover:text-cyan-900'}`}>
+              <Link to="/planes" className={`hidden text-sm sm:inline ${isDark ? 'text-cyan-100/80 hover:text-white' : 'text-cyan-700 hover:text-cyan-900'}`}>
                 {t('nav.plans')}
               </Link>
             </>
@@ -301,7 +313,7 @@ export default function LandingPage() {
                   {t('landing.ctaStart')} <ArrowRight size={16} />
                 </button>
                 <Link
-                  to="/pricing"
+                  to="/planes"
                   className={`btn-secondary ${isDark ? 'border-cyan-400/40 bg-transparent text-cyan-50 hover:bg-cyan-900/50' : ''}`}
                 >
                   {t('landing.ctaPlans')}
@@ -419,7 +431,7 @@ export default function LandingPage() {
                 {t('landing.ctaStart')} <ArrowRight size={16} />
               </button>
               <Link
-                to="/pricing"
+                to="/planes"
                 className={`btn-secondary ${isDark ? 'border-cyan-400/40 bg-transparent text-cyan-50 hover:bg-cyan-900/50' : ''}`}
               >
                 {t('landing.ctaPlans')}

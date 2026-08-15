@@ -1,14 +1,14 @@
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native'
+import { Alert, ScrollView, Text, View } from 'react-native'
 import { useRouter } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { LogOut } from 'lucide-react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import PreferenceControls from '../src/components/PreferenceControls'
-import BrandLogo from '../src/components/BrandLogo'
-import { Body, PrimaryButton, Screen, Surface, Title } from '../src/components/ui'
-import { useAuth } from '../src/auth/AuthContext'
-import { useTheme } from '../src/theme/ThemeContext'
-import { API_URL } from '../src/constants'
+import PreferenceControls from '../../src/components/PreferenceControls'
+import BrandLogo from '../../src/components/BrandLogo'
+import { Body, PrimaryButton, Screen, Surface, Title } from '../../src/components/ui'
+import { useAuth } from '../../src/auth/AuthContext'
+import { useTheme } from '../../src/theme/ThemeContext'
+import { API_URL } from '../../src/constants'
 
 export default function SettingsScreen() {
   const { t } = useTranslation()
@@ -42,14 +42,9 @@ export default function SettingsScreen() {
 
         <Surface style={{ gap: 8 }}>
           <Text style={{ fontFamily: 'DMSans_600SemiBold', fontSize: 16, color: colors.text }}>
-            API
+            {t('settings.connection')}
           </Text>
           <Body muted style={{ fontSize: 13 }}>{API_URL}</Body>
-          <Pressable onPress={() => router.push('/pricing')}>
-            <Body style={{ color: colors.primary, fontFamily: 'SourceSans3_600SemiBold' }}>
-              {t('nav.plans')} →
-            </Body>
-          </Pressable>
         </Surface>
 
         <PrimaryButton

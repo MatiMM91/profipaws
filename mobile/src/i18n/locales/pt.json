@@ -167,9 +167,9 @@
     "alertsHintFree": "As alertas na app são Free. Os emails de lembrete são Pro.",
     "alertsHintPro": "Também pode receber emails de lembrete do calendário (Pro).",
     "noBreed": "Sem raça",
-    "ageYears": "{{count}} anos",
-    "ageMonths": "{{count}} meses",
-    "ageWeeks": "{{count}} semanas"
+    "ageYears": "{{age}} anos",
+    "ageMonths": "{{age}} meses",
+    "ageWeeks": "{{age}} semanas"
   },
   "historial": {
     "title": "Histórico",

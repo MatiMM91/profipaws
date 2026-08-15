@@ -35,11 +35,7 @@ function RootNavigator() {
         }}
       >
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="dashboard" options={{ title: 'Dashboard' }} />
-        <Stack.Screen name="pricing" options={{ title: 'Planes' }} />
-        <Stack.Screen name="settings" options={{ title: 'Ajustes' }} />
-        <Stack.Screen name="pets/[id]/index" options={{ title: 'Mascota' }} />
-        <Stack.Screen name="pets/[id]/vet-access" options={{ title: 'Acceso vet' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
     </>
   )
