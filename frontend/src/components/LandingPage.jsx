@@ -47,6 +47,20 @@ async function exchangeGoogleToken(idToken) {
   return data
 }
 
+async function startDemoSession() {
+  const res = await fetch(`${API_URL}/api/auth/demo`, { method: 'POST' })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(typeof err.detail === 'string' ? err.detail : 'Demo error')
+  }
+  const data = await res.json()
+  if (!data.access_token) {
+    throw new Error('Demo login failed: no access token')
+  }
+  setSession(data.access_token, data.user)
+  return data
+}
+
 const OWNER_FEATURES = [
   { icon: PawPrint, titleKey: 'landing.featPets', descKey: 'landing.featPetsDesc' },
   { icon: Syringe, titleKey: 'landing.featHistory', descKey: 'landing.featHistoryDesc' },
@@ -79,10 +93,12 @@ export default function LandingPage() {
   const [searchParams] = useSearchParams()
   const [loginOpen, setLoginOpen] = useState(false)
   const [loginLoading, setLoginLoading] = useState(false)
+  const [demoLoading, setDemoLoading] = useState(false)
   const [googleReady, setGoogleReady] = useState(false)
   const googleBtnRef = useRef(null)
   const [showOfficialButton, setShowOfficialButton] = useState(false)
   const isDark = theme === 'dark'
+  const demoStarted = useRef(false)
 
   function goAfterLogin() {
     // Always land on pets after login (ignore marketing ?next=/pricing, etc.)
@@ -109,6 +125,30 @@ export default function LandingPage() {
       setShowOfficialButton(Boolean(GOOGLE_CLIENT_ID))
       setLoginOpen(true)
     }
+  }, [searchParams])
+
+  async function enterDemo() {
+    if (MAINTENANCE_MODE) {
+      alert(t('landing.maintenanceLoginDenied'))
+      return
+    }
+    setDemoLoading(true)
+    try {
+      await startDemoSession()
+      goAfterLogin()
+    } catch (e) {
+      alert(e.message || t('landing.demoFailed'))
+    } finally {
+      setDemoLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (demoStarted.current) return
+    if (searchParams.get('demo') !== '1' || MAINTENANCE_MODE || getToken()) return
+    demoStarted.current = true
+    enterDemo()
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot deep link
   }, [searchParams])
 
   function openLogin() {
@@ -275,9 +315,11 @@ export default function LandingPage() {
 
       <LoginModal
         open={loginOpen}
-        onClose={() => !loginLoading && setLoginOpen(false)}
+        onClose={() => !loginLoading && !demoLoading && setLoginOpen(false)}
         onContinue={continueWithGoogle}
+        onDemo={enterDemo}
         loading={loginLoading || (Boolean(GOOGLE_CLIENT_ID) && !googleReady)}
+        demoLoading={demoLoading}
         isDark={isDark}
         googleBtnRef={googleBtnRef}
         showOfficialButton={showOfficialButton}
@@ -312,9 +354,19 @@ export default function LandingPage() {
                 <button type="button" onClick={openLogin} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
                   {t('landing.ctaStart')} <ArrowRight size={16} />
                 </button>
+                <button
+                  type="button"
+                  onClick={enterDemo}
+                  disabled={demoLoading}
+                  className={`btn-secondary ${isDark ? 'border-cyan-400/40 bg-transparent text-cyan-50 hover:bg-cyan-900/50' : ''}`}
+                >
+                  {demoLoading ? t('landing.demoWorking') : t('landing.ctaDemo')}
+                </button>
                 <Link
                   to="/planes"
-                  className={`btn-secondary ${isDark ? 'border-cyan-400/40 bg-transparent text-cyan-50 hover:bg-cyan-900/50' : ''}`}
+                  className={`text-sm font-medium underline-offset-2 hover:underline ${
+                    isDark ? 'text-cyan-200/80' : 'text-cyan-700'
+                  }`}
                 >
                   {t('landing.ctaPlans')}
                 </Link>
@@ -429,6 +481,14 @@ export default function LandingPage() {
             <div className="relative mt-8 flex flex-wrap items-center justify-center gap-3">
               <button type="button" onClick={openLogin} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
                 {t('landing.ctaStart')} <ArrowRight size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={enterDemo}
+                disabled={demoLoading}
+                className={`btn-secondary ${isDark ? 'border-cyan-400/40 bg-transparent text-cyan-50 hover:bg-cyan-900/50' : ''}`}
+              >
+                {demoLoading ? t('landing.demoWorking') : t('landing.ctaDemo')}
               </button>
               <Link
                 to="/planes"

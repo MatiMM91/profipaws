@@ -30,7 +30,9 @@ export default function LoginModal({
   open,
   onClose,
   onContinue,
+  onDemo,
   loading = false,
+  demoLoading = false,
   isDark = false,
   googleBtnRef = null,
   showOfficialButton = false,
@@ -38,6 +40,7 @@ export default function LoginModal({
   const { t } = useTranslation()
   const titleId = useId()
   const closeRef = useRef(null)
+  const busy = loading || demoLoading
 
   useEffect(() => {
     if (!open) return undefined
@@ -46,14 +49,14 @@ export default function LoginModal({
     closeRef.current?.focus()
 
     function onKey(e) {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' && !busy) onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => {
       document.body.style.overflow = prev
       window.removeEventListener('keydown', onKey)
     }
-  }, [open, onClose])
+  }, [open, onClose, busy])
 
   if (!open) return null
 
@@ -63,7 +66,7 @@ export default function LoginModal({
         type="button"
         className="absolute inset-0 bg-cyan-950/55 backdrop-blur-sm"
         aria-label={t('common.cancel')}
-        onClick={onClose}
+        onClick={() => !busy && onClose()}
       />
       <div
         role="dialog"
@@ -102,7 +105,7 @@ export default function LoginModal({
             <button
               ref={closeRef}
               type="button"
-              onClick={onClose}
+              onClick={() => !busy && onClose()}
               className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition ${
                 isDark
                   ? 'text-cyan-200 hover:bg-white/10 hover:text-white'
@@ -131,7 +134,7 @@ export default function LoginModal({
             <button
               type="button"
               onClick={onContinue}
-              disabled={loading}
+              disabled={busy}
               className={`mt-7 flex w-full items-center justify-center gap-3 rounded-2xl border px-4 py-3.5 text-sm font-semibold shadow-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 disabled:cursor-wait disabled:opacity-70 ${
                 isDark
                   ? 'border-white/15 bg-white text-cyan-950 hover:bg-cyan-50 focus:ring-offset-cyan-950'
@@ -141,6 +144,31 @@ export default function LoginModal({
               <GoogleMark />
               {loading ? t('landing.loginWorking') : t('landing.continueGoogle')}
             </button>
+          )}
+
+          {typeof onDemo === 'function' && (
+            <>
+              <div className={`my-5 flex items-center gap-3 text-xs ${isDark ? 'text-cyan-200/40' : 'text-cyan-500/70'}`}>
+                <span className={`h-px flex-1 ${isDark ? 'bg-cyan-700/60' : 'bg-cyan-200'}`} />
+                {t('landing.or')}
+                <span className={`h-px flex-1 ${isDark ? 'bg-cyan-700/60' : 'bg-cyan-200'}`} />
+              </div>
+              <button
+                type="button"
+                onClick={onDemo}
+                disabled={busy}
+                className={`flex w-full items-center justify-center rounded-2xl border px-4 py-3 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-70 ${
+                  isDark
+                    ? 'border-cyan-400/35 bg-cyan-900/40 text-cyan-50 hover:bg-cyan-900/70'
+                    : 'border-cyan-200 bg-cyan-50 text-cyan-900 hover:bg-cyan-100'
+                }`}
+              >
+                {demoLoading ? t('landing.demoWorking') : t('landing.ctaDemo')}
+              </button>
+              <p className={`mt-2 text-center text-xs leading-relaxed ${isDark ? 'text-cyan-200/55' : 'text-cyan-600/80'}`}>
+                {t('landing.demoHint')}
+              </p>
+            </>
           )}
 
           <p className={`mt-4 text-center text-xs leading-relaxed ${isDark ? 'text-cyan-200/55' : 'text-cyan-600/80'}`}>

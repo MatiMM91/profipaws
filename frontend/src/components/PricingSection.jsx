@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check, Sparkles } from 'lucide-react'
+import { getStoredUser, isDemoUser } from '../auth'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -75,6 +76,10 @@ export default function PricingSection() {
     const token = localStorage.getItem('profipaws_token')
     if (!token) {
       window.location.href = '/?login=1'
+      return
+    }
+    if (isDemoUser(getStoredUser())) {
+      alert(t('pricing.demoBlocked'))
       return
     }
     setBusy(true)

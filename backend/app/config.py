@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     # Comma-separated emails allowed during maintenance (e.g. you@gmail.com)
     maintenance_allowlist: str = ""
 
+    # Shared web demo account (portfolio / try before signup)
+    demo_login_enabled: bool = True
+    demo_user_email: str = "demo@profipaws.com"
+    demo_jwt_expire_minutes: int = 60
+
     # Email alerts — prefer Resend; SMTP is fallback
     resend_api_key: str = ""
     resend_from: str = "Profipaws <onboarding@resend.dev>"

@@ -1,6 +1,8 @@
 const TOKEN_KEY = 'profipaws_token'
 const USER_KEY = 'profipaws_user'
 
+export const DEMO_USER_EMAIL = 'demo@profipaws.com'
+
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY)
 }
@@ -11,6 +13,11 @@ export function getStoredUser() {
   } catch {
     return null
   }
+}
+
+export function isDemoUser(user = getStoredUser()) {
+  const email = user?.email
+  return Boolean(email && String(email).toLowerCase() === DEMO_USER_EMAIL)
 }
 
 export function setSession(accessToken, user) {

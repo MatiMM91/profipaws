@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, PawPrint, Syringe, QrCode, Users, Bell, Weight, ShieldCheck } from 'lucide-react'
 import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
-import { authHeaders, getStoredUser, getToken, handleAuthFailure } from '../auth'
+import { authHeaders, getStoredUser, getToken, handleAuthFailure, isDemoUser } from '../auth'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const FREE_PET_LIMIT = 5
@@ -36,6 +36,7 @@ export default function Dashboard() {
   const [form, setForm] = useState({ name: '', species: 'dog', breed: '', chip_id: '' })
   const [saving, setSaving] = useState(false)
   const user = getStoredUser()
+  const demo = isDemoUser(user)
 
   const isPro = subscription?.tier === 'pro' || subscription?.tier === 'PRO'
   const ownedCount = useMemo(() => pets.filter((p) => p.my_role === 'owner').length, [pets])
@@ -121,6 +122,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {demo && (
+        <div
+          className="rounded-2xl border border-teal-200 bg-teal-50/80 px-4 py-3 text-sm text-teal-950 dark:border-teal-800/60 dark:bg-teal-950/40 dark:text-teal-50"
+          role="status"
+        >
+          <p className="font-semibold">{t('dashboard.demoBannerTitle')}</p>
+          <p className="mt-1 text-teal-800/90 dark:text-teal-100/85">{t('dashboard.demoBannerBody')}</p>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold text-cyan-950 dark:text-cyan-50">

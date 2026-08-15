@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 import httpx
@@ -22,6 +22,7 @@ from app.services.auth import (
     is_allowed_during_maintenance,
     security,
 )
+from app.services.demo import get_or_create_demo_user, is_demo_email, reset_demo_pets
 from app.config import get_settings
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -30,8 +31,10 @@ settings = get_settings()
 # Short-lived one-time codes / sessions for Expo Go (no deep-link JWT URLs).
 _MOBILE_HANDOFFS: dict[str, dict] = {}
 _MOBILE_SESSIONS: dict[str, dict] = {}
+_DEMO_LAST_HIT: dict[str, float] = {}
 _HANDOFF_TTL_SEC = 180
 _SESSION_TTL_SEC = 300
+_DEMO_COOLDOWN_SEC = 4
 
 
 def _purge_handoffs(now: float | None = None) -> None:
@@ -59,6 +62,13 @@ async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Profipaws is under development. Access is temporarily limited.",
+        )
+
+    # Never let Google (or local dev:) hijack the shared demo sandbox identity
+    if is_demo_email(google_user.get("email")):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Usa el botón Probar demo en la web para entrar a la cuenta de prueba.",
         )
 
     user = db.query(User).filter(User.google_id == google_user["sub"]).first()
@@ -91,6 +101,44 @@ async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)
         db.refresh(user)
 
     token = create_access_token(user.id, user.email)
+    return TokenResponse(access_token=token, user=UserOut.model_validate(user))
+
+
+@router.post("/demo", response_model=TokenResponse)
+def demo_login(request: Request, db: Session = Depends(get_db)):
+    """
+    One-click Free sandbox for portfolio visitors.
+    Resets sample pets on each entry; JWT lasts ~60 minutes.
+    """
+    if not settings.demo_login_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demo unavailable")
+
+    if settings.maintenance_mode and not is_allowed_during_maintenance(settings.demo_user_email):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Profipaws is under development. Access is temporarily limited.",
+        )
+
+    client = request.client.host if request.client else "unknown"
+    now = time.time()
+    last = _DEMO_LAST_HIT.get(client, 0)
+    if now - last < _DEMO_COOLDOWN_SEC:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Espera un momento y vuelve a intentar la demo.",
+        )
+    _DEMO_LAST_HIT[client] = now
+
+    user = get_or_create_demo_user(db)
+    reset_demo_pets(db, user)
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token(
+        user.id,
+        user.email,
+        expires_minutes=settings.demo_jwt_expire_minutes,
+    )
     return TokenResponse(access_token=token, user=UserOut.model_validate(user))
 
 

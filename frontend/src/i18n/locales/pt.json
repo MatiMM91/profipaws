@@ -15,7 +15,12 @@
     "headline": "Profipaws",
     "subtitle": "O histórico médico do seu pet, sempre à mão — para tutores e clínicas veterinárias, com acesso seguro na consulta.",
     "ctaStart": "Começar grátis",
+    "ctaDemo": "Experimentar demo",
     "ctaPlans": "Ver planos Pro",
+    "or": "ou",
+    "demoWorking": "A preparar a demo…",
+    "demoFailed": "Não foi possível abrir a demo. Tente novamente.",
+    "demoHint": "Plano Free com dados de exemplo. Sessão de cerca de 60 minutos; as alterações reiniciam ao entrar de novo.",
     "navFeatures": "Funções",
     "maintenanceBanner": "Site em desenvolvimento — o acesso público está fechado.",
     "maintenanceEyebrow": "Em breve",
@@ -77,6 +82,8 @@
   },
   "dashboard": {
     "hello": "Olá",
+    "demoBannerTitle": "Está na demo",
+    "demoBannerBody": "Plano Free com os pets de exemplo Luna e Michi. A sessão dura cerca de 60 minutos e reinicia ao entrar de novo. Para guardar a sua conta, saia e entre com Google.",
     "planFree": "Gratuito",
     "planPro": "Pro",
     "subtitle": "gere o passaporte dos seus pets",
@@ -350,7 +357,8 @@
       "Descarregamento completo do histórico e cópia de dados",
       "Prioridade em novas funções clínicas"
     ],
-    "stripeMissing": "O pagamento ainda não está configurado. Tente mais tarde ou contacte o suporte."
+    "stripeMissing": "O pagamento ainda não está configurado. Tente mais tarde ou contacte o suporte.",
+    "demoBlocked": "A demo é só plano Free. Saia e entre com Google para criar a sua conta e passar a Pro."
   },
   "common": {
     "save": "Guardar",

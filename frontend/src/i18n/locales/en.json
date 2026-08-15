@@ -15,7 +15,12 @@
     "headline": "Profipaws",
     "subtitle": "Your pet's medical history, always at hand — for owners and veterinary clinics, with secure access at the visit.",
     "ctaStart": "Start for free",
+    "ctaDemo": "Try demo",
     "ctaPlans": "See Pro plans",
+    "or": "or",
+    "demoWorking": "Preparing demo…",
+    "demoFailed": "Could not open the demo. Please try again.",
+    "demoHint": "Free plan with sample data. About 60 minutes; changes reset when you enter again.",
     "navFeatures": "Features",
     "maintenanceBanner": "Site under development — public access is closed.",
     "maintenanceEyebrow": "Coming soon",
@@ -77,6 +82,8 @@
   },
   "dashboard": {
     "hello": "Hi",
+    "demoBannerTitle": "You’re in the demo",
+    "demoBannerBody": "Free plan with sample pets Luna and Michi. The session lasts about 60 minutes and resets when you enter again. To keep your own account, sign out and sign in with Google.",
     "planFree": "Free",
     "planPro": "Pro",
     "subtitle": "manage your pets' health passport",
@@ -350,7 +357,8 @@
       "Full history download and data backup",
       "Priority access to clinic features"
     ],
-    "stripeMissing": "Payments are not configured yet. Try again shortly or contact support."
+    "stripeMissing": "Payments are not configured yet. Try again shortly or contact support.",
+    "demoBlocked": "The demo is Free-only. Sign out and sign in with Google to create your account and upgrade to Pro."
   },
   "common": {
     "save": "Save",

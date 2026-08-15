@@ -28,8 +28,9 @@ def is_allowed_during_maintenance(email: str | None) -> bool:
     return email.strip().lower() in maintenance_allowed_emails()
 
 
-def create_access_token(user_id: int, email: str) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=settings.jwt_expire_minutes)
+def create_access_token(user_id: int, email: str, expires_minutes: int | None = None) -> str:
+    minutes = expires_minutes if expires_minutes is not None else settings.jwt_expire_minutes
+    expire = datetime.utcnow() + timedelta(minutes=minutes)
     payload = {"sub": str(user_id), "email": email, "exp": expire}
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 

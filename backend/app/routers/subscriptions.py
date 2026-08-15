@@ -112,6 +112,14 @@ def create_checkout_session(
     db: Session = Depends(get_db),
 ):
     """Create a Stripe Checkout session for Pro (6.99 €/mo or 59 €/yr)."""
+    from app.services.demo import is_demo_email
+
+    if is_demo_email(current_user.email):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La cuenta demo es solo de prueba (plan Free). Crea tu cuenta con Google para pasar a Pro.",
+        )
+
     interval = payload.interval or "yearly"
     price_id = _price_id_for_interval(interval)
 
