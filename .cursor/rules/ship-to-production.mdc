@@ -1,0 +1,18 @@
+---
+description: After finishing user-requested work, commit, push to GitHub, and deploy frontend to Vercel production.
+alwaysApply: true
+---
+
+# Ship to GitHub + production
+
+When the user asks for a change and the work is done (unless they say not to ship):
+
+1. **Commit** relevant changes on the current branch with a clear message (follow repo git/commit rules; no secrets).
+2. **Push** to GitHub (`origin`, usually `main`).
+3. **Deploy frontend to production** when `frontend/` (or shared web assets) changed:
+   - From `frontend/`: `npx vercel deploy --prod --yes --scope team_pQoE1px6hn3G3pM1bU128oDs`
+   - Confirm https://profipaws.vercel.app reflects the change when practical.
+4. Backend/mobile: push the code; note if Railway/Expo need a separate deploy the agent cannot trigger.
+5. Tell the user briefly that it was pushed/deployed (include URL or commit when useful).
+
+Do not wait for a separate “deploy please” — shipping is part of finishing the request.
