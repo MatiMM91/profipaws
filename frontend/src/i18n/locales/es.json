@@ -159,6 +159,8 @@
     "calendarDayDetail": "Recordatorios del día",
     "calendarAddEvent": "Nuevo recordatorio",
     "calendarEditEvent": "Editar recordatorio",
+    "calendarNextUp": "Próximo",
+    "calendarNoUpcoming": "No hay recordatorios próximos.",
     "noEvents": "Sin recordatorios todavía.",
     "noEventsThatDay": "Sin recordatorios este día.",
     "title": "Título",

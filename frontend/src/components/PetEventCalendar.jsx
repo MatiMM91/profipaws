@@ -119,6 +119,21 @@ export default function PetEventCalendar({
   const todayKey = localDayKey(today)
   const modalOpen = Boolean(modalDay)
 
+  const nextDayPreview = useMemo(() => {
+    const upcomingKeys = [...byDay.keys()].filter((key) => key >= todayKey).sort()
+    if (upcomingKeys.length === 0) return null
+    const key = upcomingKeys[0]
+    return {
+      key,
+      label: new Intl.DateTimeFormat(locale, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).format(new Date(`${key}T12:00:00`)),
+      events: byDay.get(key) || [],
+    }
+  }, [byDay, todayKey, locale])
+
   useEffect(() => {
     if (!modalOpen) return undefined
     function onKey(e) {
@@ -331,6 +346,48 @@ export default function PetEventCalendar({
             )
           })}
         </div>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        <h4 className="font-display text-sm font-semibold text-cyan-900 dark:text-cyan-100">
+          {t('pet.calendarNextUp')}
+        </h4>
+        {!nextDayPreview || nextDayPreview.events.length === 0 ? (
+          <p className="text-sm text-cyan-600 dark:text-cyan-400">{t('pet.calendarNoUpcoming')}</p>
+        ) : (
+          <div className="space-y-2">
+            <p className="text-xs capitalize text-cyan-600 dark:text-cyan-400">{nextDayPreview.label}</p>
+            <ul className="space-y-2">
+              {nextDayPreview.events.map((ev) => (
+                <li
+                  key={ev.id}
+                  className="rounded-xl border border-cyan-100 bg-white px-3 py-2.5 text-sm dark:border-cyan-800 dark:bg-cyan-900/40"
+                >
+                  <button
+                    type="button"
+                    className="flex w-full flex-wrap items-center justify-between gap-2 text-left"
+                    onClick={() => openDay(new Date(`${nextDayPreview.key}T12:00:00`))}
+                  >
+                    <div className="min-w-0">
+                      <span
+                        className={[
+                          'rounded px-1.5 py-0.5 text-[10px] font-medium',
+                          TYPE_STYLES[ev.event_type] || TYPE_STYLES.other,
+                        ].join(' ')}
+                      >
+                        {t(`pet.${ev.event_type}`, { defaultValue: ev.event_type })}
+                      </span>
+                      <p className="mt-1 font-medium text-cyan-950 dark:text-cyan-50">{ev.title}</p>
+                      <p className="text-xs text-cyan-600 dark:text-cyan-400">
+                        {formatLocalDateTime(ev.scheduled_at, locale)}
+                      </p>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {modalOpen && (

@@ -159,6 +159,8 @@
     "calendarDayDetail": "Lembretes do dia",
     "calendarAddEvent": "Novo lembrete",
     "calendarEditEvent": "Editar lembrete",
+    "calendarNextUp": "Próximo",
+    "calendarNoUpcoming": "Não há lembretes próximos.",
     "noEvents": "Ainda sem lembretes.",
     "noEventsThatDay": "Sem lembretes neste dia.",
     "title": "Título",

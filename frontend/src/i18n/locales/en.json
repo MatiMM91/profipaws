@@ -159,6 +159,8 @@
     "calendarDayDetail": "Reminders for this day",
     "calendarAddEvent": "New reminder",
     "calendarEditEvent": "Edit reminder",
+    "calendarNextUp": "Up next",
+    "calendarNoUpcoming": "No upcoming reminders.",
     "noEvents": "No reminders yet.",
     "noEventsThatDay": "No reminders on this day.",
     "title": "Title",
