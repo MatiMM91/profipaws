@@ -77,15 +77,15 @@ class SubscriptionOut(BaseModel):
     status: SubscriptionStatus
     stripe_customer_id: Optional[str] = None
     stripe_subscription_id: Optional[str] = None
-    billing_interval: Optional[str] = None  # monthly | yearly
+    billing_interval: Optional[str] = None  # lifetime | monthly | yearly (legacy)
     current_period_end: Optional[datetime] = None
 
 
 class CheckoutSessionRequest(BaseModel):
     success_url: Optional[str] = None
     cancel_url: Optional[str] = None
-    # monthly → 6.99 €/mo · yearly → 59 €/yr
-    interval: Optional[str] = Field(default="yearly", pattern="^(monthly|yearly)$")
+    # Legacy clients may still send interval; ignored for one-time checkout.
+    interval: Optional[str] = None
 
 
 class CheckoutSessionResponse(BaseModel):

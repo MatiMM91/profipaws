@@ -303,7 +303,7 @@ def create_pet(
     ):
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Free plan allows up to 5 pets. Upgrade to Pro for unlimited pets.",
+            detail="Free accounts can have up to 5 pets. Unlock full access (one-time €20) for unlimited pets.",
         )
 
     if payload.chip_id:

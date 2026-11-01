@@ -357,9 +357,9 @@ export default function LandingPage() {
               </div>
             ) : (
               <>
-                <button type="button" onClick={openLogin} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
+                <Link to="/planes" className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
                   {t('landing.ctaStart')} <ArrowRight size={16} />
-                </button>
+                </Link>
                 <button
                   type="button"
                   onClick={enterDemo}
@@ -368,14 +368,15 @@ export default function LandingPage() {
                 >
                   {demoLoading ? t('landing.demoWorking') : t('landing.ctaDemo')}
                 </button>
-                <Link
-                  to="/planes"
+                <button
+                  type="button"
+                  onClick={openLogin}
                   className={`text-sm font-medium underline-offset-2 hover:underline ${
                     isDark ? 'text-cyan-200/80' : 'text-cyan-700'
                   }`}
                 >
-                  {t('landing.ctaPlans')}
-                </Link>
+                  {t('nav.signIn')}
+                </button>
               </>
             )}
           </div>
@@ -485,9 +486,9 @@ export default function LandingPage() {
               {t('landing.ctaBottomSubtitle')}
             </p>
             <div className="relative mt-8 flex flex-wrap items-center justify-center gap-3">
-              <button type="button" onClick={openLogin} className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
+              <Link to="/planes" className="btn-primary gap-2 bg-cyan-500 hover:bg-cyan-400">
                 {t('landing.ctaStart')} <ArrowRight size={16} />
-              </button>
+              </Link>
               <button
                 type="button"
                 onClick={enterDemo}
@@ -496,12 +497,6 @@ export default function LandingPage() {
               >
                 {demoLoading ? t('landing.demoWorking') : t('landing.ctaDemo')}
               </button>
-              <Link
-                to="/planes"
-                className={`btn-secondary ${isDark ? 'border-cyan-400/40 bg-transparent text-cyan-50 hover:bg-cyan-900/50' : ''}`}
-              >
-                {t('landing.ctaPlans')}
-              </Link>
             </div>
           </div>
         </section>

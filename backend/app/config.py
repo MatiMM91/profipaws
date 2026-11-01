@@ -25,8 +25,11 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_publishable_key: str = ""
     stripe_webhook_secret: str = ""
-    stripe_price_id_pro: str = ""  # monthly 6.99 EUR
-    stripe_price_id_pro_yearly: str = ""  # yearly 59 EUR
+    # Optional one-time Price for full access (20 EUR). If empty, checkout uses inline price_data.
+    stripe_price_id_lifetime: str = ""
+    # Legacy recurring price IDs (unused for new checkouts; kept for old env compatibility)
+    stripe_price_id_pro: str = ""
+    stripe_price_id_pro_yearly: str = ""
     frontend_url: str = "http://localhost:5173"
 
     # When true: public site locked; only emails in maintenance_allowlist can log in
