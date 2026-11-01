@@ -1,5 +1,6 @@
 {
   "nav": {
+    "home": "Home",
     "plans": "Access",
     "dashboard": "My pets",
     "signInGoogle": "Sign in with Google",
