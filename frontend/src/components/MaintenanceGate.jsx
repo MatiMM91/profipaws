@@ -9,8 +9,10 @@ export default function MaintenanceGate() {
 
   if (MAINTENANCE_MODE) {
     const token = localStorage.getItem('profipaws_token')
-    const publicPaths = new Set(['/', '/planes'])
-    if (!token && !publicPaths.has(location.pathname)) {
+    const path = location.pathname
+    const isPublic =
+      path === '/' || path === '/planes' || path.startsWith('/vet/')
+    if (!token && !isPublic) {
       return <Navigate to="/" replace />
     }
   }

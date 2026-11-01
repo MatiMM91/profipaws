@@ -190,6 +190,7 @@
     "empty": "No records in this category.",
     "deleteConfirm": "Delete this record?",
     "saveError": "Could not save",
+    "futureDateError": "The date cannot be after today.",
     "attach": "Attach file",
     "uploading": "Uploading…",
     "download": "Download",
@@ -218,7 +219,8 @@
     "noteDeleteConfirm": "Delete this note?",
     "noteSaveError": "Could not save the note",
     "deleteConfirm": "Delete this consultation?",
-    "saveError": "Could not save the consultation"
+    "saveError": "Could not save the consultation",
+    "futureDateError": "The date cannot be after today."
   },
   "log": {
     "back": "Back to profile",

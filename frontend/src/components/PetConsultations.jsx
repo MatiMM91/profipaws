@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Stethoscope, Plus, Pencil, Trash2, X, ChevronDown, ChevronUp, NotebookPen } from 'lucide-react'
+import { todayISODate } from '../utils/dates'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -38,13 +39,14 @@ function Field({ label, value, onChange, textarea, required }) {
 }
 
 function ConsultationFormFields({ t, values, setValues, onSubmit, onCancel, submitLabel }) {
+  const today = todayISODate()
   return (
     <form onSubmit={onSubmit} className="grid gap-3 rounded-xl border border-cyan-100 bg-white p-4 dark:border-cyan-800 dark:bg-cyan-900/40 sm:grid-cols-2">
       <Field label={t('seguimiento.doctor')} value={values.treating_doctor} onChange={(e) => setValues({ ...values, treating_doctor: e.target.value })} required />
       <Field label={t('seguimiento.specialty')} value={values.specialty} onChange={(e) => setValues({ ...values, specialty: e.target.value })} />
       <label className="block space-y-1">
         <span className="text-xs font-medium text-cyan-700 dark:text-cyan-300">{t('seguimiento.date')}</span>
-        <input type="date" className="field w-full px-3 py-2 text-sm" value={values.consulted_at} onChange={(e) => setValues({ ...values, consulted_at: e.target.value })} required />
+        <input type="date" className="field w-full px-3 py-2 text-sm" value={values.consulted_at} onChange={(e) => setValues({ ...values, consulted_at: e.target.value })} max={today} required />
       </label>
       <div className="sm:col-span-2">
         <Field label={t('seguimiento.reason')} value={values.reason} onChange={(e) => setValues({ ...values, reason: e.target.value })} textarea />
@@ -69,6 +71,7 @@ function ConsultationFormFields({ t, values, setValues, onSubmit, onCancel, subm
 
 export default function PetConsultations({ petId, canEdit, hideTitle = false }) {
   const { t } = useTranslation()
+  const today = todayISODate()
   const [items, setItems] = useState([])
   const [form, setForm] = useState(emptyForm)
   const [showForm, setShowForm] = useState(false)
@@ -329,6 +332,7 @@ export default function PetConsultations({ petId, canEdit, hideTitle = false }) 
                             className="field px-3 py-1.5 text-sm"
                             value={noteForm.noted_at}
                             onChange={(e) => setNoteForm({ ...noteForm, noted_at: e.target.value })}
+                            max={today}
                             required
                           />
                           <button type="submit" className="btn-primary text-xs">
@@ -355,6 +359,7 @@ export default function PetConsultations({ petId, canEdit, hideTitle = false }) 
                                   className="field px-2 py-1 text-sm"
                                   value={noteEdit.noted_at}
                                   onChange={(e) => setNoteEdit({ ...noteEdit, noted_at: e.target.value })}
+                                  max={today}
                                 />
                                 <div className="flex gap-1">
                                   <button type="button" className="btn-primary px-2 py-1 text-xs" onClick={() => saveNote(c.id, n.id)}>

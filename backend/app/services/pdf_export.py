@@ -1,12 +1,22 @@
 """Generate a simple PDF medical passport for a pet."""
 from __future__ import annotations
 
+import html
 from io import BytesIO
+
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+
+def _esc(value) -> str:
+    return html.escape(str(value if value is not None else ""))
+
+
+def _cell(text, style: ParagraphStyle) -> Paragraph:
+    return Paragraph(_esc(text).replace("\n", "<br/>") or "—", style)
 
 
 def build_pet_passport_pdf(dossier: dict) -> bytes:
@@ -43,38 +53,56 @@ def build_pet_passport_pdf(dossier: dict) -> bytes:
         spaceAfter=6,
     )
     body = styles["BodyText"]
+    cell = ParagraphStyle(
+        "CellWrap",
+        parent=body,
+        fontSize=8,
+        leading=10,
+        wordWrap="CJK",
+    )
+    header_cell = ParagraphStyle(
+        "HeaderCell",
+        parent=cell,
+        fontName="Helvetica-Bold",
+        textColor=colors.HexColor("#0e7490"),
+    )
     story = []
 
     story.append(Paragraph("Profipaws — Pasaporte de salud", title))
     story.append(
         Paragraph(
-            f"<b>{pet.get('name', '—')}</b> · {pet.get('species', '')}"
-            + (f" · {pet.get('breed')}" if pet.get("breed") else "")
-            + (f" · {pet.get('color')}" if pet.get("color") else "")
-            + (f" · chip {pet.get('chip_id')}" if pet.get("chip_id") else ""),
+            f"<b>{_esc(pet.get('name', '—'))}</b> · {_esc(pet.get('species', ''))}"
+            + (f" · {_esc(pet.get('breed'))}" if pet.get("breed") else "")
+            + (f" · {_esc(pet.get('color'))}" if pet.get("color") else "")
+            + (f" · chip {_esc(pet.get('chip_id'))}" if pet.get("chip_id") else ""),
             body,
         )
     )
     meta = []
     if pet.get("birth_date"):
-        meta.append(f"Nacimiento: {pet['birth_date']}")
+        meta.append(f"Nacimiento: {_esc(pet['birth_date'])}")
     if pet.get("weight_kg") is not None:
-        meta.append(f"Peso: {pet['weight_kg']} kg")
+        meta.append(f"Peso: {_esc(pet['weight_kg'])} kg")
     if pet.get("allergies"):
-        meta.append(f"Alergias: {pet['allergies']}")
+        meta.append(f"Alergias: {_esc(pet['allergies'])}")
     if meta:
         story.append(Paragraph(" · ".join(meta), body))
     story.append(Spacer(1, 0.3 * cm))
 
-    def section(label: str, rows: list[list[str]], headers: list[str]):
+    def section(label: str, rows: list[list], headers: list[str], widths: list[float] | None = None):
         story.append(Paragraph(label, h2))
         if not rows:
             story.append(Paragraph("Sin registros.", body))
             return
-        data = [headers] + rows
         usable = 17.4 * cm
-        col_w = usable / max(len(headers), 1)
-        table = Table(data, hAlign="LEFT", colWidths=[col_w] * len(headers))
+        if widths and len(widths) == len(headers):
+            col_w = [usable * w for w in widths]
+        else:
+            col_w = [usable / max(len(headers), 1)] * len(headers)
+        data = [[_cell(h, header_cell) for h in headers]]
+        for row in rows:
+            data.append([_cell(v, cell) for v in row])
+        table = Table(data, hAlign="LEFT", colWidths=col_w, repeatRows=1)
         table.setStyle(
             TableStyle(
                 [
@@ -97,59 +125,65 @@ def build_pet_passport_pdf(dossier: dict) -> bytes:
         "Vacunas",
         [
             [
-                str(v.get("name") or ""),
-                str(v.get("brand") or "—"),
-                str(v.get("code") or "—"),
-                str(v.get("administered_at") or ""),
-                str(v.get("next_due_at") or "—"),
+                v.get("name") or "",
+                v.get("brand") or "—",
+                v.get("code") or "—",
+                v.get("administered_at") or "",
+                v.get("next_due_at") or "—",
             ]
             for v in vaccines
         ],
         ["Nombre", "Marca", "Código", "Aplicada", "Próxima"],
+        [0.28, 0.18, 0.14, 0.2, 0.2],
     )
     section(
         "Historial médico",
         [
             [
-                str(r.get("record_type") or ""),
-                str(r.get("title") or ""),
-                str(r.get("occurred_at") or ""),
+                r.get("record_type") or "",
+                r.get("title") or "",
+                r.get("description") or "—",
+                r.get("occurred_at") or "",
             ]
             for r in records
         ],
-        ["Tipo", "Título", "Fecha"],
+        ["Tipo", "Título", "Notas", "Fecha"],
+        [0.14, 0.22, 0.46, 0.18],
     )
     section(
         "Enfermedades crónicas",
         [
-            [str(c.get("name") or ""), str(c.get("notes") or "—"), str(c.get("diagnosed_at") or "—")]
+            [c.get("name") or "", c.get("notes") or "—", c.get("diagnosed_at") or "—"]
             for c in conditions
         ],
         ["Nombre", "Notas", "Diagnóstico"],
+        [0.28, 0.52, 0.2],
     )
     section(
         "Recordatorios",
         [
             [
-                str(e.get("event_type") or ""),
-                str(e.get("title") or ""),
-                str(e.get("scheduled_at") or "")[:16],
+                e.get("event_type") or "",
+                e.get("title") or "",
+                (str(e.get("scheduled_at") or ""))[:16],
             ]
             for e in events
         ],
         ["Tipo", "Título", "Fecha"],
+        [0.2, 0.55, 0.25],
     )
     section(
         "Diario (últimas entradas)",
         [
             [
-                str(l.get("logged_at") or "")[:16],
-                str(l.get("note") or "")[:80],
+                (str(l.get("logged_at") or ""))[:16],
+                l.get("note") or "",
                 f"{l.get('mood') or '—'} / {l.get('appetite') or '—'}",
             ]
             for l in logs[:15]
         ],
         ["Fecha", "Nota", "Ánimo/Apetito"],
+        [0.2, 0.55, 0.25],
     )
 
     story.append(Spacer(1, 0.8 * cm))
@@ -206,18 +240,18 @@ def build_vaccine_pass_pdf(dossier: dict) -> bytes:
     story.append(Spacer(1, 0.25 * cm))
     story.append(
         Paragraph(
-            f"<b>{pet.get('name', '—')}</b> · {pet.get('species', '')}"
-            + (f" · {pet.get('breed')}" if pet.get("breed") else "")
-            + (f" · {pet.get('color')}" if pet.get("color") else "")
-            + (f" · chip {pet.get('chip_id')}" if pet.get("chip_id") else ""),
+            f"<b>{_esc(pet.get('name', '—'))}</b> · {_esc(pet.get('species', ''))}"
+            + (f" · {_esc(pet.get('breed'))}" if pet.get("breed") else "")
+            + (f" · {_esc(pet.get('color'))}" if pet.get("color") else "")
+            + (f" · chip {_esc(pet.get('chip_id'))}" if pet.get("chip_id") else ""),
             body,
         )
     )
     meta = []
     if pet.get("birth_date"):
-        meta.append(f"Nacimiento: {pet['birth_date']}")
+        meta.append(f"Nacimiento: {_esc(pet['birth_date'])}")
     if pet.get("weight_kg") is not None:
-        meta.append(f"Peso: {pet['weight_kg']} kg")
+        meta.append(f"Peso: {_esc(pet['weight_kg'])} kg")
     if meta:
         story.append(Paragraph(" · ".join(meta), body))
 
@@ -234,17 +268,17 @@ def build_vaccine_pass_pdf(dossier: dict) -> bytes:
         )
         for idx, v in enumerate(vaccines):
             block = [
-                [Paragraph(f"<b>{v.get('name') or '—'}</b>", small), ""],
+                [Paragraph(f"<b>{_esc(v.get('name') or '—')}</b>", small), ""],
                 [
-                    Paragraph(f"<b>Marca:</b> {v.get('brand') or '—'}", small),
-                    Paragraph(f"<b>Código:</b> {v.get('code') or '—'}", small),
+                    Paragraph(f"<b>Marca:</b> {_esc(v.get('brand') or '—')}", small),
+                    Paragraph(f"<b>Código:</b> {_esc(v.get('code') or '—')}", small),
                 ],
                 [
-                    Paragraph(f"<b>Aplicada:</b> {v.get('administered_at') or '—'}", small),
-                    Paragraph(f"<b>Próxima:</b> {v.get('next_due_at') or '—'}", small),
+                    Paragraph(f"<b>Aplicada:</b> {_esc(v.get('administered_at') or '—')}", small),
+                    Paragraph(f"<b>Próxima:</b> {_esc(v.get('next_due_at') or '—')}", small),
                 ],
                 [
-                    Paragraph(f"<b>Nota:</b> {v.get('notes') or '—'}", small),
+                    Paragraph(f"<b>Nota:</b> {_esc(v.get('notes') or '—')}", small),
                     "",
                 ],
             ]

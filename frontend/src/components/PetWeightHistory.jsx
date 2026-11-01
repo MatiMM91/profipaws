@@ -223,6 +223,7 @@ export default function PetWeightHistory({ petId, canEdit, onPetWeightChange, re
             className="field px-3 py-2 text-sm"
             value={form.recorded_at}
             onChange={(e) => setForm({ ...form, recorded_at: e.target.value })}
+            max={new Date().toISOString().slice(0, 10)}
             required
           />
           <div className="flex gap-2 sm:col-span-1">

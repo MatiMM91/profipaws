@@ -38,6 +38,10 @@ export default function PetConsultations({ petId, canEdit }) {
   }
 
   async function addConsultation() {
+    if (form.consulted_at && form.consulted_at > todayISO()) {
+      Alert.alert(t('seguimiento.futureDateError'))
+      return
+    }
     setSaving(true)
     try {
       await api(`/api/pets/${petId}/consultations`, { method: 'POST', body: form })

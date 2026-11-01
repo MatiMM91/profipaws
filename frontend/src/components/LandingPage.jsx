@@ -51,7 +51,12 @@ async function startDemoSession() {
   const res = await fetch(`${API_URL}/api/auth/demo`, { method: 'POST' })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(typeof err.detail === 'string' ? err.detail : 'Demo error')
+    const detail = typeof err.detail === 'string' ? err.detail : ''
+    // FastAPI default 404 is opaque; show a clear demo message instead.
+    if (res.status === 404 || detail === 'Not Found' || detail === 'Demo unavailable') {
+      throw new Error('Demo unavailable')
+    }
+    throw new Error(detail || 'Demo error')
   }
   const data = await res.json()
   if (!data.access_token) {
@@ -137,7 +142,8 @@ export default function LandingPage() {
       await startDemoSession()
       goAfterLogin()
     } catch (e) {
-      alert(e.message || t('landing.demoFailed'))
+      const msg = (e?.message === 'Demo unavailable' || e?.message === 'Not Found') ? t('landing.demoFailed') : (e.message || t('landing.demoFailed'))
+      alert(msg)
     } finally {
       setDemoLoading(false)
     }

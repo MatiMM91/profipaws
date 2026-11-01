@@ -190,6 +190,7 @@
     "empty": "Sem registos nesta categoria.",
     "deleteConfirm": "Apagar este registo?",
     "saveError": "Não foi possível guardar",
+    "futureDateError": "A data não pode ser posterior a hoje.",
     "attach": "Anexar ficheiro",
     "uploading": "A enviar…",
     "download": "Descarregar",
@@ -218,7 +219,8 @@
     "noteDeleteConfirm": "Apagar esta nota?",
     "noteSaveError": "Não foi possível guardar a nota",
     "deleteConfirm": "Apagar esta consulta?",
-    "saveError": "Não foi possível guardar a consulta"
+    "saveError": "Não foi possível guardar a consulta",
+    "futureDateError": "A data não pode ser posterior a hoje."
   },
   "log": {
     "back": "Voltar ao perfil",

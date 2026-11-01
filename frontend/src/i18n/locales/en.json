@@ -241,6 +241,7 @@
     "empty": "No records in this category.",
     "deleteConfirm": "Delete this record?",
     "saveError": "Could not save",
+    "futureDateError": "The date cannot be after today.",
     "attach": "Attach file",
     "uploading": "Uploading…",
     "download": "Download",
@@ -269,7 +270,8 @@
     "noteDeleteConfirm": "Delete this note?",
     "noteSaveError": "Could not save the note",
     "deleteConfirm": "Delete this consultation?",
-    "saveError": "Could not save the consultation"
+    "saveError": "Could not save the consultation",
+    "futureDateError": "The date cannot be after today."
   },
   "log": {
     "back": "Back to profile",
@@ -291,13 +293,29 @@
   "vet": {
     "back": "Back to profile",
     "title": "Veterinary access",
-    "subtitle": "Create a 6-digit code or a scannable code for the vet. Expires in 2 hours and needs no account.",
+    "subtitle": "Create a 6-digit code or a QR. Scanning it opens the record in the browser. Expires in 2 hours and needs no account.",
     "generate": "Create access code",
     "generating": "Creating…",
     "expires": "Expires",
     "regenerate": "Create another",
     "error": "Could not create the code",
-    "scanCodeAlt": "Code to scan"
+    "scanCodeAlt": "Code to scan",
+    "openLink": "QR link"
+  },
+  "vetAccess": {
+    "title": "Temporary record",
+    "subtitle": "Consultation access with a code. No sign-in required.",
+    "invalid": "Invalid or expired code",
+    "invalidHint": "Ask the owner to generate a new code in Profipaws.",
+    "birth": "Birth",
+    "weight": "Weight",
+    "allergies": "Allergies",
+    "vaccines": "Vaccines",
+    "records": "Medical history",
+    "conditions": "Chronic conditions",
+    "consultations": "Follow-up",
+    "empty": "No records.",
+    "footer": "PIN {{pin}} · viewed {{time}}"
   },
   "pricing": {
     "title": "Simple, clear plans",

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { FileText, Plus, Pencil, Trash2, Check, X, Download, Paperclip, Syringe, Weight } from 'lucide-react'
 import PetWeightHistory from './PetWeightHistory'
+import { todayISODate } from '../utils/dates'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -56,6 +57,7 @@ export default function PetHistorial({
   const [editVaccineForm, setEditVaccineForm] = useState(emptyVaccineForm)
   const [uploadingId, setUploadingId] = useState(null)
 
+  const today = todayISODate()
   const isWeight = tab === 'weight'
   const isVaccine = tab === 'vaccine'
   const items = isWeight
@@ -267,6 +269,7 @@ export default function PetHistorial({
                 className="field w-full px-3 py-2 text-sm"
                 value={vaccineForm.administered_at}
                 onChange={(e) => setVaccineForm({ ...vaccineForm, administered_at: e.target.value })}
+                max={today}
                 required
               />
             </label>
@@ -307,6 +310,7 @@ export default function PetHistorial({
             className="field px-3 py-2 text-sm"
             value={recordForm.occurred_at}
             onChange={(e) => setRecordForm({ ...recordForm, occurred_at: e.target.value })}
+            max={today}
             required
           />
           <button type="submit" className="btn-primary text-sm">
@@ -358,6 +362,7 @@ export default function PetHistorial({
                       className="field px-2 py-1.5"
                       value={editVaccineForm.administered_at}
                       onChange={(e) => setEditVaccineForm({ ...editVaccineForm, administered_at: e.target.value })}
+                      max={today}
                     />
                     <input
                       type="date"
@@ -385,7 +390,7 @@ export default function PetHistorial({
               ) : editingId === item.id ? (
                 <div className="grid gap-2 sm:grid-cols-3">
                   <input className="field px-2 py-1.5" value={editRecordForm.title} onChange={(e) => setEditRecordForm({ ...editRecordForm, title: e.target.value })} />
-                  <input type="date" className="field px-2 py-1.5" value={editRecordForm.occurred_at} onChange={(e) => setEditRecordForm({ ...editRecordForm, occurred_at: e.target.value })} />
+                  <input type="date" className="field px-2 py-1.5" value={editRecordForm.occurred_at} onChange={(e) => setEditRecordForm({ ...editRecordForm, occurred_at: e.target.value })} max={today} />
                   <div className="flex gap-2">
                     <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveItem(item.id)}>
                       <Check size={12} /> {t('common.save')}

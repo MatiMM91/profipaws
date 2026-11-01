@@ -72,6 +72,16 @@ export default function VetAccessQR() {
                 height={220}
               />
             )}
+            {access.qr_payload && (
+              <a
+                href={access.qr_payload}
+                target="_blank"
+                rel="noreferrer"
+                className="mx-auto block max-w-full break-all text-xs font-medium text-cyan-700 underline-offset-2 hover:underline dark:text-cyan-300"
+              >
+                {t('vet.openLink')}
+              </a>
+            )}
             <div className="flex flex-col items-center gap-3 pt-1">
               <p className="inline-flex max-w-full items-center justify-center gap-1.5 px-1 text-xs text-cyan-600 dark:text-cyan-400">
                 <Clock size={12} className="shrink-0" />

@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard'
 import PetProfile from './components/PetProfile'
 import PricingSection from './components/PricingSection'
 import PublicPlansPage from './components/PublicPlansPage'
+import PublicVetAccess from './components/PublicVetAccess'
 import VetAccessQR from './components/VetAccessQR'
 import MobileAuthBridge from './components/MobileAuthBridge'
 import MobileAuthCallback from './components/MobileAuthCallback'
@@ -19,9 +20,9 @@ export default function App() {
         <Route path="/mobile-auth-callback" element={<MobileAuthCallback />} />
         <Route element={<MaintenanceGate />}>
           <Route path="/" element={<LandingPage />} />
-          {/* Public marketing plans (website) */}
           <Route path="/planes" element={<PublicPlansPage />} />
-          {/* Account app (requires login) */}
+          {/* Public vet dossier opened from QR / PIN */}
+          <Route path="/vet/:pin" element={<PublicVetAccess />} />
           <Route element={<RequireAuth />}>
             <Route element={<Layout />}>
               <Route path="/dashboard" element={<Dashboard />} />

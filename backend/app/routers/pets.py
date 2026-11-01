@@ -52,6 +52,7 @@ from app.schemas import (
     WeightEntryOut,
     PetExportOut,
 )
+from app.config import get_settings
 from app.services.auth import get_current_user, generate_access_pin
 from app.services.billing import require_pro
 from app.services.pdf_export import build_pet_passport_pdf, build_vaccine_pass_pdf
@@ -64,6 +65,7 @@ from app.services.pet_access import (
 )
 
 router = APIRouter(prefix="/pets", tags=["Pets"])
+settings = get_settings()
 
 FREE_PET_LIMIT = 5
 MAX_EXAM_BYTES = 5 * 1024 * 1024
@@ -367,10 +369,12 @@ def create_access_pin(
     pet.access_pin = pin
     pet.access_pin_expires_at = expires
     db.commit()
+    # HTTPS URL so phone cameras / browsers open the dossier directly (not a custom scheme).
+    base = (settings.frontend_url or "").rstrip("/") or "https://profipaws.vercel.app"
     return AccessPinResponse(
         pin=pin,
         expires_at=expires,
-        qr_payload=f"profipaws://vet-access?pin={pin}&pet_id={pet.id}",
+        qr_payload=f"{base}/vet/{pin}",
     )
 
 

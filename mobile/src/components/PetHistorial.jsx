@@ -48,6 +48,11 @@ export default function PetHistorial({ petId, canEdit, onPetWeightChange }) {
         : records.filter((r) => r.record_type === tab || r.type === tab)
 
   async function add() {
+    const eventDate = form.administered_at || ''
+    if (eventDate && eventDate > todayISO()) {
+      Alert.alert(t('historial.futureDateError'))
+      return
+    }
     setSaving(true)
     try {
       if (tab === 'vaccines') {

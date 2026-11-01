@@ -241,6 +241,7 @@
     "empty": "Sin registros en esta categoría.",
     "deleteConfirm": "¿Borrar este registro?",
     "saveError": "No se pudo guardar",
+    "futureDateError": "La fecha no puede ser posterior a hoy.",
     "attach": "Adjuntar archivo",
     "uploading": "Subiendo…",
     "download": "Descargar",
@@ -269,7 +270,8 @@
     "noteDeleteConfirm": "¿Borrar esta nota?",
     "noteSaveError": "No se pudo guardar la nota",
     "deleteConfirm": "¿Borrar esta consulta?",
-    "saveError": "No se pudo guardar la consulta"
+    "saveError": "No se pudo guardar la consulta",
+    "futureDateError": "La fecha no puede ser posterior a hoy."
   },
   "log": {
     "back": "Volver al perfil",
@@ -291,13 +293,29 @@
   "vet": {
     "back": "Volver al perfil",
     "title": "Acceso veterinario",
-    "subtitle": "Crea un código de 6 dígitos o uno para escanear y muéstraselo al veterinario. Caduca en 2 horas y no necesita crear cuenta.",
+    "subtitle": "Crea un código de 6 dígitos o un QR. Al escanearlo se abre el expediente en el navegador. Caduca en 2 horas y no necesita crear cuenta.",
     "generate": "Crear código de acceso",
     "generating": "Creando…",
     "expires": "Caduca",
     "regenerate": "Crear otro",
     "error": "No se pudo crear el código",
-    "scanCodeAlt": "Código para escanear"
+    "scanCodeAlt": "Código para escanear",
+    "openLink": "Enlace del QR"
+  },
+  "vetAccess": {
+    "title": "Expediente temporal",
+    "subtitle": "Acceso de consulta con código. No hace falta iniciar sesión.",
+    "invalid": "Código inválido o caducado",
+    "invalidHint": "Pide al tutor que genere un código nuevo desde Profipaws.",
+    "birth": "Nacimiento",
+    "weight": "Peso",
+    "allergies": "Alergias",
+    "vaccines": "Vacunas",
+    "records": "Historial médico",
+    "conditions": "Enfermedades crónicas",
+    "consultations": "Seguimiento",
+    "empty": "Sin registros.",
+    "footer": "PIN {{pin}} · visto {{time}}"
   },
   "pricing": {
     "title": "Planes simples y claros",
