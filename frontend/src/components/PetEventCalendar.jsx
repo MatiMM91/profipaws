@@ -273,7 +273,7 @@ export default function PetEventCalendar({
                 type="button"
                 onClick={() => openDay(date)}
                 className={[
-                  'min-h-[2.6rem] border-b border-r border-cyan-50 p-0.5 text-left transition sm:min-h-[3rem] dark:border-cyan-900/60',
+                  'min-h-[2.6rem] border-b border-r border-cyan-50 p-0.5 text-left transition sm:min-h-[5.25rem] sm:p-1 dark:border-cyan-900/60',
                   inMonth ? 'bg-white dark:bg-transparent' : 'bg-cyan-50/40 dark:bg-cyan-950/20',
                   selected ? 'ring-2 ring-inset ring-teal-400 dark:ring-teal-500' : 'hover:bg-cyan-50/80 dark:hover:bg-cyan-900/30',
                 ].join(' ')}
@@ -291,18 +291,41 @@ export default function PetEventCalendar({
                   {date.getDate()}
                 </span>
                 {dayEv.length > 0 && (
-                  <div className="mt-0.5 flex flex-wrap items-center gap-0.5 px-0.5">
-                    {dayEv.slice(0, 3).map((ev) => (
-                      <span
-                        key={ev.id}
-                        className={`h-1.5 w-1.5 rounded-full ${TYPE_DOT[ev.event_type] || TYPE_DOT.other}`}
-                        title={ev.title}
-                      />
-                    ))}
-                    {dayEv.length > 3 && (
-                      <span className="text-[9px] leading-none text-cyan-500">+{dayEv.length - 3}</span>
-                    )}
-                  </div>
+                  <>
+                    {/* Mobile: dots only */}
+                    <div className="mt-0.5 flex flex-wrap items-center gap-0.5 px-0.5 sm:hidden">
+                      {dayEv.slice(0, 3).map((ev) => (
+                        <span
+                          key={ev.id}
+                          className={`h-1.5 w-1.5 rounded-full ${TYPE_DOT[ev.event_type] || TYPE_DOT.other}`}
+                          title={ev.title}
+                        />
+                      ))}
+                      {dayEv.length > 3 && (
+                        <span className="text-[9px] leading-none text-cyan-500">+{dayEv.length - 3}</span>
+                      )}
+                    </div>
+                    {/* Desktop: event titles */}
+                    <div className="mt-1 hidden space-y-0.5 sm:block">
+                      {dayEv.slice(0, 3).map((ev) => (
+                        <div
+                          key={ev.id}
+                          className={[
+                            'truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight lg:text-[11px]',
+                            TYPE_STYLES[ev.event_type] || TYPE_STYLES.other,
+                          ].join(' ')}
+                          title={ev.title}
+                        >
+                          {ev.title}
+                        </div>
+                      ))}
+                      {dayEv.length > 3 && (
+                        <p className="px-0.5 text-[10px] text-cyan-500 dark:text-cyan-400">
+                          +{dayEv.length - 3}
+                        </p>
+                      )}
+                    </div>
+                  </>
                 )}
               </button>
             )
