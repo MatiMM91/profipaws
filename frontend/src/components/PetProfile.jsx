@@ -22,6 +22,7 @@ import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 import PetSharePanel from './PetSharePanel'
 import PetHistorial from './PetHistorial'
 import PetConsultations from './PetConsultations'
+import PetEventCalendar from './PetEventCalendar'
 import { formatPetAge, formatPetSummaryLine } from '../utils/petAge'
 import { downloadBlob, downloadResponse } from '../utils/download'
 
@@ -981,7 +982,7 @@ export default function PetProfile() {
         )}
 
         {tab === 'calendar' && (
-      <section className="mt-5 space-y-3">
+      <section className="mt-5 space-y-4">
         <p className="text-sm text-cyan-700/80 dark:text-cyan-300/80">{t('pet.calendarHint')}</p>
         {canEdit && (
         <form onSubmit={addEvent} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
@@ -996,49 +997,26 @@ export default function PetProfile() {
           <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
         </form>
         )}
-        <ul className="space-y-2">
-          {events.length === 0 && <li className="text-sm text-cyan-600">{t('pet.noEvents')}</li>}
-          {events.map((ev) => (
-            <li key={ev.id} className="rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 px-4 py-3 text-sm">
-              {editingEventId === ev.id ? (
-                <div className="grid gap-2 sm:grid-cols-4">
-                  <select className="field px-2 py-1.5" value={eventEdit.event_type} onChange={(e) => setEventEdit({ ...eventEdit, event_type: e.target.value })}>
-                    <option value="appointment">{t('pet.appointment')}</option>
-                    <option value="vaccine">{t('pet.vaccine')}</option>
-                    <option value="medicine">{t('pet.medicine')}</option>
-                    <option value="other">{t('pet.other')}</option>
-                  </select>
-                  <input className="field px-2 py-1.5" value={eventEdit.title} onChange={(e) => setEventEdit({ ...eventEdit, title: e.target.value })} />
-                  <input type="datetime-local" className="field px-2 py-1.5" value={eventEdit.scheduled_at} onChange={(e) => setEventEdit({ ...eventEdit, scheduled_at: e.target.value })} />
-                  <div className="flex gap-2">
-                    <button type="button" className="btn-primary px-3 py-1.5 text-xs" onClick={() => saveEvent(ev.id)}><Check size={12} /> {t('common.save')}</button>
-                    <button type="button" className="btn-secondary px-3 py-1.5 text-xs" onClick={() => setEditingEventId(null)}><X size={12} /></button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <span className="rounded bg-teal-100 px-2 py-0.5 text-xs font-medium text-teal-800 dark:bg-teal-900/50 dark:text-teal-200">
-                      {t(`pet.${ev.event_type}`, { defaultValue: ev.event_type })}
-                    </span>
-                    <strong className="ml-2 text-cyan-900 dark:text-cyan-100">{ev.title}</strong>
-                    <span className="text-cyan-600"> · {formatLocalDateTime(ev.scheduled_at, i18n.language)}</span>
-                  </div>
-                  {canEdit && (
-                  <div className="flex gap-2">
-                    <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800" onClick={() => { setEditingEventId(ev.id); setEventEdit({ event_type: ev.event_type, title: ev.title, scheduled_at: toLocalInput(ev.scheduled_at), completed: ev.completed }) }}>
-                      <Pencil size={12} /> {t('pet.edit')}
-                    </button>
-                    <button type="button" className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs text-red-700" onClick={() => deleteEvent(ev.id)}>
-                      <Trash2 size={12} /> {t('pet.delete')}
-                    </button>
-                  </div>
-                  )}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
+        <PetEventCalendar
+          events={events}
+          canEdit={canEdit}
+          locale={i18n.language}
+          editingEventId={editingEventId}
+          eventEdit={eventEdit}
+          setEventEdit={setEventEdit}
+          setEditingEventId={setEditingEventId}
+          onSave={saveEvent}
+          onDelete={deleteEvent}
+          onPickDay={(dayKey) => {
+            if (!canEdit) return
+            setEventForm((f) => ({
+              ...f,
+              scheduled_at: f.scheduled_at?.startsWith(dayKey)
+                ? f.scheduled_at
+                : `${dayKey}T09:00`,
+            }))
+          }}
+        />
       </section>
         )}
       </div>
