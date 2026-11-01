@@ -8,15 +8,55 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import cm
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+
+PAGE_INNER_WIDTH = 17.4 * cm
+CELL_PAD_X = 3  # matches LEFT/RIGHTPADDING
 
 
 def _esc(value) -> str:
     return html.escape(str(value if value is not None else ""))
 
 
-def _cell(text, style: ParagraphStyle) -> Paragraph:
-    return Paragraph(_esc(text).replace("\n", "<br/>") or "—", style)
+def _force_wrap(text: str, max_width: float, font_name: str = "Helvetica", font_size: float = 8) -> str:
+    """Insert <br/> so long values never paint outside their column."""
+    raw = str(text if text is not None else "").strip() or "—"
+    # Preserve intentional newlines first.
+    chunks = raw.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    lines: list[str] = []
+    avail = max(max_width - (CELL_PAD_X * 2), 24)
+
+    for chunk in chunks:
+        words = chunk.split(" ") if chunk else [""]
+        current = ""
+        for word in words:
+            # Break oversized tokens character by character.
+            while stringWidth(word, font_name, font_size) > avail:
+                cut = 1
+                while cut < len(word) and stringWidth(word[: cut + 1], font_name, font_size) <= avail:
+                    cut += 1
+                piece = word[:cut]
+                candidate = f"{current} {piece}".strip() if current else piece
+                if current and stringWidth(candidate, font_name, font_size) > avail:
+                    lines.append(current)
+                    current = piece
+                else:
+                    current = candidate
+                word = word[cut:]
+            candidate = f"{current} {word}".strip() if current else word
+            if current and stringWidth(candidate, font_name, font_size) > avail:
+                lines.append(current)
+                current = word
+            else:
+                current = candidate
+        lines.append(current)
+
+    return "<br/>".join(_esc(line) if line != "" else "&nbsp;" for line in lines)
+
+
+def _cell(text, style: ParagraphStyle, max_width: float) -> Paragraph:
+    return Paragraph(_force_wrap(text, max_width, style.fontName, style.fontSize), style)
 
 
 def build_pet_passport_pdf(dossier: dict) -> bytes:
@@ -55,15 +95,16 @@ def build_pet_passport_pdf(dossier: dict) -> bytes:
     body = styles["BodyText"]
     cell = ParagraphStyle(
         "CellWrap",
-        parent=body,
+        fontName="Helvetica",
         fontSize=8,
-        leading=10,
-        wordWrap="CJK",
+        leading=11,
+        textColor=colors.black,
     )
     header_cell = ParagraphStyle(
         "HeaderCell",
-        parent=cell,
         fontName="Helvetica-Bold",
+        fontSize=8,
+        leading=11,
         textColor=colors.HexColor("#0e7490"),
     )
     story = []
@@ -94,26 +135,22 @@ def build_pet_passport_pdf(dossier: dict) -> bytes:
         if not rows:
             story.append(Paragraph("Sin registros.", body))
             return
-        usable = 17.4 * cm
         if widths and len(widths) == len(headers):
-            col_w = [usable * w for w in widths]
+            col_w = [PAGE_INNER_WIDTH * w for w in widths]
         else:
-            col_w = [usable / max(len(headers), 1)] * len(headers)
-        data = [[_cell(h, header_cell) for h in headers]]
+            col_w = [PAGE_INNER_WIDTH / max(len(headers), 1)] * len(headers)
+        data = [[_cell(h, header_cell, col_w[i]) for i, h in enumerate(headers)]]
         for row in rows:
-            data.append([_cell(v, cell) for v in row])
+            data.append([_cell(v, cell, col_w[i]) for i, v in enumerate(row)])
         table = Table(data, hAlign="LEFT", colWidths=col_w, repeatRows=1)
         table.setStyle(
             TableStyle(
                 [
                     ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#ecfeff")),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.HexColor("#0e7490")),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 8),
                     ("GRID", (0, 0), (-1, -1), 0.3, colors.HexColor("#a5f3fc")),
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 3),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+                    ("LEFTPADDING", (0, 0), (-1, -1), CELL_PAD_X),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), CELL_PAD_X),
                     ("TOPPADDING", (0, 0), (-1, -1), 3),
                     ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
                 ]
@@ -172,19 +209,43 @@ def build_pet_passport_pdf(dossier: dict) -> bytes:
         ["Tipo", "Título", "Fecha"],
         [0.2, 0.55, 0.25],
     )
-    section(
-        "Diario (últimas entradas)",
-        [
-            [
-                (str(l.get("logged_at") or ""))[:16],
-                l.get("note") or "",
-                f"{l.get('mood') or '—'} / {l.get('appetite') or '—'}",
+
+    # Diario: stacked rows so long notes never collide with mood/appetite.
+    story.append(Paragraph("Diario (últimas entradas)", h2))
+    if not logs:
+        story.append(Paragraph("Sin registros.", body))
+    else:
+        for idx, entry in enumerate(logs[:15]):
+            when = (str(entry.get("logged_at") or ""))[:16] or "—"
+            mood = entry.get("mood") or "—"
+            appetite = entry.get("appetite") or "—"
+            note = entry.get("note") or "—"
+            block = [
+                [
+                    _cell(f"{when}  ·  Ánimo: {mood}  ·  Apetito: {appetite}", header_cell, PAGE_INNER_WIDTH),
+                ],
+                [
+                    _cell(note, cell, PAGE_INNER_WIDTH),
+                ],
             ]
-            for l in logs[:15]
-        ],
-        ["Fecha", "Nota", "Ánimo/Apetito"],
-        [0.2, 0.55, 0.25],
-    )
+            table = Table(block, hAlign="LEFT", colWidths=[PAGE_INNER_WIDTH])
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#ecfeff")),
+                        ("BOX", (0, 0), (-1, -1), 0.3, colors.HexColor("#a5f3fc")),
+                        ("LINEBELOW", (0, 0), (-1, 0), 0.3, colors.HexColor("#a5f3fc")),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("LEFTPADDING", (0, 0), (-1, -1), CELL_PAD_X),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), CELL_PAD_X),
+                        ("TOPPADDING", (0, 0), (-1, -1), 4),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                    ]
+                )
+            )
+            story.append(table)
+            if idx < min(len(logs), 15) - 1:
+                story.append(Spacer(1, 0.2 * cm))
 
     story.append(Spacer(1, 0.8 * cm))
     story.append(
@@ -262,11 +323,18 @@ def build_vaccine_pass_pdf(dossier: dict) -> bytes:
         small = ParagraphStyle(
             "PassSmall",
             parent=body,
+            fontName="Helvetica",
             fontSize=9,
             leading=12,
             spaceAfter=2,
         )
         for idx, v in enumerate(vaccines):
+            note_html = _force_wrap(
+                f"Nota: {v.get('notes') or '—'}",
+                17 * cm,
+                "Helvetica",
+                9,
+            )
             block = [
                 [Paragraph(f"<b>{_esc(v.get('name') or '—')}</b>", small), ""],
                 [
@@ -278,7 +346,7 @@ def build_vaccine_pass_pdf(dossier: dict) -> bytes:
                     Paragraph(f"<b>Próxima:</b> {_esc(v.get('next_due_at') or '—')}", small),
                 ],
                 [
-                    Paragraph(f"<b>Nota:</b> {_esc(v.get('notes') or '—')}", small),
+                    Paragraph(note_html, small),
                     "",
                 ],
             ]
