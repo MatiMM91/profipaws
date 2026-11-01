@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { AlertTriangle, PawPrint, Shield } from 'lucide-react'
+import { AlertTriangle, FileText, PawPrint, Shield } from 'lucide-react'
 import BrandLogo from './BrandLogo'
 import PreferenceControls from './PreferenceControls'
 
@@ -158,7 +158,7 @@ export default function PublicVetAccess() {
               {examRecords.length === 0 ? (
                 <Empty />
               ) : (
-                <RecordList records={examRecords} />
+                <RecordList records={examRecords} pin={pin} />
               )}
             </Section>
 
@@ -201,23 +201,41 @@ function Section({ title, children }) {
   )
 }
 
-function RecordList({ records }) {
+function RecordList({ records, pin }) {
+  const { t } = useTranslation()
   return (
     <ul className="space-y-2">
-      {records.map((r) => (
-        <li
-          key={r.id}
-          className="rounded-xl border border-cyan-100 bg-white px-3 py-2 text-sm dark:border-cyan-800 dark:bg-cyan-900/40"
-        >
-          <strong className="text-cyan-950 dark:text-cyan-50">{r.title}</strong>
-          <p className="text-cyan-700/80 dark:text-cyan-300/80">
-            {[r.record_type, r.occurred_at].filter(Boolean).join(' · ')}
-          </p>
-          {r.description && (
-            <p className="mt-1 whitespace-pre-wrap text-cyan-800 dark:text-cyan-200">{r.description}</p>
-          )}
-        </li>
-      ))}
+      {records.map((r) => {
+        const docUrl =
+          pin && r.has_document
+            ? `${API_URL}/api/pets/access/${encodeURIComponent(pin)}/records/${r.id}/document`
+            : null
+        return (
+          <li
+            key={r.id}
+            className="rounded-xl border border-cyan-100 bg-white px-3 py-2 text-sm dark:border-cyan-800 dark:bg-cyan-900/40"
+          >
+            <strong className="text-cyan-950 dark:text-cyan-50">{r.title}</strong>
+            <p className="text-cyan-700/80 dark:text-cyan-300/80">
+              {[r.record_type, r.occurred_at].filter(Boolean).join(' · ')}
+            </p>
+            {r.description && (
+              <p className="mt-1 whitespace-pre-wrap text-cyan-800 dark:text-cyan-200">{r.description}</p>
+            )}
+            {docUrl && (
+              <a
+                href={docUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-800 transition hover:bg-teal-100 dark:bg-teal-900/40 dark:text-teal-100 dark:hover:bg-teal-900/70"
+              >
+                <FileText size={12} />
+                {r.document_filename || t('vetAccess.openDocument')}
+              </a>
+            )}
+          </li>
+        )
+      })}
     </ul>
   )
 }

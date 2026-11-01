@@ -315,6 +315,7 @@
     "records": "Medical history",
     "exams": "Exams",
     "consultations": "Follow-up",
+    "openDocument": "Open file",
     "empty": "No records.",
     "footer": "PIN {{pin}} · viewed {{time}}"
   },

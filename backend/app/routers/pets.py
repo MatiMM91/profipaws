@@ -233,9 +233,7 @@ def _ensure_legacy_weight_entry(db: Session, pet: Pet) -> None:
 
 
 
-@router.get("/access/{pin}", response_model=PetExportOut)
-def access_by_pin(pin: str, db: Session = Depends(get_db)):
-    """Public vet access via temporary PIN (no account required)."""
+def _pet_by_valid_pin(db: Session, pin: str) -> Pet:
     pet = db.query(Pet).filter(Pet.access_pin == pin).first()
     if (
         not pet
@@ -243,7 +241,42 @@ def access_by_pin(pin: str, db: Session = Depends(get_db)):
         or pet.access_pin_expires_at < datetime.utcnow()
     ):
         raise HTTPException(status_code=404, detail="Invalid or expired PIN")
-    return _export_pet(db, pet)
+    return pet
+
+
+@router.get("/access/{pin}", response_model=PetExportOut)
+def access_by_pin(pin: str, db: Session = Depends(get_db)):
+    """Public vet access via temporary PIN (no account required)."""
+    return _export_pet(db, _pet_by_valid_pin(db, pin))
+
+
+@router.get("/access/{pin}/records/{record_id}/document")
+def access_record_document_by_pin(
+    pin: str,
+    record_id: int,
+    db: Session = Depends(get_db),
+):
+    """Public: open an exam attachment while the temporary PIN is valid."""
+    pet = _pet_by_valid_pin(db, pin)
+    record = (
+        db.query(MedicalRecord)
+        .filter(MedicalRecord.id == record_id, MedicalRecord.pet_id == pet.id)
+        .first()
+    )
+    if not record or not record.document_data:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    filename = record.document_filename or "examen"
+    media = record.document_content_type or "application/octet-stream"
+    inline = media.startswith("image/") or media == "application/pdf"
+    disposition = "inline" if inline else "attachment"
+    return Response(
+        content=record.document_data,
+        media_type=media,
+        headers={
+            "Content-Disposition": f"{disposition}; filename*=UTF-8''{quote(filename)}",
+        },
+    )
 
 
 @router.get("", response_model=list[PetOut])
