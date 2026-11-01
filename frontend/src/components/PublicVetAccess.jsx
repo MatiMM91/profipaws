@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { AlertTriangle, PawPrint, Shield } from 'lucide-react'
 import BrandLogo from './BrandLogo'
+import PreferenceControls from './PreferenceControls'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -43,9 +44,12 @@ export default function PublicVetAccess() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-teal-50 dark:from-cyan-950 dark:via-slate-950 dark:to-teal-950">
       <header className="border-b border-cyan-100/80 bg-white/70 px-4 py-3 backdrop-blur-md dark:border-cyan-900/60 dark:bg-cyan-950/70">
-        <div className="mx-auto flex max-w-3xl items-center gap-2.5 font-display text-lg font-bold text-cyan-900 dark:text-cyan-50">
-          <BrandLogo className="h-9 w-9" />
-          Profipaws
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 font-display text-lg font-bold text-cyan-900 dark:text-cyan-50">
+            <BrandLogo className="h-9 w-9" />
+            Profipaws
+          </div>
+          <PreferenceControls />
         </div>
       </header>
 
