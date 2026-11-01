@@ -116,11 +116,6 @@ export default function PetProfile() {
   const [deleting, setDeleting] = useState(false)
   const [weightHistoryKey, setWeightHistoryKey] = useState(0)
 
-  const [eventForm, setEventForm] = useState({
-    event_type: 'appointment',
-    title: '',
-    scheduled_at: '',
-  })
   const [conditionForm, setConditionForm] = useState({ name: '', notes: '' })
   const [showConditionForm, setShowConditionForm] = useState(false)
   const [showAllergyForm, setShowAllergyForm] = useState(false)
@@ -128,9 +123,7 @@ export default function PetProfile() {
   const [editingAllergyIdx, setEditingAllergyIdx] = useState(null)
   const [allergyEdit, setAllergyEdit] = useState('')
 
-  const [editingEventId, setEditingEventId] = useState(null)
   const [editingConditionId, setEditingConditionId] = useState(null)
-  const [eventEdit, setEventEdit] = useState({})
   const [conditionEdit, setConditionEdit] = useState({})
 
   const myRole = pet?.my_role || 'owner'
@@ -340,35 +333,38 @@ export default function PetProfile() {
     }
   }
 
-  async function addEvent(e) {
-    e.preventDefault()
+  async function createEvent(payload) {
     const res = await fetch(`${API_URL}/api/pets/${id}/events`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
-        event_type: eventForm.event_type,
-        title: eventForm.title,
-        scheduled_at: new Date(eventForm.scheduled_at).toISOString(),
+        event_type: payload.event_type,
+        title: payload.title,
+        scheduled_at: new Date(payload.scheduled_at).toISOString(),
       }),
     })
-    if (!res.ok) return alert('No se pudo añadir el recordatorio')
-    setEventForm({ event_type: 'appointment', title: '', scheduled_at: '' })
+    if (!res.ok) {
+      alert('No se pudo añadir el recordatorio')
+      throw new Error('create_event_failed')
+    }
     await load()
   }
 
-  async function saveEvent(eventId) {
+  async function updateEvent(eventId, payload) {
     const res = await fetch(`${API_URL}/api/pets/${id}/events/${eventId}`, {
       method: 'PATCH',
       headers: authHeaders(),
       body: JSON.stringify({
-        event_type: eventEdit.event_type,
-        title: eventEdit.title,
-        scheduled_at: new Date(eventEdit.scheduled_at).toISOString(),
-        completed: eventEdit.completed,
+        event_type: payload.event_type,
+        title: payload.title,
+        scheduled_at: new Date(payload.scheduled_at).toISOString(),
+        completed: payload.completed,
       }),
     })
-    if (!res.ok) return alert('No se pudo actualizar el recordatorio')
-    setEditingEventId(null)
+    if (!res.ok) {
+      alert('No se pudo actualizar el recordatorio')
+      throw new Error('update_event_failed')
+    }
     await load()
   }
 
@@ -982,40 +978,15 @@ export default function PetProfile() {
         )}
 
         {tab === 'calendar' && (
-      <section className="mt-5 space-y-4">
+      <section className="mt-5 space-y-3">
         <p className="text-sm text-cyan-700/80 dark:text-cyan-300/80">{t('pet.calendarHint')}</p>
-        {canEdit && (
-        <form onSubmit={addEvent} className="grid gap-2 rounded-xl border border-cyan-100 bg-white dark:border-cyan-800 dark:bg-cyan-900/40 p-4 sm:grid-cols-4">
-          <select className="field px-3 py-2 text-sm" value={eventForm.event_type} onChange={(e) => setEventForm({ ...eventForm, event_type: e.target.value })}>
-            <option value="appointment">{t('pet.appointment')}</option>
-            <option value="vaccine">{t('pet.vaccine')}</option>
-            <option value="medicine">{t('pet.medicine')}</option>
-            <option value="other">{t('pet.other')}</option>
-          </select>
-          <input className="field px-3 py-2 text-sm" placeholder={t('pet.title')} value={eventForm.title} onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })} required />
-          <input type="datetime-local" className="field px-3 py-2 text-sm" value={eventForm.scheduled_at} onChange={(e) => setEventForm({ ...eventForm, scheduled_at: e.target.value })} required />
-          <button type="submit" className="btn-primary text-sm"><Plus size={14} /> {t('pet.add')}</button>
-        </form>
-        )}
         <PetEventCalendar
           events={events}
           canEdit={canEdit}
           locale={i18n.language}
-          editingEventId={editingEventId}
-          eventEdit={eventEdit}
-          setEventEdit={setEventEdit}
-          setEditingEventId={setEditingEventId}
-          onSave={saveEvent}
+          onCreate={createEvent}
+          onUpdate={updateEvent}
           onDelete={deleteEvent}
-          onPickDay={(dayKey) => {
-            if (!canEdit) return
-            setEventForm((f) => ({
-              ...f,
-              scheduled_at: f.scheduled_at?.startsWith(dayKey)
-                ? f.scheduled_at
-                : `${dayKey}T09:00`,
-            }))
-          }}
         />
       </section>
         )}

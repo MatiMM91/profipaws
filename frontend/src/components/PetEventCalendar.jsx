@@ -1,12 +1,25 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Check, ChevronLeft, ChevronRight, Pencil, Trash2, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Pencil, Plus, Trash2, X } from 'lucide-react'
 
 const TYPE_STYLES = {
   appointment: 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-200',
   vaccine: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-200',
   medicine: 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-100',
   other: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200',
+}
+
+const TYPE_DOT = {
+  appointment: 'bg-teal-500',
+  vaccine: 'bg-cyan-500',
+  medicine: 'bg-amber-500',
+  other: 'bg-slate-400',
+}
+
+const emptyForm = {
+  event_type: 'appointment',
+  title: '',
+  scheduled_at: '',
 }
 
 function parseApiDate(iso) {
@@ -40,21 +53,11 @@ function eventDayKey(iso) {
   return localDayKey(d)
 }
 
-function startOfMonth(year, month) {
-  return new Date(year, month, 1)
-}
-
 function buildMonthCells(year, month, weekStartsOn) {
-  const first = startOfMonth(year, month)
-  const firstWeekday = first.getDay() // 0 Sun .. 6 Sat
-  const offset = (firstWeekday - weekStartsOn + 7) % 7
+  const first = new Date(year, month, 1)
+  const offset = (first.getDay() - weekStartsOn + 7) % 7
   const start = new Date(year, month, 1 - offset)
-  const cells = []
-  for (let i = 0; i < 42; i += 1) {
-    const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
-    cells.push(d)
-  }
-  return cells
+  return Array.from({ length: 42 }, (_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + i))
 }
 
 function weekStartsOnForLocale(locale) {
@@ -66,18 +69,18 @@ export default function PetEventCalendar({
   events,
   canEdit,
   locale,
-  editingEventId,
-  eventEdit,
-  setEventEdit,
-  setEditingEventId,
-  onSave,
+  onCreate,
+  onUpdate,
   onDelete,
-  onPickDay,
 }) {
   const { t } = useTranslation()
   const today = new Date()
   const [cursor, setCursor] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
-  const [selectedKey, setSelectedKey] = useState(() => localDayKey(today))
+  const [modalDay, setModalDay] = useState(null)
+  const [mode, setMode] = useState('list') // list | create | edit
+  const [form, setForm] = useState(emptyForm)
+  const [editingId, setEditingId] = useState(null)
+  const [busy, setBusy] = useState(false)
 
   const weekStartsOn = weekStartsOnForLocale(locale)
   const year = cursor.getFullYear()
@@ -85,7 +88,6 @@ export default function PetEventCalendar({
 
   const weekdayLabels = useMemo(() => {
     const fmt = new Intl.DateTimeFormat(locale, { weekday: 'short' })
-    // Pick a known Sunday (2024-01-07) and walk forward.
     const base = new Date(2024, 0, 7 + weekStartsOn)
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i)
@@ -110,11 +112,21 @@ export default function PetEventCalendar({
     return map
   }, [events])
 
-  const selectedEvents = byDay.get(selectedKey) || []
+  const dayEvents = modalDay ? byDay.get(modalDay) || [] : []
   const monthTitle = new Intl.DateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(
     new Date(year, month, 1),
   )
   const todayKey = localDayKey(today)
+  const modalOpen = Boolean(modalDay)
+
+  useEffect(() => {
+    if (!modalOpen) return undefined
+    function onKey(e) {
+      if (e.key === 'Escape') closeModal()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [modalOpen])
 
   function shiftMonth(delta) {
     setCursor((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1))
@@ -123,22 +135,94 @@ export default function PetEventCalendar({
   function goToday() {
     const now = new Date()
     setCursor(new Date(now.getFullYear(), now.getMonth(), 1))
-    setSelectedKey(localDayKey(now))
   }
 
-  function selectDay(date) {
+  function openDay(date) {
     const key = localDayKey(date)
-    setSelectedKey(key)
     if (date.getMonth() !== month || date.getFullYear() !== year) {
       setCursor(new Date(date.getFullYear(), date.getMonth(), 1))
     }
-    onPickDay?.(key)
+    setModalDay(key)
+    setMode('list')
+    setEditingId(null)
+    setForm({
+      event_type: 'appointment',
+      title: '',
+      scheduled_at: `${key}T09:00`,
+    })
   }
 
+  function closeModal() {
+    setModalDay(null)
+    setMode('list')
+    setEditingId(null)
+    setForm(emptyForm)
+  }
+
+  function startCreate() {
+    setMode('create')
+    setEditingId(null)
+    setForm({
+      event_type: 'appointment',
+      title: '',
+      scheduled_at: `${modalDay}T09:00`,
+    })
+  }
+
+  function startEdit(ev) {
+    setMode('edit')
+    setEditingId(ev.id)
+    setForm({
+      event_type: ev.event_type,
+      title: ev.title || '',
+      scheduled_at: toLocalInput(ev.scheduled_at),
+      completed: ev.completed,
+    })
+  }
+
+  async function submitForm(e) {
+    e.preventDefault()
+    if (!form.title.trim() || !form.scheduled_at) return
+    setBusy(true)
+    try {
+      if (mode === 'edit' && editingId != null) {
+        await onUpdate(editingId, {
+          event_type: form.event_type,
+          title: form.title.trim(),
+          scheduled_at: form.scheduled_at,
+          completed: form.completed,
+        })
+      } else {
+        await onCreate({
+          event_type: form.event_type,
+          title: form.title.trim(),
+          scheduled_at: form.scheduled_at,
+        })
+      }
+      setMode('list')
+      setEditingId(null)
+      setForm({
+        event_type: 'appointment',
+        title: '',
+        scheduled_at: `${modalDay}T09:00`,
+      })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const dayLabel = modalDay
+    ? new Intl.DateTimeFormat(locale, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      }).format(new Date(`${modalDay}T12:00:00`))
+    : ''
+
   return (
-    <div className="space-y-4">
+    <div>
       <div className="overflow-hidden rounded-2xl border border-cyan-100 bg-white shadow-sm dark:border-cyan-800 dark:bg-cyan-950/40">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-100/80 px-3 py-2.5 dark:border-cyan-800">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cyan-100/80 px-3 py-2 dark:border-cyan-800">
           <div className="flex items-center gap-1">
             <button
               type="button"
@@ -148,7 +232,7 @@ export default function PetEventCalendar({
             >
               <ChevronLeft size={18} />
             </button>
-            <h3 className="min-w-[10rem] text-center font-display text-sm font-semibold capitalize text-cyan-950 dark:text-cyan-50 sm:text-base">
+            <h3 className="min-w-[10rem] text-center font-display text-sm font-semibold capitalize text-cyan-950 dark:text-cyan-50">
               {monthTitle}
             </h3>
             <button
@@ -169,7 +253,7 @@ export default function PetEventCalendar({
           {weekdayLabels.map((label) => (
             <div
               key={label}
-              className="px-1 py-2 text-center text-[10px] font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-400 sm:text-xs"
+              className="px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-cyan-600 dark:text-cyan-400"
             >
               {label}
             </div>
@@ -180,23 +264,23 @@ export default function PetEventCalendar({
           {cells.map((date) => {
             const key = localDayKey(date)
             const inMonth = date.getMonth() === month
-            const dayEvents = byDay.get(key) || []
-            const selected = key === selectedKey
+            const dayEv = byDay.get(key) || []
+            const selected = key === modalDay
             const isToday = key === todayKey
             return (
               <button
                 key={key}
                 type="button"
-                onClick={() => selectDay(date)}
+                onClick={() => openDay(date)}
                 className={[
-                  'min-h-[4.25rem] border-b border-r border-cyan-50 p-1 text-left transition sm:min-h-[5.5rem] dark:border-cyan-900/60',
+                  'min-h-[2.6rem] border-b border-r border-cyan-50 p-0.5 text-left transition sm:min-h-[3rem] dark:border-cyan-900/60',
                   inMonth ? 'bg-white dark:bg-transparent' : 'bg-cyan-50/40 dark:bg-cyan-950/20',
                   selected ? 'ring-2 ring-inset ring-teal-400 dark:ring-teal-500' : 'hover:bg-cyan-50/80 dark:hover:bg-cyan-900/30',
                 ].join(' ')}
               >
                 <span
                   className={[
-                    'inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold',
+                    'inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold sm:h-6 sm:w-6 sm:text-xs',
                     isToday
                       ? 'bg-teal-600 text-white'
                       : inMonth
@@ -206,141 +290,169 @@ export default function PetEventCalendar({
                 >
                   {date.getDate()}
                 </span>
-                <div className="mt-0.5 space-y-0.5">
-                  {dayEvents.slice(0, 3).map((ev) => (
-                    <div
-                      key={ev.id}
-                      className={[
-                        'truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight sm:text-[11px]',
-                        TYPE_STYLES[ev.event_type] || TYPE_STYLES.other,
-                      ].join(' ')}
-                      title={ev.title}
-                    >
-                      {ev.title}
-                    </div>
-                  ))}
-                  {dayEvents.length > 3 && (
-                    <p className="px-0.5 text-[10px] text-cyan-500 dark:text-cyan-400">
-                      +{dayEvents.length - 3}
-                    </p>
-                  )}
-                </div>
+                {dayEv.length > 0 && (
+                  <div className="mt-0.5 flex flex-wrap items-center gap-0.5 px-0.5">
+                    {dayEv.slice(0, 3).map((ev) => (
+                      <span
+                        key={ev.id}
+                        className={`h-1.5 w-1.5 rounded-full ${TYPE_DOT[ev.event_type] || TYPE_DOT.other}`}
+                        title={ev.title}
+                      />
+                    ))}
+                    {dayEv.length > 3 && (
+                      <span className="text-[9px] leading-none text-cyan-500">+{dayEv.length - 3}</span>
+                    )}
+                  </div>
+                )}
               </button>
             )
           })}
         </div>
       </div>
 
-      <div className="space-y-2">
-        <h4 className="font-display text-sm font-semibold text-cyan-900 dark:text-cyan-100">
-          {t('pet.calendarDayEvents', {
-            date: new Intl.DateTimeFormat(locale, {
-              weekday: 'long',
-              day: 'numeric',
-              month: 'long',
-            }).format(new Date(`${selectedKey}T12:00:00`)),
-          })}
-        </h4>
-
-        {selectedEvents.length === 0 ? (
-          <p className="text-sm text-cyan-600 dark:text-cyan-400">{t('pet.noEventsThatDay')}</p>
-        ) : (
-          <ul className="space-y-2">
-            {selectedEvents.map((ev) => (
-              <li
-                key={ev.id}
-                className="rounded-xl border border-cyan-100 bg-white px-4 py-3 text-sm dark:border-cyan-800 dark:bg-cyan-900/40"
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-cyan-950/40 p-3 sm:items-center"
+          role="presentation"
+          onClick={closeModal}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="calendar-day-modal-title"
+            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-2xl border border-cyan-100 bg-white p-4 shadow-xl dark:border-cyan-800 dark:bg-cyan-950"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <h3
+                  id="calendar-day-modal-title"
+                  className="font-display text-base font-semibold capitalize text-cyan-950 dark:text-cyan-50"
+                >
+                  {dayLabel}
+                </h3>
+                <p className="text-xs text-cyan-600 dark:text-cyan-400">
+                  {mode === 'create'
+                    ? t('pet.calendarAddEvent')
+                    : mode === 'edit'
+                      ? t('pet.calendarEditEvent')
+                      : t('pet.calendarDayDetail')}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-cyan-700 hover:bg-cyan-50 dark:text-cyan-200 dark:hover:bg-cyan-900"
+                onClick={closeModal}
+                aria-label={t('common.cancel')}
               >
-                {editingEventId === ev.id ? (
-                  <div className="grid gap-2 sm:grid-cols-4">
-                    <select
-                      className="field px-2 py-1.5"
-                      value={eventEdit.event_type}
-                      onChange={(e) => setEventEdit({ ...eventEdit, event_type: e.target.value })}
-                    >
-                      <option value="appointment">{t('pet.appointment')}</option>
-                      <option value="vaccine">{t('pet.vaccine')}</option>
-                      <option value="medicine">{t('pet.medicine')}</option>
-                      <option value="other">{t('pet.other')}</option>
-                    </select>
-                    <input
-                      className="field px-2 py-1.5"
-                      value={eventEdit.title}
-                      onChange={(e) => setEventEdit({ ...eventEdit, title: e.target.value })}
-                    />
-                    <input
-                      type="datetime-local"
-                      className="field px-2 py-1.5"
-                      value={eventEdit.scheduled_at}
-                      onChange={(e) => setEventEdit({ ...eventEdit, scheduled_at: e.target.value })}
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="btn-primary px-3 py-1.5 text-xs"
-                        onClick={() => onSave(ev.id)}
-                      >
-                        <Check size={12} /> {t('common.save')}
-                      </button>
-                      <button
-                        type="button"
-                        className="btn-secondary px-3 py-1.5 text-xs"
-                        onClick={() => setEditingEventId(null)}
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  </div>
+                <X size={16} />
+              </button>
+            </div>
+
+            {mode === 'list' ? (
+              <div className="space-y-3">
+                {dayEvents.length === 0 ? (
+                  <p className="text-sm text-cyan-600 dark:text-cyan-400">{t('pet.noEventsThatDay')}</p>
                 ) : (
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <span
-                        className={[
-                          'rounded px-2 py-0.5 text-xs font-medium',
-                          TYPE_STYLES[ev.event_type] || TYPE_STYLES.other,
-                        ].join(' ')}
+                  <ul className="space-y-2">
+                    {dayEvents.map((ev) => (
+                      <li
+                        key={ev.id}
+                        className="rounded-xl border border-cyan-100 bg-cyan-50/50 px-3 py-2.5 text-sm dark:border-cyan-800 dark:bg-cyan-900/40"
                       >
-                        {t(`pet.${ev.event_type}`, { defaultValue: ev.event_type })}
-                      </span>
-                      <strong className="ml-2 text-cyan-900 dark:text-cyan-100">{ev.title}</strong>
-                      <span className="text-cyan-600">
-                        {' '}
-                        · {formatLocalDateTime(ev.scheduled_at, locale)}
-                      </span>
-                    </div>
-                    {canEdit && (
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 rounded-lg bg-cyan-50 px-2.5 py-1 text-xs text-cyan-800"
-                          onClick={() => {
-                            setEditingEventId(ev.id)
-                            setEventEdit({
-                              event_type: ev.event_type,
-                              title: ev.title,
-                              scheduled_at: toLocalInput(ev.scheduled_at),
-                              completed: ev.completed,
-                            })
-                          }}
-                        >
-                          <Pencil size={12} /> {t('pet.edit')}
-                        </button>
-                        <button
-                          type="button"
-                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1 text-xs text-red-700"
-                          onClick={() => onDelete(ev.id)}
-                        >
-                          <Trash2 size={12} /> {t('pet.delete')}
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <span
+                              className={[
+                                'rounded px-1.5 py-0.5 text-[10px] font-medium',
+                                TYPE_STYLES[ev.event_type] || TYPE_STYLES.other,
+                              ].join(' ')}
+                            >
+                              {t(`pet.${ev.event_type}`, { defaultValue: ev.event_type })}
+                            </span>
+                            <p className="mt-1 font-medium text-cyan-950 dark:text-cyan-50">{ev.title}</p>
+                            <p className="text-xs text-cyan-600 dark:text-cyan-400">
+                              {formatLocalDateTime(ev.scheduled_at, locale)}
+                            </p>
+                          </div>
+                          {canEdit && (
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded-lg bg-white px-2 py-1 text-xs text-cyan-800 shadow-sm dark:bg-cyan-950"
+                                onClick={() => startEdit(ev)}
+                              >
+                                <Pencil size={12} /> {t('pet.edit')}
+                              </button>
+                              <button
+                                type="button"
+                                className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1 text-xs text-red-700 dark:bg-red-950/40"
+                                onClick={() => onDelete(ev.id)}
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
                 )}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+
+                {canEdit && (
+                  <button type="button" className="btn-primary w-full text-sm" onClick={startCreate}>
+                    <Plus size={14} /> {t('pet.add')}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <form onSubmit={submitForm} className="space-y-2.5">
+                <select
+                  className="field w-full px-3 py-2 text-sm"
+                  value={form.event_type}
+                  onChange={(e) => setForm({ ...form, event_type: e.target.value })}
+                >
+                  <option value="appointment">{t('pet.appointment')}</option>
+                  <option value="vaccine">{t('pet.vaccine')}</option>
+                  <option value="medicine">{t('pet.medicine')}</option>
+                  <option value="other">{t('pet.other')}</option>
+                </select>
+                <input
+                  className="field w-full px-3 py-2 text-sm"
+                  placeholder={t('pet.title')}
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  required
+                  autoFocus
+                />
+                <input
+                  type="datetime-local"
+                  className="field w-full px-3 py-2 text-sm"
+                  value={form.scheduled_at}
+                  onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
+                  required
+                />
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    className="btn-secondary flex-1 text-sm"
+                    onClick={() => {
+                      setMode('list')
+                      setEditingId(null)
+                    }}
+                    disabled={busy}
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button type="submit" className="btn-primary flex-1 text-sm" disabled={busy}>
+                    <Check size={14} /> {t('common.save')}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
