@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { FileText, Plus, Pencil, Trash2, Check, X, Download, Paperclip, Syringe, Weight } from 'lucide-react'
 import PetWeightHistory from './PetWeightHistory'
 import { todayISODate } from '../utils/dates'
+import { downloadBlob } from '../utils/download'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -168,12 +169,7 @@ export default function PetHistorial({
     })
     if (!res.ok) return alert(t('historial.downloadError'))
     const blob = await res.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = record.document_filename || 'examen'
-    a.click()
-    URL.revokeObjectURL(url)
+    downloadBlob(blob, record.document_filename || 'examen')
   }
 
   function startEdit(item) {

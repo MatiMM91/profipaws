@@ -46,7 +46,7 @@ export default function PetTools({ petId, isPro }) {
     try {
       await downloadAndShare(path, filename)
     } catch (e) {
-      if (e.status === 403) Alert.alert(t('pet.proRequired'))
+      if (e.status === 402 || e.status === 403) Alert.alert(t('pet.proRequired'))
       else Alert.alert(t('pet.exportError'))
     } finally {
       setExporting(null)
@@ -64,7 +64,7 @@ export default function PetTools({ petId, isPro }) {
         title={exporting === 'pass' ? t('pet.exporting') : t('pet.vaccinePassAction')}
         icon={<ShieldCheck size={16} color={colors.primaryText} />}
         onPress={() =>
-          runExport(`/api/pets/${petId}/export/vaccine-pass`, `profipaws-pass-${petId}.pdf`, 'pass', false)
+          runExport(`/api/pets/${petId}/vaccine-pass`, `profipaws-pass-${petId}.pdf`, 'pass', false)
         }
         loading={exporting === 'pass'}
       />
@@ -81,7 +81,7 @@ export default function PetTools({ petId, isPro }) {
       <SecondaryButton
         title={exporting === 'json' ? t('pet.exporting') : t('pet.exportJsonAction')}
         onPress={() =>
-          runExport(`/api/pets/${petId}/export/json`, `profipaws-${petId}.json`, 'json', true)
+          runExport(`/api/pets/${petId}/export`, `profipaws-${petId}.json`, 'json', true)
         }
         loading={exporting === 'json'}
       />

@@ -23,6 +23,7 @@ import PetSharePanel from './PetSharePanel'
 import PetHistorial from './PetHistorial'
 import PetConsultations from './PetConsultations'
 import { formatPetAge, formatPetSummaryLine } from '../utils/petAge'
+import { downloadBlob, downloadResponse } from '../utils/download'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -208,11 +209,9 @@ export default function PetProfile() {
     if (evRes.ok) setEvents(await evRes.json())
     if (condRes.ok) setConditions(await condRes.json())
 
-    let pro = false
     if (subRes.ok) {
       const sub = await subRes.json()
-      pro = sub.tier === 'pro' || sub.tier === 'PRO'
-      setIsPro(pro)
+      setIsPro(String(sub.tier || '').toLowerCase() === 'pro')
     } else {
       setIsPro(false)
     }
@@ -303,41 +302,41 @@ export default function PetProfile() {
   }
 
   async function downloadExport(format) {
+    if ((format === 'pdf' || format === 'json') && !isPro) {
+      setError(t('pet.proRequired'))
+      return
+    }
     setExportBusy(format)
     setError('')
     const path =
       format === 'pdf' ? 'export/pdf' : format === 'pass' ? 'vaccine-pass' : 'export'
-    const res = await fetch(`${API_URL}/api/pets/${id}/${path}`, { headers: authHeaders() })
-    setExportBusy('')
-    if (res.status === 402) {
-      setError(t('pet.proRequired'))
-      return
-    }
-    if (!res.ok) {
+    const safeName = String(pet?.name || id || 'pet').replace(/[^\w\-]+/g, '-')
+    try {
+      const res = await fetch(`${API_URL}/api/pets/${id}/${path}`, { headers: authHeaders() })
+      if (res.status === 402) {
+        setError(t('pet.proRequired'))
+        return
+      }
+      if (!res.ok) {
+        setError(t('pet.exportError'))
+        return
+      }
+      if (format === 'pdf' || format === 'pass') {
+        const filename =
+          format === 'pass' ? `profipaws-pass-${safeName}.pdf` : `profipaws-${safeName}.pdf`
+        await downloadResponse(res, filename)
+        return
+      }
+      const data = await res.json()
+      const blob = new Blob([JSON.stringify(data, null, 2)], {
+        type: 'application/json;charset=utf-8',
+      })
+      downloadBlob(blob, `profipaws-${safeName}.json`)
+    } catch {
       setError(t('pet.exportError'))
-      return
+    } finally {
+      setExportBusy('')
     }
-    if (format === 'pdf' || format === 'pass') {
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download =
-        format === 'pass'
-          ? `profipaws-pass-${pet?.name || id}.pdf`
-          : `profipaws-${pet?.name || id}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
-      return
-    }
-    const data = await res.json()
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `profipaws-${pet?.name || id}.json`
-    a.click()
-    URL.revokeObjectURL(url)
   }
 
   async function addEvent(e) {
@@ -924,7 +923,7 @@ export default function PetProfile() {
               <button
                 type="button"
                 className="btn-secondary shrink-0 px-3 py-1.5 text-xs sm:self-center"
-                disabled={!isPro || !!exportBusy}
+                disabled={!!exportBusy}
                 onClick={() => downloadExport('pdf')}
               >
                 {exportBusy === 'pdf' ? t('pet.exporting') : t('pet.exportPdfAction')}
@@ -943,7 +942,7 @@ export default function PetProfile() {
               <button
                 type="button"
                 className="btn-secondary shrink-0 px-3 py-1.5 text-xs sm:self-center"
-                disabled={!isPro || !!exportBusy}
+                disabled={!!exportBusy}
                 onClick={() => downloadExport('json')}
               >
                 {exportBusy === 'json' ? t('pet.exporting') : t('pet.exportJsonAction')}

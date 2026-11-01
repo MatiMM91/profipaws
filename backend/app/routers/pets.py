@@ -1024,7 +1024,14 @@ def delete_condition(
     db.commit()
 
 
+def _safe_filename(name: str, fallback: str = "pet") -> str:
+    raw = (name or fallback).strip().lower().replace(" ", "-")
+    cleaned = "".join(ch for ch in raw if ch.isalnum() or ch in "-_")
+    return cleaned or fallback
+
+
 @router.get("/{pet_id}/export", response_model=PetExportOut)
+@router.get("/{pet_id}/export/json", response_model=PetExportOut)
 def export_pet(
     pet_id: int,
     current_user: User = Depends(require_pro),
@@ -1046,7 +1053,7 @@ def export_pet_pdf(
     dossier = _export_pet(db, pet)
     payload = dossier.model_dump(mode="json")
     pdf_bytes = build_pet_passport_pdf(payload)
-    filename = f"profipaws-{pet.name.lower().replace(' ', '-')}.pdf"
+    filename = f"profipaws-{_safe_filename(pet.name)}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -1055,6 +1062,7 @@ def export_pet_pdf(
 
 
 @router.get("/{pet_id}/vaccine-pass")
+@router.get("/{pet_id}/export/vaccine-pass")
 def export_vaccine_pass(
     pet_id: int,
     current_user: User = Depends(get_current_user),
@@ -1065,7 +1073,7 @@ def export_vaccine_pass(
     dossier = _export_pet(db, pet)
     payload = dossier.model_dump(mode="json")
     pdf_bytes = build_vaccine_pass_pdf(payload)
-    filename = f"profipaws-pass-{pet.name.lower().replace(' ', '-')}.pdf"
+    filename = f"profipaws-pass-{_safe_filename(pet.name)}.pdf"
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
