@@ -311,8 +311,9 @@
     "weight": "Peso",
     "allergies": "Alergias",
     "vaccines": "Vacinas",
-    "records": "Histórico médico",
     "conditions": "Doenças crónicas",
+    "records": "Histórico médico",
+    "exams": "Exames",
     "consultations": "Acompanhamento",
     "empty": "Sem registos.",
     "footer": "PIN {{pin}} · visto {{time}}"

@@ -40,6 +40,9 @@ export default function PublicVetAccess() {
 
   const pet = data?.pet
   const locale = i18n.language
+  const allRecords = data?.medical_records || []
+  const examRecords = allRecords.filter((r) => String(r.record_type || '').toLowerCase() === 'exam')
+  const historyRecords = allRecords.filter((r) => String(r.record_type || '').toLowerCase() !== 'exam')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-teal-50 dark:from-cyan-950 dark:via-slate-950 dark:to-teal-950">
@@ -128,26 +131,6 @@ export default function PublicVetAccess() {
               )}
             </Section>
 
-            <Section title={t('vetAccess.records')}>
-              {(data.medical_records || []).length === 0 ? (
-                <Empty />
-              ) : (
-                <ul className="space-y-2">
-                  {data.medical_records.map((r) => (
-                    <li key={r.id} className="rounded-xl border border-cyan-100 bg-white px-3 py-2 text-sm dark:border-cyan-800 dark:bg-cyan-900/40">
-                      <strong className="text-cyan-950 dark:text-cyan-50">{r.title}</strong>
-                      <p className="text-cyan-700/80 dark:text-cyan-300/80">
-                        {[r.record_type, r.occurred_at].filter(Boolean).join(' · ')}
-                      </p>
-                      {r.description && (
-                        <p className="mt-1 whitespace-pre-wrap text-cyan-800 dark:text-cyan-200">{r.description}</p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Section>
-
             <Section title={t('vetAccess.conditions')}>
               {(data.chronic_conditions || []).length === 0 ? (
                 <Empty />
@@ -160,6 +143,22 @@ export default function PublicVetAccess() {
                     </li>
                   ))}
                 </ul>
+              )}
+            </Section>
+
+            <Section title={t('vetAccess.records')}>
+              {historyRecords.length === 0 ? (
+                <Empty />
+              ) : (
+                <RecordList records={historyRecords} />
+              )}
+            </Section>
+
+            <Section title={t('vetAccess.exams')}>
+              {examRecords.length === 0 ? (
+                <Empty />
+              ) : (
+                <RecordList records={examRecords} />
               )}
             </Section>
 
@@ -199,6 +198,27 @@ function Section({ title, children }) {
       </h3>
       {children}
     </section>
+  )
+}
+
+function RecordList({ records }) {
+  return (
+    <ul className="space-y-2">
+      {records.map((r) => (
+        <li
+          key={r.id}
+          className="rounded-xl border border-cyan-100 bg-white px-3 py-2 text-sm dark:border-cyan-800 dark:bg-cyan-900/40"
+        >
+          <strong className="text-cyan-950 dark:text-cyan-50">{r.title}</strong>
+          <p className="text-cyan-700/80 dark:text-cyan-300/80">
+            {[r.record_type, r.occurred_at].filter(Boolean).join(' · ')}
+          </p>
+          {r.description && (
+            <p className="mt-1 whitespace-pre-wrap text-cyan-800 dark:text-cyan-200">{r.description}</p>
+          )}
+        </li>
+      ))}
+    </ul>
   )
 }
 
