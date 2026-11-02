@@ -126,7 +126,9 @@ export default function LandingPage() {
   }, [navigate])
 
   useEffect(() => {
-    if (searchParams.get('login') === '1' && !MAINTENANCE_MODE && !getToken()) {
+    // During maintenance, login still opens so allowlisted accounts can sign in;
+    // the API rejects everyone else.
+    if (searchParams.get('login') === '1' && !getToken()) {
       setShowOfficialButton(Boolean(GOOGLE_CLIENT_ID))
       setLoginOpen(true)
     }
@@ -158,21 +160,13 @@ export default function LandingPage() {
   }, [searchParams])
 
   function openLogin() {
-    if (MAINTENANCE_MODE) {
-      alert(t('landing.maintenanceLoginDenied'))
-      return
-    }
     // Official Google button lives in the modal (not the nav) — reliable + compact header.
+    // In maintenance, backend allowlist decides who can obtain a JWT.
     setShowOfficialButton(Boolean(GOOGLE_CLIENT_ID))
     setLoginOpen(true)
   }
 
   async function continueWithGoogle() {
-    if (MAINTENANCE_MODE) {
-      alert(t('landing.maintenanceLoginDenied'))
-      return
-    }
-
     if (GOOGLE_CLIENT_ID) {
       setShowOfficialButton(true)
       if (window.google?.accounts?.id) {
@@ -303,19 +297,17 @@ export default function LandingPage() {
               </Link>
             </>
           )}
-          {!MAINTENANCE_MODE && (
-            <button
-              type="button"
-              onClick={openLogin}
-              className={`inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold transition ${
-                isDark
-                  ? 'bg-white text-cyan-950 hover:bg-cyan-50'
-                  : 'bg-cyan-700 text-white hover:bg-cyan-800'
-              }`}
-            >
-              {t('nav.signIn')}
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={openLogin}
+            className={`inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold transition ${
+              isDark
+                ? 'bg-white text-cyan-950 hover:bg-cyan-50'
+                : 'bg-cyan-700 text-white hover:bg-cyan-800'
+            }`}
+          >
+            {t('nav.signIn')}
+          </button>
         </div>
       </nav>
 
@@ -323,7 +315,7 @@ export default function LandingPage() {
         open={loginOpen}
         onClose={() => !loginLoading && !demoLoading && setLoginOpen(false)}
         onContinue={continueWithGoogle}
-        onDemo={enterDemo}
+        onDemo={MAINTENANCE_MODE ? undefined : enterDemo}
         loading={loginLoading || (Boolean(GOOGLE_CLIENT_ID) && !googleReady)}
         demoLoading={demoLoading}
         isDark={isDark}

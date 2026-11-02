@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import BrandLogo from './BrandLogo'
-import { MAINTENANCE_MODE } from '../config'
-
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 const CLIP_PREFIX = 'PROFIPAWS_AUTH_V1:'
@@ -68,11 +66,8 @@ export default function MobileAuthBridge() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    if (MAINTENANCE_MODE) {
-      setStatus('ready')
-      setError('Acceso no disponible mientras el sitio está en desarrollo.')
-      return undefined
-    }
+    // Maintenance: still allow Google sign-in so allowlisted emails can enter;
+    // API returns 503 for everyone else.
     if (!GOOGLE_CLIENT_ID) {
       setStatus('ready')
       setError('Google Client ID no configurado en el frontend (VITE_GOOGLE_CLIENT_ID).')
