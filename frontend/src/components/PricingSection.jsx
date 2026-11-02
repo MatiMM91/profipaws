@@ -59,13 +59,17 @@ export default function PricingSection({ variant = 'account', compact = false } 
     }
     setBusy(true)
     try {
+      const origin = window.location.origin
       const res = await fetch(`${API_URL}/api/subscriptions/checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          success_url: `${origin}/dashboard?upgrade=success`,
+          cancel_url: `${origin}${isPublic ? '/planes' : '/pricing'}?upgrade=canceled`,
+        }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
