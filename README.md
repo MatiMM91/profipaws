@@ -44,7 +44,9 @@ profipaws/
 | `medical_records` | Enfermedades, cirugías, exámenes (PDF/URL) |
 | `calendar_events` | Recordatorios (vacuna, medicina, cita) |
 | `daily_logs` | Diario del dueño para la consulta |
-| `clinic_api_keys` | API Keys hasheadas para clínicas B2B |
+| `clinic_api_keys` | API Keys hasheadas para clínicas B2B. Solo ven mascotas con permiso explícito |
+| `clinic_pet_grants` | Consentimiento del dueño: una clave puede leer y escribir una mascota |
+| `clinic_access_events` | Lecturas y escrituras hechas con una clave de clínica |
 
 Límite del plan **Gratuito**: 1 mascota. Plan **Pro** (€5–10/mes): mascotas ilimitadas, alertas y exportación.
 
@@ -111,9 +113,28 @@ Authorization: Bearer <jwt>
 { "clinic_name": "Clínica Vet Norte" }
 ```
 
-La respuesta incluye `api_key` **una sola vez** (formato `ppk_…`).
+La respuesta incluye `api_key` **una sola vez** (formato `ppk_…`). La clave no abre ningún expediente todavía.
 
-2. La clínica consulta o escribe el expediente por **número de chip**:
+2. El dueño autoriza esa clave para una mascota concreta (el número de chip no basta):
+
+```http
+POST /api/pets/{pet_id}/clinic-grants
+Authorization: Bearer <jwt>
+{ "clinic_key_id": 1 }
+```
+
+Sin ese permiso, la clínica recibe 404 tanto si el chip no existe como si no está autorizado. El nombre de clínica de vacunas y registros lo fija la clave, no el cuerpo de la petición. Cada acceso queda en `GET /api/pets/{pet_id}/clinic-access`.
+
+Revocar la clave (deja de funcionar al momento):
+
+```http
+DELETE /api/clinic-keys/{key_id}
+Authorization: Bearer <jwt>
+```
+
+Quitar solo una mascota: `DELETE /api/pets/{pet_id}/clinic-grants/{grant_id}`.
+
+3. La clínica consulta o escribe el expediente por **número de chip**:
 
 ```http
 GET /api/v1/external/pets/{chip_id}/records

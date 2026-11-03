@@ -17,6 +17,8 @@ from app.models import (  # noqa: F401 — ensure models are registered
     Consultation,
     ConsultationNote,
     ClinicApiKey,
+    ClinicPetGrant,
+    ClinicAccessEvent,
     WeightEntry,
 )
 from app.routers import auth, pets, subscriptions, external, alerts
@@ -41,6 +43,10 @@ def _ensure_schema_updates() -> None:
             "ALTER TABLE vaccines ADD COLUMN IF NOT EXISTS brand VARCHAR(120)",
             "ALTER TABLE vaccines ADD COLUMN IF NOT EXISTS code VARCHAR(80)",
             "ALTER TABLE pets ADD COLUMN IF NOT EXISTS color VARCHAR(80)",
+            "ALTER TABLE vaccines ADD COLUMN IF NOT EXISTS clinic_api_key_id INTEGER REFERENCES clinic_api_keys(id) ON DELETE SET NULL",
+            "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS clinic_api_key_id INTEGER REFERENCES clinic_api_keys(id) ON DELETE SET NULL",
+            "CREATE INDEX IF NOT EXISTS ix_vaccines_clinic_api_key_id ON vaccines (clinic_api_key_id)",
+            "CREATE INDEX IF NOT EXISTS ix_medical_records_clinic_api_key_id ON medical_records (clinic_api_key_id)",
         ):
             try:
                 conn.execute(text(stmt))

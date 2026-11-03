@@ -127,6 +127,9 @@ class Pet(Base):
     shares: Mapped[list["PetShare"]] = relationship(
         back_populates="pet", cascade="all, delete-orphan"
     )
+    clinic_grants: Mapped[list["ClinicPetGrant"]] = relationship(
+        back_populates="pet", cascade="all, delete-orphan"
+    )
     vaccines: Mapped[list["Vaccine"]] = relationship(
         back_populates="pet", cascade="all, delete-orphan"
     )
@@ -211,6 +214,9 @@ class Vaccine(Base):
     next_due_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     veterinarian: Mapped[str | None] = mapped_column(String(255), nullable=True)
     clinic_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    clinic_api_key_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clinic_api_keys.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -232,6 +238,9 @@ class MedicalRecord(Base):
     document_data: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
     veterinarian: Mapped[str | None] = mapped_column(String(255), nullable=True)
     clinic_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    clinic_api_key_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clinic_api_keys.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     pet: Mapped["Pet"] = relationship(back_populates="medical_records")
@@ -316,3 +325,42 @@ class ClinicApiKey(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     owner: Mapped["User"] = relationship(back_populates="clinic_api_keys")
+    grants: Mapped[list["ClinicPetGrant"]] = relationship(
+        back_populates="clinic_key", cascade="all, delete-orphan"
+    )
+
+
+class ClinicPetGrant(Base):
+    """Owner consent: this clinic key may read and write one pet."""
+
+    __tablename__ = "clinic_pet_grants"
+    __table_args__ = (
+        UniqueConstraint("clinic_api_key_id", "pet_id", name="uq_clinic_pet_grant"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    clinic_api_key_id: Mapped[int] = mapped_column(
+        ForeignKey("clinic_api_keys.id", ondelete="CASCADE"), index=True
+    )
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    granted_by_user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    clinic_key: Mapped["ClinicApiKey"] = relationship(back_populates="grants")
+    pet: Mapped["Pet"] = relationship(back_populates="clinic_grants")
+
+
+class ClinicAccessEvent(Base):
+    """Successful clinic API read or write against a granted pet."""
+
+    __tablename__ = "clinic_access_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    clinic_api_key_id: Mapped[int | None] = mapped_column(
+        ForeignKey("clinic_api_keys.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    action: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

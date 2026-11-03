@@ -448,3 +448,26 @@ class ClinicApiKeyOut(BaseModel):
     is_active: bool
     created_at: datetime
     api_key: Optional[str] = None  # only returned once on creation
+
+
+class ClinicPetGrantCreate(BaseModel):
+    clinic_key_id: int
+
+
+class ClinicPetGrantOut(BaseModel):
+    id: int
+    pet_id: int
+    clinic_key_id: int
+    clinic_name: str
+    key_prefix: str
+    key_active: bool
+    created_at: datetime
+
+
+class ClinicAccessEventOut(BaseModel):
+    id: int
+    action: str
+    clinic_key_id: Optional[int] = None
+    clinic_name: Optional[str] = None
+    key_prefix: Optional[str] = None
+    created_at: datetime
