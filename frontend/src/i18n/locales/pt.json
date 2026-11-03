@@ -375,7 +375,14 @@
     "demoBlocked": "A demo não pode comprar o acesso. Saia e entre com Google para criar a sua conta e pagar uma só vez.",
     "checkoutLoginTitle": "Antes do pagamento",
     "checkoutLoginSubtitle": "Entre com o seu Gmail para associar a compra à sua conta. Depois abrimos a página segura de pagamento da Stripe.",
-    "checkoutLoginHint": "Precisa de iniciar sessão com Google (Gmail) para continuar para o checkout da Stripe. Sem conta não podemos ativar o acesso após o pagamento."
+    "checkoutLoginHint": "Precisa de iniciar sessão com Google (Gmail) para continuar para o checkout da Stripe. Sem conta não podemos ativar o acesso após o pagamento.",
+    "leftCheckoutTitle": "Não concluiu o pagamento",
+    "signedInUnpaidTitle": "A sua conta ainda não tem acesso completo",
+    "leftCheckoutBody": "Entrou com Google, mas o acesso completo só se ativa após o pagamento. Pode pagar agora, ou terminar a sessão para voltar ao início ou experimentar a demo.",
+    "leftCheckoutBodyEmail": "Entrou com {{email}}. O acesso completo só se ativa após o pagamento. Pode pagar abaixo, ou terminar a sessão para voltar ao início ou experimentar a demo.",
+    "signOutHome": "Terminar sessão e ir ao início",
+    "signOutDemo": "Terminar sessão e experimentar a demo",
+    "switchAccount": "Usar outro e-mail"
   },
   "common": {
     "save": "Guardar",

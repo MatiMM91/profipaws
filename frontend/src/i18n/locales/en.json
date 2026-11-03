@@ -375,7 +375,14 @@
     "demoBlocked": "The demo cannot purchase access. Sign out and sign in with Google to create your account and pay once.",
     "checkoutLoginTitle": "Before checkout",
     "checkoutLoginSubtitle": "Sign in with your Gmail so we can link the purchase to your account. Then we’ll open the secure Stripe payment page.",
-    "checkoutLoginHint": "You need to sign in with Google (Gmail) to continue to Stripe Checkout. Without an account we can’t unlock access after payment."
+    "checkoutLoginHint": "You need to sign in with Google (Gmail) to continue to Stripe Checkout. Without an account we can’t unlock access after payment.",
+    "leftCheckoutTitle": "You didn’t finish payment",
+    "signedInUnpaidTitle": "Your account doesn’t have full access yet",
+    "leftCheckoutBody": "You’re signed in with Google, but full access unlocks only after payment. Pay now, or sign out to return home or try the demo.",
+    "leftCheckoutBodyEmail": "You’re signed in as {{email}}. Full access unlocks only after payment. Pay below, or sign out to return home or try the demo.",
+    "signOutHome": "Sign out and go home",
+    "signOutDemo": "Sign out and try demo",
+    "switchAccount": "Use another email"
   },
   "common": {
     "save": "Save",

@@ -116,6 +116,7 @@ export default function LandingPage() {
       window.location.replace('/dashboard')
       return
     }
+    // Unpaid Google session stays on marketing / planes — not inside the app.
     window.location.replace('/planes')
   }
 
@@ -137,7 +138,7 @@ export default function LandingPage() {
         navigate('/dashboard', { replace: true })
         return
       }
-      window.location.replace('/planes')
+      // Allow unpaid users to view the landing (Home). App routes stay gated by RequirePro.
     })()
     return () => {
       cancelled = true
