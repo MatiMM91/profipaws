@@ -380,15 +380,6 @@ export default function LandingPage() {
                 >
                   {demoLoading ? t('landing.demoWorking') : t('landing.ctaDemo')}
                 </button>
-                <button
-                  type="button"
-                  onClick={openLogin}
-                  className={`text-sm font-medium underline-offset-2 hover:underline ${
-                    isDark ? 'text-cyan-200/80' : 'text-cyan-700'
-                  }`}
-                >
-                  {t('nav.signIn')}
-                </button>
               </>
             )}
           </div>
