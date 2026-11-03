@@ -48,22 +48,23 @@ export async function createCheckoutSession({ cancelPath = '/planes' } = {}) {
   return data.checkout_url
 }
 
-/** Start Checkout or fall back to the public plans page. */
+/** Start Checkout or fall back to the public plans page.
+ * Uses location.replace so browser Back from Stripe does not restore the app. */
 export async function redirectToCheckout({ cancelPath = '/planes' } = {}) {
   try {
     const url = await createCheckoutSession({ cancelPath })
-    window.location.href = url
+    window.location.replace(url)
   } catch (e) {
     if (e?.message === 'DEMO_BLOCKED') {
-      window.location.href = '/planes'
+      window.location.replace('/planes')
       return
     }
     // Already unlocked, etc.
     if (typeof e?.message === 'string' && /ya tienes acceso/i.test(e.message)) {
-      window.location.href = '/dashboard'
+      window.location.replace('/dashboard')
       return
     }
     console.error(e)
-    window.location.href = `${cancelPath}?upgrade=canceled`
+    window.location.replace(`${cancelPath}?upgrade=canceled`)
   }
 }

@@ -6,7 +6,7 @@ import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
 import { authHeaders, getStoredUser, getToken, handleAuthFailure, isDemoUser } from '../auth'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-const FREE_PET_LIMIT = 5
+const FREE_PET_LIMIT = 0
 
 function parseApiDate(iso) {
   if (!iso) return null

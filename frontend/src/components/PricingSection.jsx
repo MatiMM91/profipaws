@@ -127,7 +127,7 @@ export default function PricingSection({ variant = 'account', compact = false } 
     setBusy(true)
     try {
       const url = await createCheckoutSession({ cancelPath })
-      window.location.href = url
+      window.location.replace(url)
     } catch (e) {
       alert(e?.message || t('pricing.stripeMissing'))
     } finally {

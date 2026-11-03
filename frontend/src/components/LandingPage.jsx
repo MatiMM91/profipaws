@@ -105,8 +105,7 @@ export default function LandingPage() {
       return
     }
 
-    // Pay CTA (?next=checkout) or any unpaid Google account → Stripe Checkout.
-    // Trying the product without paying is what Demo is for.
+    // Explicit pay intent → Stripe. Other unpaid logins → /planes (Demo or pay).
     if (next === 'checkout') {
       await redirectToCheckout({ cancelPath: '/planes' })
       return
@@ -114,10 +113,10 @@ export default function LandingPage() {
 
     const tier = await fetchSubscriptionTier()
     if (tier === 'pro') {
-      window.location.href = '/dashboard'
+      window.location.replace('/dashboard')
       return
     }
-    await redirectToCheckout({ cancelPath: '/planes' })
+    window.location.replace('/planes')
   }
 
   useEffect(() => {
@@ -138,7 +137,7 @@ export default function LandingPage() {
         navigate('/dashboard', { replace: true })
         return
       }
-      await redirectToCheckout({ cancelPath: '/planes' })
+      window.location.replace('/planes')
     })()
     return () => {
       cancelled = true
