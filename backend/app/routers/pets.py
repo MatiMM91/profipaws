@@ -67,7 +67,8 @@ from app.services.pet_access import (
 router = APIRouter(prefix="/pets", tags=["Pets"])
 settings = get_settings()
 
-FREE_PET_LIMIT = 5
+# Unpaid Google accounts cannot add pets — try Demo or unlock once (€20).
+FREE_PET_LIMIT = 0
 MAX_EXAM_BYTES = 5 * 1024 * 1024
 ALLOWED_EXAM_TYPES = {
     "application/pdf",
@@ -303,7 +304,7 @@ def create_pet(
     ):
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail="Free accounts can have up to 5 pets. Unlock full access (one-time €20) for unlimited pets.",
+            detail="Unlock full access (one-time €20) to add pets. Or try the free Demo from the landing page.",
         )
 
     if payload.chip_id:

@@ -24,7 +24,8 @@ import BrandLogo from './BrandLogo'
 import LoginModal from './LoginModal'
 import { useTheme } from '../theme/ThemeProvider'
 import { MAINTENANCE_MODE } from '../config'
-import { getToken, setSession } from '../auth'
+import { getToken, setSession, isDemoUser, getStoredUser } from '../auth'
+import { fetchSubscriptionTier, redirectToCheckout } from '../billing'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
@@ -105,8 +106,7 @@ export default function LandingPage() {
   const isDark = theme === 'dark'
   const demoStarted = useRef(false)
 
-  function goAfterLogin() {
-    // Always land on pets after login (ignore marketing ?next=/pricing, etc.)
+  async function goAfterLogin() {
     const next = searchParams.get('next')
     if (
       next &&
@@ -116,14 +116,52 @@ export default function LandingPage() {
       window.location.href = next
       return
     }
-    window.location.href = '/dashboard'
+
+    // Demo sandbox may use the app without paying.
+    if (isDemoUser(getStoredUser())) {
+      window.location.href = '/dashboard'
+      return
+    }
+
+    // Pay CTA (?next=checkout) or any unpaid Google account → Stripe Checkout.
+    // Trying the product without paying is what Demo is for.
+    if (next === 'checkout') {
+      await redirectToCheckout({ cancelPath: '/planes' })
+      return
+    }
+
+    const tier = await fetchSubscriptionTier()
+    if (tier === 'pro') {
+      window.location.href = '/dashboard'
+      return
+    }
+    await redirectToCheckout({ cancelPath: '/planes' })
   }
 
   useEffect(() => {
-    if (getToken()) {
-      navigate('/dashboard', { replace: true })
+    if (!getToken()) return undefined
+    let cancelled = false
+    ;(async () => {
+      if (isDemoUser(getStoredUser())) {
+        if (!cancelled) navigate('/dashboard', { replace: true })
+        return
+      }
+      if (searchParams.get('next') === 'checkout') {
+        await redirectToCheckout({ cancelPath: '/planes' })
+        return
+      }
+      const tier = await fetchSubscriptionTier()
+      if (cancelled) return
+      if (tier === 'pro') {
+        navigate('/dashboard', { replace: true })
+        return
+      }
+      await redirectToCheckout({ cancelPath: '/planes' })
+    })()
+    return () => {
+      cancelled = true
     }
-  }, [navigate])
+  }, [navigate, searchParams])
 
   useEffect(() => {
     // During maintenance, login still opens so allowlisted accounts can sign in;
@@ -142,7 +180,7 @@ export default function LandingPage() {
     setDemoLoading(true)
     try {
       await startDemoSession()
-      goAfterLogin()
+      await goAfterLogin()
     } catch (e) {
       const msg = (e?.message === 'Demo unavailable' || e?.message === 'Not Found') ? t('landing.demoFailed') : (e.message || t('landing.demoFailed'))
       alert(msg)
@@ -179,7 +217,7 @@ export default function LandingPage() {
     setLoginLoading(true)
     try {
       await exchangeGoogleToken(`dev:${email}`)
-      goAfterLogin()
+      await goAfterLogin()
     } catch (e) {
       alert(e.message)
     } finally {
@@ -201,7 +239,7 @@ export default function LandingPage() {
               throw new Error(t('landing.loginFailed'))
             }
             await exchangeGoogleToken(response.credential)
-            goAfterLogin()
+            await goAfterLogin()
           } catch (e) {
             alert(e.message || t('landing.maintenanceLoginDenied'))
           } finally {

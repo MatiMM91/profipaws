@@ -106,7 +106,7 @@
     "tileNext": "Próximo",
     "tileEmpty": "Sin datos",
     "petSlots": "{{used}}/{{max}} mascotas Free",
-    "freeLimitReached": "El plan Free permite hasta 5 mascotas. Pasa a Pro para ilimitadas.",
+    "freeLimitReached": "Para agregar mascotas desbloquea el acceso completo (pago único). O prueba la Demo gratis.",
     "dog": "Perro",
     "cat": "Gato",
     "bird": "Ave",

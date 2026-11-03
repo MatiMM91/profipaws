@@ -3,16 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Check, Sparkles } from 'lucide-react'
 import { getStoredUser, isDemoUser } from '../auth'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
-function authHeaders() {
-  const token = localStorage.getItem('profipaws_token')
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  }
-}
+import { createCheckoutSession, fetchSubscriptionTier } from '../billing'
 
 export default function PricingSection({ variant = 'account', compact = false } = {}) {
   const { t } = useTranslation()
@@ -25,22 +16,7 @@ export default function PricingSection({ variant = 'account', compact = false } 
   const isPublic = variant === 'public'
 
   async function loadSubscription() {
-    const token = localStorage.getItem('profipaws_token')
-    if (!token) {
-      setTier('guest')
-      return
-    }
-    try {
-      const res = await fetch(`${API_URL}/api/subscriptions/me`, { headers: authHeaders() })
-      if (!res.ok) {
-        setTier('free')
-        return
-      }
-      const data = await res.json()
-      setTier(String(data.tier || 'free').toLowerCase() === 'pro' ? 'pro' : 'free')
-    } catch {
-      setTier('free')
-    }
+    setTier(await fetchSubscriptionTier())
   }
 
   useEffect(() => {
@@ -50,7 +26,8 @@ export default function PricingSection({ variant = 'account', compact = false } 
   async function startCheckout() {
     const token = localStorage.getItem('profipaws_token')
     if (!token) {
-      window.location.href = '/?login=1&next=/pricing'
+      // After Google login, go straight to Stripe — not into the free app.
+      window.location.href = '/?login=1&next=checkout'
       return
     }
     if (isDemoUser(getStoredUser())) {
@@ -59,25 +36,12 @@ export default function PricingSection({ variant = 'account', compact = false } 
     }
     setBusy(true)
     try {
-      const origin = window.location.origin
-      const res = await fetch(`${API_URL}/api/subscriptions/checkout`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          success_url: `${origin}/dashboard?upgrade=success`,
-          cancel_url: `${origin}${isPublic ? '/planes' : '/pricing'}?upgrade=canceled`,
-        }),
+      const url = await createCheckoutSession({
+        cancelPath: isPublic ? '/planes' : '/pricing',
       })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        alert(typeof err.detail === 'string' ? err.detail : t('pricing.stripeMissing'))
-        return
-      }
-      const data = await res.json()
-      window.location.href = data.checkout_url
+      window.location.href = url
+    } catch (e) {
+      alert(e?.message || t('pricing.stripeMissing'))
     } finally {
       setBusy(false)
     }
