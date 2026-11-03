@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Home } from 'lucide-react'
@@ -5,7 +6,8 @@ import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import PricingSection from './PricingSection'
 import { useTheme } from '../theme/ThemeProvider'
-import { getToken } from '../auth'
+import { clearSession, getToken } from '../auth'
+import { fetchSubscriptionTier } from '../billing'
 
 /**
  * Marketing access page (public website) — single viewport, no scroll when possible.
@@ -14,12 +16,37 @@ export default function PublicPlansPage() {
   const { t } = useTranslation()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
-  const loggedIn = Boolean(getToken())
-  const startHref = loggedIn ? '/dashboard' : '/?login=1'
+  const [tier, setTier] = useState(null) // null | guest | free | pro
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const next = await fetchSubscriptionTier()
+      if (!cancelled) setTier(next)
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const isPro = tier === 'pro'
+  // Logged-in but unpaid: show Sign in so they can switch Google account (clears session).
+  const showSignIn = tier !== 'pro'
+
+  function switchAccount() {
+    clearSession()
+    window.location.href = '/?login=1'
+  }
 
   const navLink = isDark
     ? 'text-cyan-100/80 hover:text-white'
     : 'text-cyan-700 hover:text-cyan-900'
+
+  const ctaClass = `inline-flex h-8 items-center rounded-full px-3.5 text-sm font-semibold transition ${
+    isDark
+      ? 'bg-white text-cyan-950 hover:bg-cyan-50'
+      : 'bg-cyan-700 text-white hover:bg-cyan-800'
+  }`
 
   return (
     <div
@@ -48,16 +75,19 @@ export default function PublicPlansPage() {
             {t('nav.home')}
           </Link>
           <PreferenceControls variant={isDark ? 'landing' : 'app'} />
-          <Link
-            to={startHref}
-            className={`inline-flex h-8 items-center rounded-full px-3.5 text-sm font-semibold transition ${
-              isDark
-                ? 'bg-white text-cyan-950 hover:bg-cyan-50'
-                : 'bg-cyan-700 text-white hover:bg-cyan-800'
-            }`}
-          >
-            {loggedIn ? t('nav.dashboard') : t('nav.signIn')}
-          </Link>
+          {isPro ? (
+            <Link to="/dashboard" className={ctaClass}>
+              {t('nav.dashboard')}
+            </Link>
+          ) : getToken() && tier === 'free' ? (
+            <button type="button" onClick={switchAccount} className={ctaClass}>
+              {t('nav.signIn')}
+            </button>
+          ) : showSignIn ? (
+            <Link to="/?login=1" className={ctaClass}>
+              {t('nav.signIn')}
+            </Link>
+          ) : null}
         </div>
       </nav>
 
