@@ -36,11 +36,16 @@ export default function LoginModal({
   isDark = false,
   googleBtnRef = null,
   showOfficialButton = false,
+  /** 'default' | 'checkout' — checkout explains Gmail is required before Stripe */
+  variant = 'default',
 }) {
   const { t } = useTranslation()
   const titleId = useId()
   const closeRef = useRef(null)
   const busy = loading || demoLoading
+  const isCheckout = variant === 'checkout'
+  const title = isCheckout ? t('pricing.checkoutLoginTitle') : t('landing.loginTitle')
+  const subtitle = isCheckout ? t('pricing.checkoutLoginSubtitle') : t('landing.loginSubtitle')
 
   useEffect(() => {
     if (!open) return undefined
@@ -98,7 +103,7 @@ export default function LoginModal({
                   Profipaws
                 </p>
                 <h2 id={titleId} className="font-display text-xl font-bold tracking-tight sm:text-2xl">
-                  {t('landing.loginTitle')}
+                  {title}
                 </h2>
               </div>
             </div>
@@ -118,8 +123,20 @@ export default function LoginModal({
           </div>
 
           <p className={`mt-4 text-sm leading-relaxed ${isDark ? 'text-cyan-100/75' : 'text-cyan-700/85'}`}>
-            {t('landing.loginSubtitle')}
+            {subtitle}
           </p>
+
+          {isCheckout ? (
+            <p
+              className={`mt-3 rounded-2xl border px-3.5 py-2.5 text-xs leading-relaxed sm:text-sm ${
+                isDark
+                  ? 'border-cyan-400/25 bg-cyan-900/50 text-cyan-100/90'
+                  : 'border-cyan-200 bg-cyan-50 text-cyan-800'
+              }`}
+            >
+              {t('pricing.checkoutLoginHint')}
+            </p>
+          ) : null}
 
           {showOfficialButton ? (
             <div className="mt-7 flex min-h-[48px] flex-col items-center justify-center gap-2">

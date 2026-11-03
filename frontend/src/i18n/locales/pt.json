@@ -372,7 +372,10 @@
     "redirecting": "A redirecionar para o pagamento…",
     "vatNote": "Preço em euros. Consoante o país, podem aplicar-se impostos no pagamento.",
     "stripeMissing": "O pagamento ainda não está configurado. Tente mais tarde ou contacte o suporte.",
-    "demoBlocked": "A demo não pode comprar o acesso. Saia e entre com Google para criar a sua conta e pagar uma só vez."
+    "demoBlocked": "A demo não pode comprar o acesso. Saia e entre com Google para criar a sua conta e pagar uma só vez.",
+    "checkoutLoginTitle": "Antes do pagamento",
+    "checkoutLoginSubtitle": "Entre com o seu Gmail para associar a compra à sua conta. Depois abrimos a página segura de pagamento da Stripe.",
+    "checkoutLoginHint": "Precisa de iniciar sessão com Google (Gmail) para continuar para o checkout da Stripe. Sem conta não podemos ativar o acesso após o pagamento."
   },
   "common": {
     "save": "Guardar",

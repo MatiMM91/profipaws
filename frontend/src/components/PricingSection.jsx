@@ -1,19 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Check, Sparkles } from 'lucide-react'
-import { getStoredUser, isDemoUser } from '../auth'
-import { createCheckoutSession, fetchSubscriptionTier } from '../billing'
+import { exchangeGoogleToken, getStoredUser, isDemoUser } from '../auth'
+import { createCheckoutSession, fetchSubscriptionTier, redirectToCheckout } from '../billing'
+import LoginModal from './LoginModal'
+import { useTheme } from '../theme/ThemeProvider'
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
 export default function PricingSection({ variant = 'account', compact = false } = {}) {
   const { t } = useTranslation()
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
   const [busy, setBusy] = useState(false)
   // null = still loading subscription for logged-in user
   const [tier, setTier] = useState(null) // null | guest | free | pro
+  const [loginOpen, setLoginOpen] = useState(false)
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [googleReady, setGoogleReady] = useState(false)
+  const [showOfficialButton, setShowOfficialButton] = useState(false)
+  const googleBtnRef = useRef(null)
 
   const ready = tier !== null
   const isPro = tier === 'pro'
   const isPublic = variant === 'public'
+  const cancelPath = isPublic ? '/planes' : '/pricing'
 
   async function loadSubscription() {
     setTier(await fetchSubscriptionTier())
@@ -23,11 +35,89 @@ export default function PricingSection({ variant = 'account', compact = false } 
     loadSubscription()
   }, [])
 
+  useEffect(() => {
+    if (!loginOpen || !GOOGLE_CLIENT_ID) return undefined
+
+    let cancelled = false
+
+    const renderOfficialButton = () => {
+      if (!window.google?.accounts?.id || !googleBtnRef.current) return
+      googleBtnRef.current.innerHTML = ''
+      window.google.accounts.id.renderButton(googleBtnRef.current, {
+        type: 'standard',
+        theme: isDark ? 'filled_black' : 'outline',
+        size: 'large',
+        text: 'continue_with',
+        shape: 'pill',
+        width: 320,
+      })
+    }
+
+    const initGoogle = () => {
+      if (!window.google?.accounts?.id || cancelled) return
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        callback: async (response) => {
+          try {
+            setLoginLoading(true)
+            if (!response?.credential) {
+              throw new Error(t('landing.loginFailed'))
+            }
+            await exchangeGoogleToken(response.credential)
+            setLoginOpen(false)
+            await redirectToCheckout({ cancelPath })
+          } catch (e) {
+            alert(e.message || t('landing.loginFailed'))
+          } finally {
+            setLoginLoading(false)
+          }
+        },
+        auto_select: false,
+        cancel_on_tap_outside: true,
+        ux_mode: 'popup',
+      })
+      setGoogleReady(true)
+      renderOfficialButton()
+    }
+
+    if (window.google?.accounts?.id) {
+      initGoogle()
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const script = document.createElement('script')
+    script.src = 'https://accounts.google.com/gsi/client'
+    script.async = true
+    script.defer = true
+    script.onload = initGoogle
+    document.body.appendChild(script)
+    return () => {
+      cancelled = true
+      script.remove()
+    }
+  }, [loginOpen, isDark, t, cancelPath])
+
+  useEffect(() => {
+    if (!loginOpen || !showOfficialButton || !googleReady) return
+    if (!window.google?.accounts?.id || !googleBtnRef.current) return
+    googleBtnRef.current.innerHTML = ''
+    window.google.accounts.id.renderButton(googleBtnRef.current, {
+      type: 'standard',
+      theme: isDark ? 'filled_black' : 'outline',
+      size: 'large',
+      text: 'continue_with',
+      shape: 'pill',
+      width: 320,
+    })
+  }, [loginOpen, showOfficialButton, googleReady, isDark])
+
   async function startCheckout() {
     const token = localStorage.getItem('profipaws_token')
     if (!token) {
-      // After Google login, go straight to Stripe — not into the free app.
-      window.location.href = '/?login=1&next=checkout'
+      setShowOfficialButton(Boolean(GOOGLE_CLIENT_ID))
+      setLoginOpen(true)
       return
     }
     if (isDemoUser(getStoredUser())) {
@@ -36,14 +126,33 @@ export default function PricingSection({ variant = 'account', compact = false } 
     }
     setBusy(true)
     try {
-      const url = await createCheckoutSession({
-        cancelPath: isPublic ? '/planes' : '/pricing',
-      })
+      const url = await createCheckoutSession({ cancelPath })
       window.location.href = url
     } catch (e) {
       alert(e?.message || t('pricing.stripeMissing'))
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function continueWithGoogle() {
+    if (GOOGLE_CLIENT_ID) {
+      setShowOfficialButton(true)
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.prompt()
+      }
+      return
+    }
+    const email = window.prompt('Dev login — email:') || 'buyer@profipaws.com'
+    setLoginLoading(true)
+    try {
+      await exchangeGoogleToken(`dev:${email}`)
+      setLoginOpen(false)
+      await redirectToCheckout({ cancelPath })
+    } catch (e) {
+      alert(e.message)
+    } finally {
+      setLoginLoading(false)
     }
   }
 
@@ -54,6 +163,17 @@ export default function PricingSection({ variant = 'account', compact = false } 
 
   return (
     <div className={`w-full ${compact ? 'space-y-4' : 'space-y-10'}`}>
+      <LoginModal
+        open={loginOpen}
+        onClose={() => !loginLoading && setLoginOpen(false)}
+        onContinue={continueWithGoogle}
+        loading={loginLoading || (Boolean(GOOGLE_CLIENT_ID) && !googleReady)}
+        isDark={isDark}
+        googleBtnRef={googleBtnRef}
+        showOfficialButton={showOfficialButton}
+        variant="checkout"
+      />
+
       <div className="text-center">
         <h1
           className={`font-display font-bold text-cyan-950 dark:text-cyan-50 ${

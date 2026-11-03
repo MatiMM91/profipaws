@@ -372,7 +372,10 @@
     "redirecting": "Redirecting to checkout…",
     "vatNote": "Price in EUR. Depending on your country, taxes may apply at checkout.",
     "stripeMissing": "Payments are not configured yet. Try again shortly or contact support.",
-    "demoBlocked": "The demo cannot purchase access. Sign out and sign in with Google to create your account and pay once."
+    "demoBlocked": "The demo cannot purchase access. Sign out and sign in with Google to create your account and pay once.",
+    "checkoutLoginTitle": "Before checkout",
+    "checkoutLoginSubtitle": "Sign in with your Gmail so we can link the purchase to your account. Then we’ll open the secure Stripe payment page.",
+    "checkoutLoginHint": "You need to sign in with Google (Gmail) to continue to Stripe Checkout. Without an account we can’t unlock access after payment."
   },
   "common": {
     "save": "Save",

@@ -24,29 +24,11 @@ import BrandLogo from './BrandLogo'
 import LoginModal from './LoginModal'
 import { useTheme } from '../theme/ThemeProvider'
 import { MAINTENANCE_MODE } from '../config'
-import { getToken, setSession, isDemoUser, getStoredUser } from '../auth'
+import { getToken, setSession, isDemoUser, getStoredUser, exchangeGoogleToken } from '../auth'
 import { fetchSubscriptionTier, redirectToCheckout } from '../billing'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-
-async function exchangeGoogleToken(idToken) {
-  const res = await fetch(`${API_URL}/api/auth/google`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id_token: idToken }),
-  })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(typeof err.detail === 'string' ? err.detail : 'Error')
-  }
-  const data = await res.json()
-  if (!data.access_token) {
-    throw new Error('Login failed: no access token')
-  }
-  setSession(data.access_token, data.user)
-  return data
-}
 
 async function startDemoSession() {
   const res = await fetch(`${API_URL}/api/auth/demo`, { method: 'POST' })

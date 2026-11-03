@@ -28,6 +28,27 @@ export function setSession(accessToken, user) {
   localStorage.setItem(USER_KEY, JSON.stringify(user || null))
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+/** Exchange a Google ID token (or `dev:email` locally) for a Profipaws JWT. */
+export async function exchangeGoogleToken(idToken) {
+  const res = await fetch(`${API_URL}/api/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id_token: idToken }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(typeof err.detail === 'string' ? err.detail : 'Error')
+  }
+  const data = await res.json()
+  if (!data.access_token) {
+    throw new Error('Login failed: no access token')
+  }
+  setSession(data.access_token, data.user)
+  return data
+}
+
 export function clearSession() {
   localStorage.removeItem(TOKEN_KEY)
   localStorage.removeItem(USER_KEY)
