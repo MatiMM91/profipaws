@@ -6,12 +6,17 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 export async function fetchSubscriptionTier() {
   if (!isLoggedIn()) return 'guest'
   try {
-    const res = await fetch(`${API_URL}/api/subscriptions/me`, { headers: authHeaders() })
+    const res = await fetch(`${API_URL}/api/subscriptions/me`, {
+      headers: authHeaders(),
+      credentials: 'include',
+    })
+    // Auth failure ≠ unpaid. Avoid sending Pro users to the paywall when the session cookie/token fails.
+    if (res.status === 401 || res.status === 403) return 'guest'
     if (!res.ok) return 'free'
     const data = await res.json()
     return String(data.tier || 'free').toLowerCase() === 'pro' ? 'pro' : 'free'
   } catch {
-    return 'free'
+    return 'guest'
   }
 }
 

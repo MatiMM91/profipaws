@@ -116,6 +116,10 @@ export default function LandingPage() {
       window.location.replace('/dashboard')
       return
     }
+    if (tier === 'guest') {
+      // Session missing — stay on landing so the user can sign in again.
+      return
+    }
     // Unpaid Google session stays on marketing / planes — not inside the app.
     window.location.replace('/planes')
   }

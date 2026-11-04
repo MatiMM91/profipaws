@@ -25,6 +25,10 @@ export default function RequirePro() {
         setOk(true)
         return
       }
+      if (tier === 'guest') {
+        window.location.replace('/?login=1')
+        return
+      }
       // replace: Back must not return to a free dashboard snapshot
       window.location.replace('/planes?upgrade=required')
     }

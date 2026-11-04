@@ -25,7 +25,11 @@ function installApiCredentials() {
 installApiCredentials()
 
 export function getToken() {
-  return null
+  try {
+    return localStorage.getItem(TOKEN_KEY)
+  } catch {
+    return null
+  }
 }
 
 export function getStoredUser() {
@@ -37,7 +41,7 @@ export function getStoredUser() {
 }
 
 export function isLoggedIn() {
-  return Boolean(getStoredUser())
+  return Boolean(getStoredUser() && getToken())
 }
 
 export function isDemoUser(user = getStoredUser()) {
@@ -45,15 +49,18 @@ export function isDemoUser(user = getStoredUser()) {
   return Boolean(email && String(email).toLowerCase() === DEMO_USER_EMAIL)
 }
 
-export function setSession(_accessToken, user) {
+export function setSession(accessToken, user) {
   if (!user) {
     throw new Error('Missing user')
   }
-  localStorage.removeItem(TOKEN_KEY)
+  if (!accessToken) {
+    throw new Error('Missing access token')
+  }
+  localStorage.setItem(TOKEN_KEY, accessToken)
   localStorage.setItem(USER_KEY, JSON.stringify(user))
 }
 
-/** Exchange a Google ID token (or `dev:email` locally) for a Profipaws session cookie. */
+/** Exchange a Google ID token (or `dev:email` locally) for a Profipaws JWT (+ session cookie). */
 export async function exchangeGoogleToken(idToken) {
   const res = await fetch(`${API_URL}/api/auth/google`, {
     method: 'POST',
@@ -66,7 +73,7 @@ export async function exchangeGoogleToken(idToken) {
     throw new Error(typeof err.detail === 'string' ? err.detail : 'Error')
   }
   const data = await res.json()
-  if (!data.user) {
+  if (!data.access_token || !data.user) {
     throw new Error('Login failed')
   }
   setSession(data.access_token, data.user)
@@ -80,7 +87,11 @@ export function clearSession() {
 
 export async function logout() {
   try {
-    await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' })
+    await fetch(`${API_URL}/api/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: authHeaders(),
+    })
   } catch {
     /* the cookie is cleared locally either way */
   }
@@ -88,7 +99,11 @@ export async function logout() {
 }
 
 export async function deleteAccount() {
-  const res = await fetch(`${API_URL}/api/auth/me`, { method: 'DELETE', credentials: 'include' })
+  const res = await fetch(`${API_URL}/api/auth/me`, {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: authHeaders(),
+  })
   if (!res.ok && res.status !== 204) {
     const err = await res.json().catch(() => ({}))
     throw new Error(typeof err.detail === 'string' ? err.detail : 'Error')
@@ -97,8 +112,10 @@ export async function deleteAccount() {
 }
 
 export function authHeaders(extra = {}) {
+  const token = getToken()
   return {
     'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...extra,
   }
 }
