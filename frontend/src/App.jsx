@@ -23,6 +23,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/planes" element={<PublicPlansPage />} />
           {/* Public vet dossier opened from QR / PIN */}
+          <Route path="/vet" element={<PublicVetAccess />} />
           <Route path="/vet/:pin" element={<PublicVetAccess />} />
           <Route element={<RequireAuth />}>
             <Route element={<Layout />}>

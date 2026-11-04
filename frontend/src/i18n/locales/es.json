@@ -9,7 +9,9 @@
     "theme": "Tema",
     "dark": "Oscuro",
     "light": "Claro",
-    "logout": "Salir"
+    "logout": "Salir",
+    "deleteAccount": "Borrar cuenta",
+    "deleteAccountConfirm": "Esto borra tu cuenta, tus mascotas y el historial. No se puede deshacer."
   },
   "landing": {
     "eyebrow": "Pasaporte digital de salud",
@@ -404,6 +406,7 @@
     "empty": "Aún no está compartida con nadie.",
     "remove": "Quitar acceso",
     "removeConfirm": "¿Quitar el acceso de esta persona?",
-    "error": "No se pudo compartir"
+    "error": "No se pudo compartir",
+    "invited": "Si hay una cuenta con ese correo, ya puede ver esta mascota."
   }
 }

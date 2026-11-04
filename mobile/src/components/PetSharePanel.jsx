@@ -41,6 +41,7 @@ export default function PetSharePanel({ petId }) {
       setEmail('')
       setPermission('read')
       await loadShares()
+      Alert.alert(t('share.invited'))
     } catch (e) {
       Alert.alert(typeof e?.message === 'string' ? e.message : t('share.error'))
     } finally {

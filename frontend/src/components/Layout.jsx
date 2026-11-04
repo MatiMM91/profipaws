@@ -3,14 +3,24 @@ import { useTranslation } from 'react-i18next'
 import { LayoutDashboard, CreditCard, LogOut } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
-import { clearSession } from '../auth'
+import { deleteAccount, isDemoUser, logout as endSession } from '../auth'
 
 export default function Layout() {
   const { t } = useTranslation()
 
-  function logout() {
-    clearSession()
+  async function logout() {
+    await endSession()
     window.location.href = '/'
+  }
+
+  async function removeAccount() {
+    if (!window.confirm(t('nav.deleteAccountConfirm'))) return
+    try {
+      await deleteAccount()
+      window.location.href = '/'
+    } catch (e) {
+      window.alert(e.message || t('share.error'))
+    }
   }
 
   return (
@@ -25,15 +35,26 @@ export default function Layout() {
             Profipaws
           </NavLink>
 
-          <button
-            type="button"
-            onClick={logout}
-            className="order-2 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg nav-link sm:order-3"
-            aria-label={t('nav.logout')}
-            title={t('nav.logout')}
-          >
-            <LogOut size={18} />
-          </button>
+          <div className="order-2 flex items-center gap-2 sm:order-3">
+            {!isDemoUser() && (
+              <button
+                type="button"
+                onClick={removeAccount}
+                className="text-sm text-cyan-800/80 underline-offset-2 hover:underline dark:text-cyan-200/80"
+              >
+                {t('nav.deleteAccount')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg nav-link"
+              aria-label={t('nav.logout')}
+              title={t('nav.logout')}
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
 
           <div className="order-3 flex w-full flex-wrap items-center gap-3 sm:order-2 sm:w-auto sm:justify-end sm:gap-4">
             <nav className="flex items-center gap-4 sm:gap-6">

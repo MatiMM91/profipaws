@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import BrandLogo from './BrandLogo'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-const CLIP_PREFIX = 'PROFIPAWS_AUTH_V1:'
+const CODE_PREFIX = 'PROFIPAWS_CODE_V1:'
 
 async function exchangeGoogleToken(idToken) {
   const res = await fetch(`${API_URL}/api/auth/google`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify({ id_token: idToken }),
   })
   if (!res.ok) {
@@ -19,15 +20,8 @@ async function exchangeGoogleToken(idToken) {
   return data
 }
 
-function buildPayload(data) {
-  return (
-    CLIP_PREFIX +
-    JSON.stringify({
-      access_token: data.access_token,
-      user: data.user || null,
-      ts: Date.now(),
-    })
-  )
+function buildPayload(code) {
+  return CODE_PREFIX + code
 }
 
 function copyTextSync(text) {
@@ -82,9 +76,21 @@ export default function MobileAuthBridge() {
         setError('')
         setCopied(false)
         if (!response?.credential) throw new Error('No se recibió credencial de Google')
-        const data = await exchangeGoogleToken(response.credential)
+        await exchangeGoogleToken(response.credential)
         if (cancelled) return
-        payloadRef.current = buildPayload(data)
+        const handoff = await fetch(`${API_URL}/api/auth/mobile-handoff`, {
+          method: 'POST',
+          credentials: 'include',
+        })
+        if (!handoff.ok) throw new Error('No se pudo preparar el acceso del teléfono')
+        const body = await handoff.json()
+        if (!body?.code) throw new Error('No se pudo preparar el acceso del teléfono')
+        try {
+          await fetch(`${API_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' })
+        } catch {
+          /* the phone code is already issued */
+        }
+        payloadRef.current = buildPayload(body.code)
         setStatus('done')
       } catch (e) {
         if (cancelled) return

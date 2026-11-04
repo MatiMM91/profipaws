@@ -34,11 +34,16 @@ const isLocalApi = /localhost|127\.0\.0\.1|192\.168\.|10\.\d+\.|172\.(1[6-9]|2\d
 const isExpoGo = Constants.appOwnership === 'expo'
 const DEFAULT_WEB_URL = 'https://profipaws.vercel.app'
 const CLIP_PREFIX = 'PROFIPAWS_AUTH_V1:'
+const CODE_PREFIX = 'PROFIPAWS_CODE_V1:'
 const AUTH_TIMEOUT_MS = 5 * 60 * 1000
 
 function parseAuthPayload(raw) {
   if (!raw || typeof raw !== 'string') return null
   const text = raw.trim()
+  if (text.startsWith(CODE_PREFIX)) {
+    const code = text.slice(CODE_PREFIX.length).trim()
+    return code ? { code } : null
+  }
   if (!text.startsWith(CLIP_PREFIX)) return null
   try {
     const data = JSON.parse(text.slice(CLIP_PREFIX.length))
@@ -88,15 +93,31 @@ export default function LandingScreen() {
   }, [ready, isAuthenticated, router])
 
   async function finishWithHandoff(handoff) {
-    const user = handoff.user || (await fetchMe(handoff.access_token))
-    if (!user) throw new Error(t('landing.loginFailed'))
-    await setSession(handoff.access_token, user)
+    let accessToken = handoff.access_token
+    let user = handoff.user || null
+    if (handoff.code) {
+      const res = await fetch(`${API_URL}/api/auth/mobile-handoff/exchange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: handoff.code }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(typeof err.detail === 'string' ? err.detail : t('landing.loginFailed'))
+      }
+      const data = await res.json()
+      accessToken = data.access_token
+      user = data.user || null
+    }
+    user = user || (await fetchMe(accessToken))
+    if (!user || !accessToken) throw new Error(t('landing.loginFailed'))
+    await setSession(accessToken, user)
     if (typeof refreshSession === 'function') await refreshSession()
     setAwaitingPaste(false)
     setPasteText('')
     try {
       const raw = await Clipboard.getStringAsync()
-      if (raw?.startsWith(CLIP_PREFIX)) await Clipboard.setStringAsync('')
+      if (raw?.startsWith(CLIP_PREFIX) || raw?.startsWith(CODE_PREFIX)) await Clipboard.setStringAsync('')
     } catch {
       /* ignore */
     }

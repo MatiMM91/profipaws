@@ -5,7 +5,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     app_name: str = "Profipaws API"
     app_env: str = "development"
-    debug: bool = True
+    debug: bool = False
     api_prefix: str = "/api"
 
     # Database
@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # JWT
     jwt_secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
     jwt_algorithm: str = "HS256"
-    jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
+    jwt_expire_minutes: int = 60 * 12  # 12 hours
 
     # Google OAuth
     # Local stub `dev:email` is rejected unless this is true and APP_ENV is development.
@@ -65,6 +65,42 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+
+DEFAULT_JWT_SECRET = "change-me-in-production-use-openssl-rand-hex-32"
+
+
+def _is_local_host(value: str) -> bool:
+    text = (value or "").lower()
+    return "localhost" in text or "127.0.0.1" in text
+
+
+def is_deployed_environment() -> bool:
+    """True on the public site, even if APP_ENV was left at its development default."""
+    settings = get_settings()
+    if settings.app_env.strip().lower() == "production":
+        return True
+    front = (settings.frontend_url or "").lower()
+    public_front = front.startswith("https://") and not _is_local_host(front)
+    public_db = not _is_local_host(settings.database_url or "")
+    return public_front and public_db
+
+
+def assert_safe_runtime() -> None:
+    """Stop a public deploy that is still signing sessions with the sample secret."""
+    if not is_deployed_environment():
+        return
+    settings = get_settings()
+    problems: list[str] = []
+    secret = (settings.jwt_secret_key or "").strip()
+    if secret in ("", DEFAULT_JWT_SECRET):
+        problems.append("JWT_SECRET_KEY is still the development placeholder")
+    if settings.allow_dev_google_login:
+        problems.append("ALLOW_DEV_GOOGLE_LOGIN must be false")
+    if problems:
+        raise RuntimeError("Refusing to start in production: " + "; ".join(problems))
+    if settings.debug:
+        settings.debug = False
 
 
 @lru_cache

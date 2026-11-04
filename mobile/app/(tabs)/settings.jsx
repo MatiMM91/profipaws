@@ -9,6 +9,7 @@ import { Body, PrimaryButton, Screen, Surface, Title } from '../../src/component
 import { useAuth } from '../../src/auth/AuthContext'
 import { useTheme } from '../../src/theme/ThemeContext'
 import { API_URL } from '../../src/constants'
+import { api } from '../../src/api/client'
 
 export default function SettingsScreen() {
   const { t } = useTranslation()
@@ -21,6 +22,18 @@ export default function SettingsScreen() {
     await logout()
     router.replace('/')
   }
+
+  async function handleDeleteAccount() {
+    try {
+      await api('/api/auth/me', { method: 'DELETE' })
+      await logout()
+      router.replace('/')
+    } catch (e) {
+      Alert.alert(typeof e?.message === 'string' ? e.message : t('share.error'))
+    }
+  }
+
+  const isDemo = String(user?.email || '').toLowerCase() === 'demo@profipaws.com'
 
   return (
     <Screen>
@@ -46,6 +59,18 @@ export default function SettingsScreen() {
           </Text>
           <Body muted style={{ fontSize: 13 }}>{API_URL}</Body>
         </Surface>
+
+        {!isDemo && (
+          <PrimaryButton
+            title={t('nav.deleteAccount')}
+            onPress={() =>
+              Alert.alert(t('nav.deleteAccount'), t('nav.deleteAccountConfirm'), [
+                { text: t('common.cancel'), style: 'cancel' },
+                { text: t('nav.deleteAccount'), style: 'destructive', onPress: handleDeleteAccount },
+              ])
+            }
+          />
+        )}
 
         <PrimaryButton
           title={t('nav.logout')}

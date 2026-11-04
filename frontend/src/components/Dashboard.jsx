@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Plus, PawPrint, Syringe, QrCode, Users, Bell, Weight, ShieldCheck } from 'lucide-react'
 import SpeciesIcon, { SPECIES_OPTIONS } from './SpeciesIcon'
-import { authHeaders, getStoredUser, getToken, handleAuthFailure, isDemoUser } from '../auth'
+import { authHeaders, getStoredUser, handleAuthFailure, isDemoUser, isLoggedIn } from '../auth'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const FREE_PET_LIMIT = 0
@@ -69,7 +69,7 @@ export default function Dashboard() {
 
   async function createPet(e) {
     e.preventDefault()
-    if (!getToken()) {
+    if (!isLoggedIn()) {
       alert(t('dashboard.sessionRequired'))
       handleAuthFailure(401)
       return

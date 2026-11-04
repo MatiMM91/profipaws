@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, date
 from urllib.parse import quote
-from fastapi import APIRouter, Depends, HTTPException, Request, status, Response, File, UploadFile
+from typing import Optional
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, status, Response, File, UploadFile
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import (
@@ -27,6 +28,8 @@ from app.schemas import (
     PetShareCreate,
     PetShareUpdate,
     PetShareOut,
+    ShareInviteOut,
+    VetAccessExchange,
     VaccineCreate,
     VaccineUpdate,
     VaccineOut,
@@ -53,10 +56,13 @@ from app.schemas import (
     PetExportOut,
 )
 from app.config import get_settings
-from app.services.auth import get_current_user
+from app.services.auth import cookie_flags, get_current_user
+from app.services.documents import media_type_for_download, sniff_exam_type
 from app.services.vet_access import (
     enforce_vet_access_rate_limit,
+    issue_browse_session,
     issue_vet_access_token,
+    pet_by_browse_cookie,
     pet_by_vet_token,
     qr_data_url,
     record_vet_access_failure,
@@ -77,15 +83,33 @@ settings = get_settings()
 # Unpaid Google accounts cannot add pets — try Demo or unlock once (€20).
 FREE_PET_LIMIT = 0
 MAX_EXAM_BYTES = 5 * 1024 * 1024
-ALLOWED_EXAM_TYPES = {
-    "application/pdf",
-    "image/jpeg",
-    "image/png",
-    "image/webp",
-    "image/gif",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-}
+VET_COOKIE = "vet_browse"
+
+
+def _document_response(record: MedicalRecord) -> Response:
+    filename = record.document_filename or "examen"
+    return Response(
+        content=record.document_data,
+        media_type=media_type_for_download(record.document_data),
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+def _set_vet_cookie(response: Response, raw: str, expires: datetime) -> None:
+    flags = cookie_flags()
+    seconds = max(60, int((expires - datetime.utcnow()).total_seconds()))
+    response.set_cookie(
+        VET_COOKIE,
+        raw,
+        httponly=True,
+        max_age=seconds,
+        path="/",
+        secure=flags["secure"],
+        samesite=flags["samesite"],
+    )
 
 
 def _record_out(record: MedicalRecord) -> MedicalRecordOut:
@@ -241,6 +265,63 @@ def _ensure_legacy_weight_entry(db: Session, pet: Pet) -> None:
 
 
 
+@router.post("/access/exchange")
+def exchange_vet_access(
+    payload: VetAccessExchange,
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    """Turn the one-time link secret into an HttpOnly cookie and drop it from the URL."""
+    enforce_vet_access_rate_limit(request)
+    try:
+        pet = pet_by_vet_token(db, payload.token)
+    except HTTPException:
+        record_vet_access_failure(request)
+        raise
+    raw, expires = issue_browse_session(db, pet)
+    _set_vet_cookie(response, raw, expires)
+    return {"ok": True}
+
+
+@router.get("/access/session", response_model=PetExportOut)
+def access_by_session(
+    request: Request,
+    vet_browse: Optional[str] = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    enforce_vet_access_rate_limit(request)
+    try:
+        pet = pet_by_browse_cookie(db, vet_browse)
+    except HTTPException:
+        record_vet_access_failure(request)
+        raise
+    return _export_pet(db, pet)
+
+
+@router.get("/access/session/records/{record_id}/document")
+def access_record_document_by_session(
+    record_id: int,
+    request: Request,
+    vet_browse: Optional[str] = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    enforce_vet_access_rate_limit(request)
+    try:
+        pet = pet_by_browse_cookie(db, vet_browse)
+    except HTTPException:
+        record_vet_access_failure(request)
+        raise
+    record = (
+        db.query(MedicalRecord)
+        .filter(MedicalRecord.id == record_id, MedicalRecord.pet_id == pet.id)
+        .first()
+    )
+    if not record or not record.document_data:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return _document_response(record)
+
+
 @router.get("/access/{pin}", response_model=PetExportOut)
 def access_by_pin(pin: str, request: Request, db: Session = Depends(get_db)):
     """Public vet access via a temporary unguessable link (no account required)."""
@@ -275,16 +356,7 @@ def access_record_document_by_pin(
     if not record or not record.document_data:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    filename = record.document_filename or "examen"
-    media = record.document_content_type or "application/octet-stream"
-    return Response(
-        content=record.document_data,
-        media_type=media,
-        headers={
-            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
-            "X-Content-Type-Options": "nosniff",
-        },
-    )
+    return _document_response(record)
 
 
 @router.get("", response_model=list[PetOut])
@@ -412,7 +484,7 @@ def create_access_pin(
     db.commit()
     # HTTPS URL so phone cameras / browsers open the dossier directly (not a custom scheme).
     base = (settings.frontend_url or "").rstrip("/") or "https://profipaws.vercel.app"
-    payload = f"{base}/vet/{token}"
+    payload = f"{base}/vet#{token}"
     return AccessPinResponse(
         pin=token,
         expires_at=expires,
@@ -438,7 +510,7 @@ def list_shares(
     return [_share_out(share, user) for share, user in rows]
 
 
-@router.post("/{pet_id}/shares", response_model=PetShareOut, status_code=status.HTTP_201_CREATED)
+@router.post("/{pet_id}/shares", response_model=ShareInviteOut)
 def create_share(
     pet_id: int,
     payload: PetShareCreate,
@@ -452,10 +524,7 @@ def create_share(
 
     target = db.query(User).filter(User.email.ilike(email)).first()
     if not target or not target.is_active:
-        raise HTTPException(
-            status_code=404,
-            detail="No Profipaws account found for that email. They must sign up first.",
-        )
+        return ShareInviteOut(ok=True, share=None)
 
     existing = (
         db.query(PetShare)
@@ -467,7 +536,7 @@ def create_share(
         existing.invited_by = current_user.id
         db.commit()
         db.refresh(existing)
-        return _share_out(existing, target)
+        return ShareInviteOut(ok=True, share=_share_out(existing, target))
 
     share = PetShare(
         pet_id=pet.id,
@@ -478,7 +547,7 @@ def create_share(
     db.add(share)
     db.commit()
     db.refresh(share)
-    return _share_out(share, target)
+    return ShareInviteOut(ok=True, share=_share_out(share, target))
 
 
 @router.patch("/{pet_id}/shares/{share_id}", response_model=PetShareOut)
@@ -646,8 +715,8 @@ async def upload_record_document(
     if len(data) > MAX_EXAM_BYTES:
         raise HTTPException(status_code=400, detail="File too large (max 5 MB)")
 
-    content_type = (file.content_type or "application/octet-stream").lower()
-    if content_type not in ALLOWED_EXAM_TYPES:
+    content_type = sniff_exam_type(data)
+    if not content_type:
         raise HTTPException(
             status_code=400,
             detail="Unsupported file type. Use PDF, image, or Word document.",
@@ -679,15 +748,7 @@ def download_record_document(
     if not record or not record.document_data:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    filename = record.document_filename or "examen"
-    media = record.document_content_type or "application/octet-stream"
-    return Response(
-        content=record.document_data,
-        media_type=media,
-        headers={
-            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
-        },
-    )
+    return _document_response(record)
 
 
 @router.delete("/{pet_id}/records/{record_id}/document", status_code=status.HTTP_204_NO_CONTENT)

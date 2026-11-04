@@ -1,5 +1,6 @@
 import asyncio
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from typing import Optional
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -17,13 +18,16 @@ from app.schemas import (
     MobileHandoffExchange,
 )
 from app.services.auth import (
-    create_access_token,
+    attach_session_cookie,
+    clear_session_cookie,
     get_current_user,
     is_allowed_during_maintenance,
+    issue_session,
+    revoke_token_session,
     security,
 )
 from app.services.demo import get_or_create_demo_user, is_demo_email, reset_demo_pets
-from app.config import get_settings
+from app.config import get_settings, is_deployed_environment
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 settings = get_settings()
@@ -46,7 +50,7 @@ def _purge_handoffs(now: float | None = None) -> None:
 
 
 @router.post("/google", response_model=TokenResponse)
-async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
+async def google_login(payload: GoogleAuthRequest, response: Response, db: Session = Depends(get_db)):
     """
     Exchange a Google ID token for a Profipaws JWT.
     In production, validate against Google's tokeninfo / certs endpoint.
@@ -97,20 +101,20 @@ async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)
 
     user.full_name = google_user.get("name") or user.full_name
     user.avatar_url = google_user.get("picture") or user.avatar_url
+    token, max_age = issue_session(db, user)
     db.commit()
     db.refresh(user)
-
-    token = create_access_token(user.id, user.email)
+    attach_session_cookie(response, token, max_age)
     return TokenResponse(access_token=token, user=UserOut.model_validate(user))
 
 
 @router.post("/demo", response_model=TokenResponse)
-def demo_login(request: Request, db: Session = Depends(get_db)):
+def demo_login(request: Request, response: Response, db: Session = Depends(get_db)):
     """
     One-click Free sandbox for portfolio visitors.
     Resets sample pets on each entry; JWT lasts ~60 minutes.
     """
-    if not settings.demo_login_enabled:
+    if not settings.demo_login_enabled or is_deployed_environment():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Demo unavailable")
 
     if settings.maintenance_mode and not is_allowed_during_maintenance(settings.demo_user_email):
@@ -131,14 +135,10 @@ def demo_login(request: Request, db: Session = Depends(get_db)):
 
     user = get_or_create_demo_user(db)
     reset_demo_pets(db, user)
+    token, max_age = issue_session(db, user, expires_minutes=settings.demo_jwt_expire_minutes)
     db.commit()
     db.refresh(user)
-
-    token = create_access_token(
-        user.id,
-        user.email,
-        expires_minutes=settings.demo_jwt_expire_minutes,
-    )
+    attach_session_cookie(response, token, max_age)
     return TokenResponse(access_token=token, user=UserOut.model_validate(user))
 
 
@@ -147,18 +147,43 @@ def me(current_user: User = Depends(get_current_user)):
     return current_user
 
 
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    response: Response,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    profipaws_session: Optional[str] = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    token = credentials.credentials if credentials and credentials.credentials else profipaws_session
+    revoke_token_session(db, token)
+    clear_session_cookie(response)
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if is_demo_email(current_user.email):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Demo account cannot be deleted")
+    db.delete(current_user)
+    db.commit()
+    clear_session_cookie(response)
+
+
 @router.post("/mobile-handoff", response_model=MobileHandoffOut)
 def create_mobile_handoff(
     current_user: User = Depends(get_current_user),
-    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db: Session = Depends(get_db),
 ):
-    """Create a tiny one-time code so Expo Go can deep-link without a huge JWT URL."""
-    if not credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    """One-time code for the phone. The JWT itself is not copied to the clipboard."""
+    token, _max_age = issue_session(db, current_user)
+    db.commit()
     _purge_handoffs()
     code = secrets.token_urlsafe(12)
     _MOBILE_HANDOFFS[code] = {
-        "access_token": credentials.credentials,
+        "access_token": token,
         "user_id": current_user.id,
         "exp": time.time() + _HANDOFF_TTL_SEC,
     }

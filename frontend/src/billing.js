@@ -1,11 +1,10 @@
-import { authHeaders, isDemoUser, getStoredUser } from './auth'
+import { authHeaders, isDemoUser, getStoredUser, isLoggedIn } from './auth'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 /** @returns {Promise<'guest'|'free'|'pro'>} */
 export async function fetchSubscriptionTier() {
-  const token = localStorage.getItem('profipaws_token')
-  if (!token) return 'guest'
+  if (!isLoggedIn()) return 'guest'
   try {
     const res = await fetch(`${API_URL}/api/subscriptions/me`, { headers: authHeaders() })
     if (!res.ok) return 'free'
@@ -21,8 +20,7 @@ export async function fetchSubscriptionTier() {
  * @returns {Promise<string>} checkout URL
  */
 export async function createCheckoutSession({ cancelPath = '/planes' } = {}) {
-  const token = localStorage.getItem('profipaws_token')
-  if (!token) {
+  if (!isLoggedIn()) {
     throw new Error('Not authenticated')
   }
   if (isDemoUser(getStoredUser())) {

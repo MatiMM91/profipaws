@@ -121,8 +121,11 @@ def create_checkout_session(
         sub.stripe_customer_id = customer_id
         db.commit()
 
-    success = payload.success_url or f"{settings.frontend_url}/dashboard?upgrade=success"
-    cancel = payload.cancel_url or f"{settings.frontend_url}/pricing?upgrade=canceled"
+    # The browser cannot choose where Stripe sends the customer.
+    _ = (payload.success_url, payload.cancel_url)
+    base = (settings.frontend_url or "").rstrip("/")
+    success = f"{base}/dashboard?upgrade=success"
+    cancel = f"{base}/planes?upgrade=canceled"
 
     session = stripe.checkout.Session.create(
         customer=customer_id,

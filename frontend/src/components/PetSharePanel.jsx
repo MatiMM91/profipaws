@@ -19,6 +19,7 @@ export default function PetSharePanel({ petId, embedded = false, variant = 'pane
   const [permission, setPermission] = useState('read')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [open, setOpen] = useState(false)
 
   async function loadShares() {
@@ -34,6 +35,7 @@ export default function PetSharePanel({ petId, embedded = false, variant = 'pane
     e.preventDefault()
     setBusy(true)
     setError('')
+    setNotice('')
     const res = await fetch(`${API_URL}/api/pets/${petId}/shares`, {
       method: 'POST',
       headers: authHeaders(),
@@ -47,6 +49,7 @@ export default function PetSharePanel({ petId, embedded = false, variant = 'pane
     }
     setEmail('')
     setPermission('read')
+    setNotice(t('share.invited'))
     await loadShares()
   }
 
@@ -92,6 +95,7 @@ export default function PetSharePanel({ petId, embedded = false, variant = 'pane
         </button>
       </form>
       {error && <p className="text-xs text-red-600">{error}</p>}
+      {notice && <p className="text-xs text-teal-800 dark:text-teal-200">{notice}</p>}
 
       {shares.length === 0 ? (
         <p className="text-xs text-cyan-600 dark:text-cyan-400">{t('share.empty')}</p>

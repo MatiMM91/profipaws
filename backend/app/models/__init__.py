@@ -366,6 +366,29 @@ class ClinicAccessEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
+class AuthSession(Base):
+    """Server-side session so a JWT can be revoked (logout, account deletion)."""
+
+    __tablename__ = "auth_sessions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class VetBrowseSession(Base):
+    """Short-lived cookie session so the vet secret is not kept in the URL."""
+
+    __tablename__ = "vet_browse_sessions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class StripeWebhookEvent(Base):
     """Stripe event ids already applied, so a replay cannot grant access twice."""
 

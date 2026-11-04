@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { Check, Sparkles } from 'lucide-react'
-import { exchangeGoogleToken, getStoredUser, isDemoUser } from '../auth'
+import { exchangeGoogleToken, getStoredUser, isDemoUser, isLoggedIn } from '../auth'
 import { createCheckoutSession, fetchSubscriptionTier, redirectToCheckout } from '../billing'
 import LoginModal from './LoginModal'
 import { useTheme } from '../theme/ThemeProvider'
@@ -114,8 +114,7 @@ export default function PricingSection({ variant = 'account', compact = false } 
   }, [loginOpen, showOfficialButton, googleReady, isDark])
 
   async function startCheckout() {
-    const token = localStorage.getItem('profipaws_token')
-    if (!token) {
+    if (!isLoggedIn()) {
       setShowOfficialButton(Boolean(GOOGLE_CLIENT_ID))
       setLoginOpen(true)
       return

@@ -24,7 +24,7 @@ import BrandLogo from './BrandLogo'
 import LoginModal from './LoginModal'
 import { useTheme } from '../theme/ThemeProvider'
 import { MAINTENANCE_MODE } from '../config'
-import { getToken, setSession, isDemoUser, getStoredUser, exchangeGoogleToken } from '../auth'
+import { setSession, isDemoUser, getStoredUser, exchangeGoogleToken, isLoggedIn } from '../auth'
 import { fetchSubscriptionTier, redirectToCheckout } from '../billing'
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -121,7 +121,7 @@ export default function LandingPage() {
   }
 
   useEffect(() => {
-    if (!getToken()) return undefined
+    if (!isLoggedIn()) return undefined
     let cancelled = false
     ;(async () => {
       if (isDemoUser(getStoredUser())) {
@@ -148,7 +148,7 @@ export default function LandingPage() {
   useEffect(() => {
     // During maintenance, login still opens so allowlisted accounts can sign in;
     // the API rejects everyone else.
-    if (searchParams.get('login') === '1' && !getToken()) {
+    if (searchParams.get('login') === '1' && !isLoggedIn()) {
       setShowOfficialButton(Boolean(GOOGLE_CLIENT_ID))
       setLoginOpen(true)
     }
@@ -173,7 +173,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (demoStarted.current) return
-    if (searchParams.get('demo') !== '1' || MAINTENANCE_MODE || getToken()) return
+    if (searchParams.get('demo') !== '1' || MAINTENANCE_MODE || isLoggedIn()) return
     demoStarted.current = true
     enterDemo()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot deep link

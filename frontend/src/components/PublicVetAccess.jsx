@@ -13,6 +13,7 @@ export default function PublicVetAccess() {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
+  const [sessionMode, setSessionMode] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -20,19 +21,36 @@ export default function PublicVetAccess() {
       setLoading(true)
       setError('')
       try {
-        const res = await fetch(`${API_URL}/api/pets/access/${encodeURIComponent(pin || '')}`)
-        if (!res.ok) {
-          throw new Error(t('vetAccess.invalid'))
+        const hashToken = (window.location.hash || '').replace(/^#/, '').trim()
+        let useSession = !pin
+        if (hashToken) {
+          const exchanged = await fetch(`${API_URL}/api/pets/access/exchange`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ token: hashToken }),
+          })
+          if (!exchanged.ok) throw new Error(t('vetAccess.invalid'))
+          window.history.replaceState(null, '', '/vet')
+          useSession = true
         }
+        const url = useSession
+          ? `${API_URL}/api/pets/access/session`
+          : `${API_URL}/api/pets/access/${encodeURIComponent(pin)}`
+        const res = await fetch(url, { credentials: 'include' })
+        if (!res.ok) throw new Error(t('vetAccess.invalid'))
         const json = await res.json()
-        if (!cancelled) setData(json)
+        if (!cancelled) {
+          setData(json)
+          setSessionMode(useSession)
+        }
       } catch (e) {
         if (!cancelled) setError(e.message || t('vetAccess.invalid'))
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
-    if (pin) load()
+    load()
     return () => {
       cancelled = true
     }
@@ -158,7 +176,7 @@ export default function PublicVetAccess() {
               {examRecords.length === 0 ? (
                 <Empty />
               ) : (
-                <RecordList records={examRecords} pin={pin} />
+                <RecordList records={examRecords} pin={pin} sessionMode={sessionMode} />
               )}
             </Section>
 
@@ -201,15 +219,18 @@ function Section({ title, children }) {
   )
 }
 
-function RecordList({ records, pin }) {
+function RecordList({ records, pin, sessionMode }) {
   const { t } = useTranslation()
   return (
     <ul className="space-y-2">
       {records.map((r) => {
-        const docUrl =
-          pin && r.has_document
-            ? `${API_URL}/api/pets/access/${encodeURIComponent(pin)}/records/${r.id}/document`
-            : null
+        const docUrl = !r.has_document
+          ? null
+          : sessionMode
+            ? `${API_URL}/api/pets/access/session/records/${r.id}/document`
+            : pin
+              ? `${API_URL}/api/pets/access/${encodeURIComponent(pin)}/records/${r.id}/document`
+              : null
         return (
           <li
             key={r.id}

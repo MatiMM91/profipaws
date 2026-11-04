@@ -6,7 +6,7 @@ import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import PricingSection from './PricingSection'
 import { useTheme } from '../theme/ThemeProvider'
-import { clearSession, getStoredUser, getToken } from '../auth'
+import { clearSession, getStoredUser, isLoggedIn } from '../auth'
 import { fetchSubscriptionTier } from '../billing'
 
 /**
@@ -34,7 +34,7 @@ export default function PublicPlansPage() {
   }, [])
 
   const isPro = tier === 'pro'
-  const unpaidSession = Boolean(getToken()) && tier === 'free'
+  const unpaidSession = isLoggedIn() && tier === 'free'
   const leftCheckout =
     searchParams.get('upgrade') === 'canceled' ||
     searchParams.get('upgrade') === 'required'

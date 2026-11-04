@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
-from app.config import get_settings
+from app.config import assert_safe_runtime, get_settings
 from app.database import engine, Base
 from app.models import (  # noqa: F401 — ensure models are registered
     User,
@@ -19,6 +19,8 @@ from app.models import (  # noqa: F401 — ensure models are registered
     ClinicApiKey,
     ClinicPetGrant,
     ClinicAccessEvent,
+    AuthSession,
+    VetBrowseSession,
     StripeWebhookEvent,
     WeightEntry,
 )
@@ -56,6 +58,7 @@ def _ensure_schema_updates() -> None:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    assert_safe_runtime()
     # Create tables on startup (use Alembic migrations in production)
     Base.metadata.create_all(bind=engine)
     try:

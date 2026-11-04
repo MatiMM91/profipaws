@@ -10,7 +10,7 @@ import qrcode
 from fastapi import HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.models import Pet
+from app.models import Pet, VetBrowseSession
 from app.services.auth import hash_api_key
 
 _ATTEMPTS: dict[str, list[float]] = {}
@@ -63,6 +63,28 @@ def pet_by_vet_token(db: Session, token: str) -> Pet:
         or not pet.access_pin_expires_at
         or pet.access_pin_expires_at < datetime.utcnow()
     ):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired access link")
+    return pet
+
+
+def issue_browse_session(db: Session, pet: Pet) -> tuple[str, datetime]:
+    """Cookie secret for the vet visit. The QR token itself stays valid until it expires."""
+    raw = secrets.token_urlsafe(32)
+    expires = pet.access_pin_expires_at or datetime.utcnow()
+    db.add(VetBrowseSession(id=hash_api_key(raw), pet_id=pet.id, expires_at=expires))
+    db.commit()
+    return raw, expires
+
+
+def pet_by_browse_cookie(db: Session, raw: str | None) -> Pet:
+    presented = (raw or "").strip()
+    if len(presented) < _MIN_TOKEN_LEN:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired access link")
+    row = db.get(VetBrowseSession, hash_api_key(presented))
+    if not row or row.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired access link")
+    pet = db.get(Pet, row.pet_id)
+    if not pet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid or expired access link")
     return pet
 

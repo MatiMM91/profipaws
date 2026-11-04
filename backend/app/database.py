@@ -1,8 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
-from app.config import get_settings
+from app.config import get_settings, is_deployed_environment
 
 settings = get_settings()
+if is_deployed_environment() and settings.debug:
+    settings.debug = False
 
 
 def _database_url() -> str:

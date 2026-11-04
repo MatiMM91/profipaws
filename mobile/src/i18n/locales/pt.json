@@ -10,7 +10,9 @@
     "theme": "Tema",
     "dark": "Escuro",
     "light": "Claro",
-    "logout": "Sair"
+    "logout": "Sair",
+    "deleteAccount": "Apagar conta",
+    "deleteAccountConfirm": "Isto apaga a sua conta, os seus animais e o histórico. Não pode ser anulado."
   },
   "landing": {
     "eyebrow": "Passaporte digital de saúde",
@@ -335,6 +337,7 @@
     "empty": "Ainda não está partilhado com ninguém.",
     "remove": "Remover acesso",
     "removeConfirm": "Remover o acesso desta pessoa?",
-    "error": "Não foi possível partilhar"
+    "error": "Não foi possível partilhar",
+    "invited": "Se esse e-mail tiver uma conta Profipaws, já pode ver este animal."
   }
 }

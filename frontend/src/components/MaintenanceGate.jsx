@@ -8,11 +8,11 @@ export default function MaintenanceGate() {
   const location = useLocation()
 
   if (MAINTENANCE_MODE) {
-    const token = localStorage.getItem('profipaws_token')
+    const signedIn = Boolean(localStorage.getItem('profipaws_user'))
     const path = location.pathname
     const isPublic =
-      path === '/' || path === '/planes' || path.startsWith('/vet/')
-    if (!token && !isPublic) {
+      path === '/' || path === '/planes' || path === '/vet' || path.startsWith('/vet/')
+    if (!signedIn && !isPublic) {
       return <Navigate to="/" replace />
     }
   }

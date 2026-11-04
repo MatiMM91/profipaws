@@ -9,7 +9,9 @@
     "theme": "Theme",
     "dark": "Dark",
     "light": "Light",
-    "logout": "Log out"
+    "logout": "Log out",
+    "deleteAccount": "Delete account",
+    "deleteAccountConfirm": "This deletes your account, your pets, and their records. It cannot be undone."
   },
   "landing": {
     "eyebrow": "Digital health passport",
@@ -404,6 +406,7 @@
     "empty": "Not shared with anyone yet.",
     "remove": "Remove access",
     "removeConfirm": "Remove this person's access?",
-    "error": "Could not share"
+    "error": "Could not share",
+    "invited": "If that email has a Profipaws account, they can now see this pet."
   }
 }

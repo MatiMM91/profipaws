@@ -48,6 +48,17 @@ export function AuthProvider({ children }) {
   )
 
   const logout = useCallback(async () => {
+    try {
+      const current = await getToken()
+      if (current) {
+        await fetch(`${API_URL}/api/auth/logout`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${current}` },
+        })
+      }
+    } catch {
+      /* still drop the local session */
+    }
     await clearSession()
     setToken(null)
     setUser(null)

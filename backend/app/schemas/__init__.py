@@ -144,6 +144,10 @@ class PetShareUpdate(BaseModel):
     permission: SharePermission
 
 
+class VetAccessExchange(BaseModel):
+    token: str = Field(..., min_length=32, max_length=256)
+
+
 class PetShareOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -155,6 +159,11 @@ class PetShareOut(BaseModel):
     created_at: datetime
     email: str
     full_name: Optional[str] = None
+
+
+class ShareInviteOut(BaseModel):
+    ok: bool = True
+    share: Optional[PetShareOut] = None
 
 
 # --- Vaccines / Records / Logs ---

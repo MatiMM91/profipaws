@@ -3,15 +3,16 @@ from typing import Optional
 import hashlib
 import secrets
 import jwt
-from fastapi import Depends, HTTPException, status, Header
+from fastapi import Cookie, Depends, HTTPException, Response, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from app.config import get_settings
+from app.config import get_settings, is_deployed_environment
 from app.database import get_db
-from app.models import User, ClinicApiKey
+from app.models import AuthSession, User, ClinicApiKey
 
 settings = get_settings()
 security = HTTPBearer(auto_error=False)
+SESSION_COOKIE = "profipaws_session"
 
 
 def maintenance_allowed_emails() -> set[str]:
@@ -35,6 +36,65 @@ def create_access_token(user_id: int, email: str, expires_minutes: int | None = 
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
 
 
+def issue_session(db: Session, user: User, expires_minutes: int | None = None) -> tuple[str, int]:
+    """Persist a revocable session and return (jwt, max_age_seconds)."""
+    minutes = expires_minutes if expires_minutes is not None else settings.jwt_expire_minutes
+    expire = datetime.utcnow() + timedelta(minutes=minutes)
+    sid = secrets.token_urlsafe(24)
+    db.add(AuthSession(id=sid, user_id=user.id, expires_at=expire))
+    db.flush()
+    payload = {"sub": str(user.id), "email": user.email, "sid": sid, "exp": expire}
+    token = jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    return token, minutes * 60
+
+
+def cookie_flags() -> dict:
+    front = (settings.frontend_url or "").lower()
+    cross_site = front.startswith("https://") or settings.app_env.strip().lower() == "production"
+    if cross_site or is_deployed_environment():
+        return {"secure": True, "samesite": "none"}
+    return {"secure": False, "samesite": "lax"}
+
+
+def attach_session_cookie(response: Response, token: str, max_age: int) -> None:
+    flags = cookie_flags()
+    response.set_cookie(
+        SESSION_COOKIE,
+        token,
+        httponly=True,
+        max_age=max_age,
+        path="/",
+        secure=flags["secure"],
+        samesite=flags["samesite"],
+    )
+
+
+def clear_session_cookie(response: Response) -> None:
+    flags = cookie_flags()
+    response.delete_cookie(
+        SESSION_COOKIE,
+        path="/",
+        secure=flags["secure"],
+        samesite=flags["samesite"],
+    )
+
+
+def revoke_token_session(db: Session, token: str | None) -> None:
+    if not token:
+        return
+    try:
+        payload = decode_access_token(token)
+    except HTTPException:
+        return
+    sid = payload.get("sid")
+    if not sid:
+        return
+    row = db.get(AuthSession, sid)
+    if row and row.revoked_at is None:
+        row.revoked_at = datetime.utcnow()
+        db.commit()
+
+
 def decode_access_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
@@ -48,16 +108,20 @@ def decode_access_token(token: str) -> dict:
         ) from exc
 
 
-def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    db: Session = Depends(get_db),
-) -> User:
-    if not credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    payload = decode_access_token(credentials.credentials)
+def user_from_token(db: Session, token: str) -> User:
+    payload = decode_access_token(token)
     user_id = payload.get("sub")
-    if not user_id:
+    sid = payload.get("sid")
+    if not user_id or not sid:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    row = db.get(AuthSession, sid)
+    if (
+        not row
+        or row.revoked_at is not None
+        or row.expires_at < datetime.utcnow()
+        or str(row.user_id) != str(user_id)
+    ):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired")
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
@@ -67,6 +131,17 @@ def get_current_user(
             detail="Profipaws is under development. Access is temporarily limited.",
         )
     return user
+
+
+def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    profipaws_session: Optional[str] = Cookie(default=None),
+    db: Session = Depends(get_db),
+) -> User:
+    token = credentials.credentials if credentials and credentials.credentials else profipaws_session
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    return user_from_token(db, token)
 
 
 def hash_api_key(raw_key: str) -> str:
