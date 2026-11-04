@@ -11,7 +11,8 @@
     "light": "Claro",
     "logout": "Sair",
     "deleteAccount": "Apagar conta",
-    "deleteAccountConfirm": "Isto apaga a sua conta, os seus animais e o histórico. Não pode ser anulado."
+    "deleteAccountConfirm": "Isto apaga a sua conta, os seus animais e o histórico. Não pode ser anulado.",
+    "legal": "Legal"
   },
   "landing": {
     "eyebrow": "Passaporte digital de saúde",

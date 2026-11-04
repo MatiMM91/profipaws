@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { LayoutDashboard, CreditCard, LogOut } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
+import LegalNavMenu from './LegalNavMenu'
 import SiteFooter from './SiteFooter'
 import { deleteAccount, isDemoUser, logout as endSession } from '../auth'
 
@@ -65,6 +66,7 @@ export default function Layout() {
               <NavLink to="/pricing" className="nav-link flex items-center gap-1.5">
                 <CreditCard size={16} /> {t('nav.plans')}
               </NavLink>
+              <LegalNavMenu variant="app" />
             </nav>
             <PreferenceControls variant="app" />
           </div>

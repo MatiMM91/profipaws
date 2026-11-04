@@ -22,6 +22,7 @@ import {
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import LoginModal from './LoginModal'
+import LegalNavMenu from './LegalNavMenu'
 import SiteFooter from './SiteFooter'
 import { useTheme } from '../theme/ThemeProvider'
 import { MAINTENANCE_MODE } from '../config'
@@ -333,6 +334,7 @@ export default function LandingPage() {
               </Link>
             </>
           )}
+          <LegalNavMenu variant={isDark ? 'landing' : 'app'} />
           <button
             type="button"
             onClick={openLogin}

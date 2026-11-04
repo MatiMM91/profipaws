@@ -11,7 +11,8 @@
     "light": "Claro",
     "logout": "Salir",
     "deleteAccount": "Borrar cuenta",
-    "deleteAccountConfirm": "Esto borra tu cuenta, tus mascotas y el historial. No se puede deshacer."
+    "deleteAccountConfirm": "Esto borra tu cuenta, tus mascotas y el historial. No se puede deshacer.",
+    "legal": "Legal"
   },
   "landing": {
     "eyebrow": "Pasaporte digital de salud",

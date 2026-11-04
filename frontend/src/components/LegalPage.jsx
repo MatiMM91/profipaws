@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { ArrowLeft } from 'lucide-react'
 import BrandLogo from './BrandLogo'
 import PreferenceControls from './PreferenceControls'
+import LegalNavMenu from './LegalNavMenu'
 import SiteFooter from './SiteFooter'
 import { useTheme } from '../theme/ThemeProvider'
 
@@ -54,6 +55,7 @@ export default function LegalPage() {
             <ArrowLeft size={15} />
             {t('legal.back')}
           </Link>
+          <LegalNavMenu variant={isDark ? 'landing' : 'app'} />
           <PreferenceControls variant={isDark ? 'landing' : 'app'} />
         </div>
       </nav>

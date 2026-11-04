@@ -11,7 +11,8 @@
     "light": "Light",
     "logout": "Log out",
     "deleteAccount": "Delete account",
-    "deleteAccountConfirm": "This deletes your account, your pets, and their records. It cannot be undone."
+    "deleteAccountConfirm": "This deletes your account, your pets, and their records. It cannot be undone.",
+    "legal": "Legal"
   },
   "landing": {
     "eyebrow": "Digital health passport",

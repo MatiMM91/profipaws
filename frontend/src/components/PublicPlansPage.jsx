@@ -5,6 +5,7 @@ import { Home, LogOut } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import PricingSection from './PricingSection'
+import LegalNavMenu from './LegalNavMenu'
 import SiteFooter from './SiteFooter'
 import { useTheme } from '../theme/ThemeProvider'
 import { clearSession, getStoredUser, isLoggedIn } from '../auth'
@@ -115,6 +116,7 @@ export default function PublicPlansPage() {
             </Link>
           )}
           <PreferenceControls variant={isDark ? 'landing' : 'app'} />
+          <LegalNavMenu variant={isDark ? 'landing' : 'app'} />
           {isPro ? (
             <Link to="/dashboard" className={ctaClass}>
               {t('nav.dashboard')}
