@@ -208,10 +208,11 @@ export default function LandingPage() {
   }
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return undefined
+    if (!loginOpen || !GOOGLE_CLIENT_ID) return undefined
+    let cancelled = false
 
     const initGoogle = () => {
-      if (!window.google?.accounts?.id) return
+      if (cancelled || !window.google?.accounts?.id) return
       window.google.accounts.id.initialize({
         client_id: GOOGLE_CLIENT_ID,
         callback: async (response) => {
@@ -237,17 +238,27 @@ export default function LandingPage() {
 
     if (window.google?.accounts?.id) {
       initGoogle()
-      return undefined
+      return () => {
+        cancelled = true
+      }
     }
 
-    const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
-    script.async = true
-    script.defer = true
-    script.onload = initGoogle
-    document.body.appendChild(script)
-    return () => script.remove()
-  }, [t, searchParams])
+    let script = document.querySelector('script[data-profipaws-gsi]')
+    if (!script) {
+      script = document.createElement('script')
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.dataset.profipawsGsi = '1'
+      script.addEventListener('load', initGoogle)
+      document.head.appendChild(script)
+    } else {
+      script.addEventListener('load', initGoogle)
+    }
+    return () => {
+      cancelled = true
+      script.removeEventListener('load', initGoogle)
+    }
+  }, [loginOpen, t])
 
 
   useEffect(() => {
@@ -345,7 +356,7 @@ export default function LandingPage() {
 
       {/* Hero — keep focused */}
       <section className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-10 lg:grid-cols-2 lg:pb-20 lg:pt-16">
-        <div className="animate-fade-up">
+        <div>
           <p className={`mb-3 font-display text-sm font-semibold uppercase tracking-[0.2em] ${isDark ? 'text-cyan-300' : 'text-cyan-600'}`}>
             {MAINTENANCE_MODE ? t('landing.maintenanceEyebrow') : t('landing.eyebrow')}
           </p>
@@ -386,13 +397,13 @@ export default function LandingPage() {
         </div>
 
         <div
-          className={`animate-fade-up-delay relative overflow-hidden rounded-3xl border p-8 shadow-2xl ${
+          className={`relative overflow-hidden rounded-3xl border p-8 shadow-2xl ${
             isDark
               ? 'border-cyan-400/20 bg-gradient-to-br from-cyan-800/60 to-teal-900/40 shadow-cyan-950/50'
               : 'border-cyan-200 bg-white/80 shadow-cyan-900/10 backdrop-blur'
           }`}
         >
-          <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl animate-pulse-soft" />
+          <div className="absolute -right-8 -top-8 h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl" />
           <div className="relative space-y-4">
             <div className="mb-2 flex items-center gap-3">
               <BrandLogo className="h-14 w-14 shadow-md shadow-cyan-900/30" />
