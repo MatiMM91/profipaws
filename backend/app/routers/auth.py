@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from typing import Optional
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials
@@ -31,6 +32,7 @@ from app.config import get_settings, is_deployed_environment
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 # Short-lived one-time codes for Expo Go (no deep-link JWT URLs).
 _MOBILE_HANDOFFS: dict[str, dict] = {}
@@ -250,7 +252,8 @@ async def _verify_google_token(id_token: str) -> dict:
 
     try:
         data = await asyncio.to_thread(_decode_google_id_token, id_token)
-    except Exception:
+    except Exception as exc:
+        logger.warning("Google token verify failed: %s: %s", type(exc).__name__, exc)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token") from None
 
     if not _email_is_verified(data.get("email_verified")):
