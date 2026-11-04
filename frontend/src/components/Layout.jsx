@@ -1,11 +1,11 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { LayoutDashboard, CreditCard, LogOut } from 'lucide-react'
+import { LayoutDashboard, CreditCard, LogOut, UserRound } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import LegalNavMenu from './LegalNavMenu'
 import SiteFooter from './SiteFooter'
-import { deleteAccount, isDemoUser, logout as endSession } from '../auth'
+import { logout as endSession } from '../auth'
 
 export default function Layout() {
   const { t } = useTranslation()
@@ -13,16 +13,6 @@ export default function Layout() {
   async function logout() {
     await endSession()
     window.location.href = '/'
-  }
-
-  async function removeAccount() {
-    if (!window.confirm(t('nav.deleteAccountConfirm'))) return
-    try {
-      await deleteAccount()
-      window.location.href = '/'
-    } catch (e) {
-      window.alert(e.message || t('share.error'))
-    }
   }
 
   return (
@@ -38,15 +28,6 @@ export default function Layout() {
           </NavLink>
 
           <div className="order-2 flex items-center gap-2 sm:order-3">
-            {!isDemoUser() && (
-              <button
-                type="button"
-                onClick={removeAccount}
-                className="text-sm text-cyan-800/80 underline-offset-2 hover:underline dark:text-cyan-200/80"
-              >
-                {t('nav.deleteAccount')}
-              </button>
-            )}
             <button
               type="button"
               onClick={logout}
@@ -65,6 +46,9 @@ export default function Layout() {
               </NavLink>
               <NavLink to="/pricing" className="nav-link flex items-center gap-1.5">
                 <CreditCard size={16} /> {t('nav.plans')}
+              </NavLink>
+              <NavLink to="/account" className="nav-link flex items-center gap-1.5">
+                <UserRound size={16} /> {t('nav.account')}
               </NavLink>
               <LegalNavMenu variant="app" />
             </nav>

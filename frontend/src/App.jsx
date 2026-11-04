@@ -16,6 +16,7 @@ const Layout = lazy(() => import('./components/Layout'))
 const RequireAuth = lazy(() => import('./components/RequireAuth'))
 const RequirePro = lazy(() => import('./components/RequirePro'))
 const LegalPage = lazy(() => import('./components/LegalPage'))
+const AccountPage = lazy(() => import('./components/AccountPage'))
 
 function PageFallback() {
   return <div className="min-h-screen bg-cyan-50 dark:bg-cyan-950" />
@@ -37,6 +38,7 @@ export default function App() {
             <Route element={<RequireAuth />}>
               <Route element={<Layout />}>
                 <Route path="/pricing" element={<PricingSection />} />
+                <Route path="/account" element={<AccountPage />} />
                 <Route element={<RequirePro />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/pets/:id" element={<PetProfile />} />

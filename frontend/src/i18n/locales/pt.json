@@ -12,7 +12,8 @@
     "logout": "Sair",
     "deleteAccount": "Apagar conta",
     "deleteAccountConfirm": "Isto apaga a sua conta, os seus animais e o histórico. Não pode ser anulado.",
-    "legal": "Legal"
+    "legal": "Legal",
+    "account": "Conta"
   },
   "landing": {
     "eyebrow": "Passaporte digital de saúde",
@@ -615,5 +616,21 @@
         }
       ]
     }
+  },
+  "account": {
+    "title": "A sua conta",
+    "subtitle": "Faça a gestão do seu acesso à Profipaws. As ações irreversíveis estão na zona de perigo.",
+    "back": "Voltar aos meus pets",
+    "signedInAs": "Sessão iniciada como",
+    "demoBlocked": "Está na demo. Esta conta partilhada não pode ser apagada. Saia e inicie sessão com o Google para gerir a sua conta real.",
+    "dangerTitle": "Zona de perigo",
+    "dangerBody": "Apagar a conta remove permanentemente os seus dados na Profipaws. Esta ação não pode ser anulada.",
+    "dangerItemPets": "Todos os seus pets e acessos partilhados",
+    "dangerItemHistory": "Histórico, vacinas, peso, documentos e calendário",
+    "dangerItemAccess": "Acesso pago associado a esta conta",
+    "confirmLabel": "Para confirmar, escreva o seu email {{email}}",
+    "deleteButton": "Apagar a minha conta permanentemente",
+    "deleting": "A apagar…",
+    "deleteError": "Não foi possível apagar a conta. Tente novamente."
   }
 }

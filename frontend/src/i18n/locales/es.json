@@ -12,7 +12,8 @@
     "logout": "Salir",
     "deleteAccount": "Borrar cuenta",
     "deleteAccountConfirm": "Esto borra tu cuenta, tus mascotas y el historial. No se puede deshacer.",
-    "legal": "Legal"
+    "legal": "Legal",
+    "account": "Cuenta"
   },
   "landing": {
     "eyebrow": "Pasaporte digital de salud",
@@ -670,5 +671,21 @@
         }
       ]
     }
+  },
+  "account": {
+    "title": "Tu cuenta",
+    "subtitle": "Gestiona tu acceso a Profipaws. Las acciones irreversibles están en la zona de peligro.",
+    "back": "Volver a mis mascotas",
+    "signedInAs": "Sesión iniciada como",
+    "demoBlocked": "Estás en la demo. No se puede borrar esta cuenta compartida. Sal e inicia sesión con Google para gestionar tu cuenta real.",
+    "dangerTitle": "Zona de peligro",
+    "dangerBody": "Borrar la cuenta elimina de forma permanente tus datos en Profipaws. Esta acción no se puede deshacer.",
+    "dangerItemPets": "Todas tus mascotas y datos compartidos",
+    "dangerItemHistory": "Historial, vacunas, peso, documentos y calendario",
+    "dangerItemAccess": "Tu acceso de pago asociado a esta cuenta",
+    "confirmLabel": "Para confirmar, escribe tu correo {{email}}",
+    "deleteButton": "Borrar mi cuenta permanentemente",
+    "deleting": "Borrando…",
+    "deleteError": "No se pudo borrar la cuenta. Inténtalo de nuevo."
   }
 }

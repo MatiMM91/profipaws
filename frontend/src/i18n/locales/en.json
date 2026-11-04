@@ -12,7 +12,8 @@
     "logout": "Log out",
     "deleteAccount": "Delete account",
     "deleteAccountConfirm": "This deletes your account, your pets, and their records. It cannot be undone.",
-    "legal": "Legal"
+    "legal": "Legal",
+    "account": "Account"
   },
   "landing": {
     "eyebrow": "Digital health passport",
@@ -670,5 +671,21 @@
         }
       ]
     }
+  },
+  "account": {
+    "title": "Your account",
+    "subtitle": "Manage your Profipaws access. Irreversible actions live in the danger zone.",
+    "back": "Back to my pets",
+    "signedInAs": "Signed in as",
+    "demoBlocked": "You are in the demo. This shared account cannot be deleted. Sign out and sign in with Google to manage your real account.",
+    "dangerTitle": "Danger zone",
+    "dangerBody": "Deleting your account permanently removes your Profipaws data. This cannot be undone.",
+    "dangerItemPets": "All your pets and shared access",
+    "dangerItemHistory": "History, vaccines, weight, documents, and calendar",
+    "dangerItemAccess": "Paid access linked to this account",
+    "confirmLabel": "To confirm, type your email {{email}}",
+    "deleteButton": "Delete my account permanently",
+    "deleting": "Deleting…",
+    "deleteError": "Could not delete the account. Please try again."
   }
 }
