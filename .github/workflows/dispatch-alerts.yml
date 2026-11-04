@@ -1,14 +1,20 @@
 name: Dispatch Pro alerts
 
+# GitHub disables scheduled workflows after ~60 days without repo activity
+# (state: disabled_inactivity). Re-enable with:
+#   gh workflow enable dispatch-alerts.yml
+# A push that touches this file also helps keep the schedule alive.
+
 on:
   schedule:
-    # Every day at 08:00 UTC
+    # Every day at 08:00 UTC (~09:00 Spain winter / 10:00 summer)
     - cron: "0 8 * * *"
   workflow_dispatch:
 
 jobs:
   dispatch:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Call Profipaws alerts dispatch
         env:
@@ -20,6 +26,7 @@ jobs:
             echo "ALERTS_CRON_SECRET is not set in GitHub secrets"
             exit 1
           fi
+          echo "Dispatching reminders at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           curl -fsS -X POST \
             -H "X-Alerts-Secret: ${ALERTS_CRON_SECRET}" \
             -H "Content-Type: application/json" \

@@ -109,7 +109,7 @@ def upcoming_for_owner(db: Session, user: User, days: int = 14) -> list[dict[str
     return items
 
 
-def _send_via_resend(to_email: str, subject: str, body: str) -> bool:
+def _send_via_resend(to_email: str, subject: str, body: str) -> tuple[bool, str | None]:
     from_addr = settings.resend_from or "Profipaws <onboarding@resend.dev>"
     try:
         res = httpx.post(
@@ -127,43 +127,44 @@ def _send_via_resend(to_email: str, subject: str, body: str) -> bool:
             timeout=20,
         )
         if res.status_code >= 400:
-            logger.warning("Resend error %s: %s", res.status_code, res.text[:300])
-            return False
-        return True
-    except Exception:
+            detail = res.text[:300]
+            logger.warning("Resend error %s: %s", res.status_code, detail)
+            return False, f"resend {res.status_code}: {detail}"
+        return True, None
+    except Exception as exc:
         logger.exception("Resend request failed")
-        return False
+        return False, f"resend exception: {exc}"
 
 
-def _send_via_smtp(to_email: str, subject: str, body: str) -> bool:
+def _send_via_smtp(to_email: str, subject: str, body: str) -> tuple[bool, str | None]:
     from_addr = settings.smtp_from or settings.resend_from
     if not settings.smtp_host or not from_addr:
-        return False
+        return False, "smtp not configured"
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = from_addr
     msg["To"] = to_email
     msg.set_content(body)
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
-        if settings.smtp_use_tls:
-            smtp.starttls()
-        if settings.smtp_user:
-            smtp.login(settings.smtp_user, settings.smtp_password)
-        smtp.send_message(msg)
-    return True
+    try:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as smtp:
+            if settings.smtp_use_tls:
+                smtp.starttls()
+            if settings.smtp_user:
+                smtp.login(settings.smtp_user, settings.smtp_password)
+            smtp.send_message(msg)
+        return True, None
+    except Exception as exc:
+        logger.exception("SMTP send failed")
+        return False, f"smtp exception: {exc}"
 
 
-def _send_email(to_email: str, subject: str, body: str) -> bool:
+def _send_email(to_email: str, subject: str, body: str) -> tuple[bool, str | None]:
     if settings.resend_api_key:
         return _send_via_resend(to_email, subject, body)
     if settings.smtp_host:
-        try:
-            return _send_via_smtp(to_email, subject, body)
-        except Exception:
-            logger.exception("SMTP send failed")
-            return False
+        return _send_via_smtp(to_email, subject, body)
     logger.info("No email provider configured; skip %s (%s)", to_email, subject)
-    return False
+    return False, "no email provider configured"
 
 
 def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any]:
@@ -178,6 +179,7 @@ def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any
             "skipped": 0,
             "candidates": 0,
             "email_configured": email_configured(),
+            "errors": [],
         }
 
     now = datetime.utcnow()
@@ -197,6 +199,7 @@ def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any
 
     sent = 0
     skipped = 0
+    errors: list[str] = []
     for ev in events:
         pet = db.query(Pet).filter(Pet.id == ev.pet_id).first()
         if not pet:
@@ -214,12 +217,14 @@ def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any
             f"Abre Profipaws: {settings.frontend_url}/pets/{pet.id}\n\n"
             f"— Profipaws\n"
         )
-        ok = _send_email(owner.email, subject, body)
+        ok, err = _send_email(owner.email, subject, body)
         if ok:
             ev.reminder_sent = True
             sent += 1
         else:
             skipped += 1
+            if err and len(errors) < 5:
+                errors.append(f"{owner.email}: {err}")
 
     db.commit()
     return {
@@ -230,4 +235,6 @@ def dispatch_due_reminders(db: Session, within_hours: int = 72) -> dict[str, Any
         "provider": "resend"
         if settings.resend_api_key
         else ("smtp" if settings.smtp_host else "none"),
+        "from": settings.resend_from or settings.smtp_from or None,
+        "errors": errors,
     }
