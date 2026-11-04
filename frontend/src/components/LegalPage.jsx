@@ -60,7 +60,7 @@ export default function LegalPage() {
         </div>
       </nav>
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:py-10">
+      <main className="mx-auto w-full max-w-3xl min-h-0 flex-1 px-4 py-6 sm:py-10">
         <p className={`text-xs font-medium uppercase tracking-wide ${soft}`}>{t('legal.updated')}</p>
         <h1 className={`mt-2 font-display text-3xl font-bold tracking-tight sm:text-4xl ${heading}`}>
           {t(`${base}.title`)}

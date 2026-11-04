@@ -26,8 +26,8 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-teal-50 dark:from-cyan-950 dark:via-slate-950 dark:to-teal-950">
-      <header className="border-b border-cyan-100/80 bg-white/70 backdrop-blur-md dark:border-cyan-900/60 dark:bg-cyan-950/70">
+    <div className="flex min-h-[100dvh] flex-col bg-gradient-to-br from-cyan-50 via-white to-teal-50 dark:from-cyan-950 dark:via-slate-950 dark:to-teal-950">
+      <header className="shrink-0 border-b border-cyan-100/80 bg-white/70 backdrop-blur-md dark:border-cyan-900/60 dark:bg-cyan-950/70">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-3 px-4 py-3">
           <NavLink
             to="/dashboard"
@@ -72,7 +72,7 @@ export default function Layout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
         <Outlet />
       </main>
       <SiteFooter className="bg-white/40 dark:bg-cyan-950/40" />

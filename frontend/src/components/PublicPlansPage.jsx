@@ -74,7 +74,7 @@ export default function PublicPlansPage() {
 
   return (
     <div
-      className={`flex min-h-[100dvh] flex-col overflow-hidden transition-colors ${
+      className={`flex min-h-[100dvh] flex-col transition-colors ${
         isDark
           ? 'bg-hero-glow bg-cyan-950 text-white'
           : 'bg-gradient-to-br from-cyan-50 via-white to-teal-100 text-cyan-950'
@@ -129,7 +129,7 @@ export default function PublicPlansPage() {
         </div>
       </nav>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-3 px-4 py-2 sm:py-3">
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-3 px-4 py-2 sm:py-3 pb-4">
         {unpaidSession && (
           <div
             className={`mx-auto w-full max-w-3xl rounded-2xl border px-4 py-3 sm:px-5 sm:py-4 ${

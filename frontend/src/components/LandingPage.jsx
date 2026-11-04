@@ -295,7 +295,7 @@ export default function LandingPage() {
 
   return (
     <div
-      className={`min-h-screen transition-colors ${
+      className={`flex min-h-[100dvh] flex-col transition-colors ${
         isDark
           ? 'bg-hero-glow bg-cyan-950 text-white'
           : 'bg-gradient-to-br from-cyan-50 via-white to-teal-100 text-cyan-950'
