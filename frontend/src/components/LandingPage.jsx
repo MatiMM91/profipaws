@@ -22,6 +22,7 @@ import {
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import LoginModal from './LoginModal'
+import SiteFooter from './SiteFooter'
 import { useTheme } from '../theme/ThemeProvider'
 import { MAINTENANCE_MODE } from '../config'
 import { setSession, isDemoUser, getStoredUser, exchangeGoogleToken, isLoggedIn } from '../auth'
@@ -520,9 +521,7 @@ export default function LandingPage() {
         </section>
       )}
 
-      <footer className={`border-t px-4 py-8 text-center text-sm ${isDark ? 'border-cyan-800/60 text-cyan-300/70' : 'border-cyan-100 text-cyan-600'}`}>
-        © {new Date().getFullYear()} Profipaws
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

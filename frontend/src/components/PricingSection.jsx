@@ -292,6 +292,17 @@ export default function PricingSection({ variant = 'account', compact = false } 
               <p className={`text-center text-cyan-100/70 ${compact ? 'mt-2 text-[10px]' : 'mt-3 text-xs'}`}>
                 {t('pricing.payOnceHint')}
               </p>
+              <p className={`text-center text-cyan-100/60 ${compact ? 'mt-1.5 text-[10px]' : 'mt-2 text-xs'}`}>
+                {t('pricing.checkoutLegalBefore')}{' '}
+                <Link to="/legal/terms" className="underline underline-offset-2 hover:text-white">
+                  {t('pricing.checkoutLegalTerms')}
+                </Link>{' '}
+                {t('pricing.checkoutLegalAnd')}{' '}
+                <Link to="/legal/privacy" className="underline underline-offset-2 hover:text-white">
+                  {t('pricing.checkoutLegalPrivacy')}
+                </Link>
+                .
+              </p>
             </>
           )}
         </article>

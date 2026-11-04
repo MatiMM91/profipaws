@@ -5,6 +5,7 @@ import { Home, LogOut } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import PricingSection from './PricingSection'
+import SiteFooter from './SiteFooter'
 import { useTheme } from '../theme/ThemeProvider'
 import { clearSession, getStoredUser, isLoggedIn } from '../auth'
 import { fetchSubscriptionTier } from '../billing'
@@ -161,6 +162,7 @@ export default function PublicPlansPage() {
 
         <PricingSection variant="public" compact />
       </main>
+      <SiteFooter />
     </div>
   )
 }

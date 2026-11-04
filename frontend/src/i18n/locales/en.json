@@ -384,7 +384,11 @@
     "leftCheckoutBodyEmail": "You’re signed in as {{email}}. Full access unlocks only after payment. Pay below, or sign out to return home or try the demo.",
     "signOutHome": "Sign out and go home",
     "signOutDemo": "Sign out and try demo",
-    "switchAccount": "Use another email"
+    "switchAccount": "Use another email",
+    "checkoutLegalBefore": "By paying you accept the",
+    "checkoutLegalAnd": "and",
+    "checkoutLegalTerms": "Terms",
+    "checkoutLegalPrivacy": "Privacy Policy"
   },
   "common": {
     "save": "Save",
@@ -408,5 +412,262 @@
     "removeConfirm": "Remove this person's access?",
     "error": "Could not share",
     "invited": "If that email has a Profipaws account, they can now see this pet."
+  },
+  "legal": {
+    "updated": "Last updated: 4 November 2026",
+    "contact": "Contact: hola@profipaws.com",
+    "back": "Back to home",
+    "footerNav": "Legal links",
+    "footerTerms": "Terms",
+    "footerPrivacy": "Privacy",
+    "footerCookies": "Cookies",
+    "footerNotice": "Legal notice",
+    "footerRefunds": "Refunds",
+    "cookieBannerTitle": "Essential cookies",
+    "cookieBannerBody": "We use essential cookies and local storage for sign-in, language and theme preferences, and secure sessions. We do not use advertising cookies.",
+    "cookieAccept": "Got it",
+    "cookieMore": "Cookie policy",
+    "terms": {
+      "title": "Terms and conditions",
+      "intro": "These terms govern Profipaws (website and related apps). By creating an account, paying for access, or using the demo, you agree to this document.",
+      "sections": [
+        {
+          "title": "1. What Profipaws is",
+          "paragraphs": [
+            "Profipaws is a digital service to organise pet health records: vaccines, weight, calendar, documents, and temporary access for vets or family.",
+            "Profipaws does not replace veterinary care and does not provide medical diagnoses. You (or people you authorise) enter the information; always check with a professional when needed."
+          ]
+        },
+        {
+          "title": "2. Account and access",
+          "paragraphs": [
+            "Full access is unlocked with a one-time payment. You may also try a temporary demo with sample data; the demo is not a personal account and may reset.",
+            "Sign-in usually uses Google. You are responsible for your Google account security and for activity in Profipaws under that account.",
+            "You must provide accurate information and have legal capacity to contract (or consent from a legal guardian where required)."
+          ]
+        },
+        {
+          "title": "3. Demo",
+          "paragraphs": [
+            "The demo is only for trying the product. Sample data may be wiped or reset at any time. Do not store real pet records in the demo."
+          ]
+        },
+        {
+          "title": "4. Payments",
+          "paragraphs": [
+            "The full-access price is shown before checkout. Payments are processed by Stripe. After a valid payment, we activate access on your account.",
+            "Except as stated in the refund policy, digital access is considered delivered once activated."
+          ]
+        },
+        {
+          "title": "5. Acceptable use",
+          "paragraphs": [
+            "You may not use Profipaws for illegal or abusive activity, to infringe others’ rights, or to access other users’ data without authorisation.",
+            "You must not interfere with security, availability, or integrity of the service."
+          ]
+        },
+        {
+          "title": "6. Content and pet data",
+          "paragraphs": [
+            "You keep ownership of content you upload. You grant us a limited licence to host and process it solely to provide the service.",
+            "If you share a pet or create temporary vet access, you are responsible for who receives it and for revoking it when appropriate."
+          ]
+        },
+        {
+          "title": "7. Availability and changes",
+          "paragraphs": [
+            "We aim for a reliable service, but downtime can occur. We may improve or change features and will communicate material changes when appropriate."
+          ]
+        },
+        {
+          "title": "8. Liability",
+          "paragraphs": [
+            "To the extent allowed by law, Profipaws is not liable for indirect damages, lost profits, or decisions based solely on information stored in the app.",
+            "Nothing here limits mandatory consumer rights where they apply."
+          ]
+        },
+        {
+          "title": "9. Termination",
+          "paragraphs": [
+            "You may stop using the service and request account deletion. We may suspend or close accounts that breach these terms or endanger the service or other users."
+          ]
+        },
+        {
+          "title": "10. Governing law",
+          "paragraphs": [
+            "Unless mandatory law says otherwise, these terms are interpreted under Spanish and applicable EU rules for consumers and digital services."
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "intro": "This policy explains what personal data Profipaws processes, why, with whom, and your rights. The controller is the Profipaws service operator (contact below).",
+      "sections": [
+        {
+          "title": "1. Data we process",
+          "paragraphs": [
+            "Account data: email, name, Google ID, and profile photo if Google provides it.",
+            "Pet and animal-health data you enter (history, vaccines, weight, files, calendar, notes).",
+            "Technical session data: access tokens, language/theme preferences, basic security and service logs.",
+            "Payment data: handled by Stripe; we receive payment status and references needed to unlock access, not your full card number."
+          ]
+        },
+        {
+          "title": "2. Purposes and legal bases",
+          "paragraphs": [
+            "Provide the service and maintain your account (contract).",
+            "Process the one-time payment and prevent fraud (contract and legitimate interest / legal obligation where applicable).",
+            "Send calendar reminder emails when that feature is enabled (contract / legitimate interest).",
+            "Comply with legal obligations and respond to authorities when required."
+          ]
+        },
+        {
+          "title": "3. Processors and third parties",
+          "paragraphs": [
+            "Google (sign-in).",
+            "Stripe (payments).",
+            "Hosting providers (such as Railway and Vercel) and, if configured, the email provider for reminders.",
+            "They process data under their terms and only as needed for the service."
+          ]
+        },
+        {
+          "title": "4. Retention",
+          "paragraphs": [
+            "We keep data while your account exists or as needed for the service, claims, or legal duties. Demo data may reset automatically.",
+            "You can request account deletion in the app; we delete or anonymise related personal data except where law requires retention."
+          ]
+        },
+        {
+          "title": "5. Your rights",
+          "paragraphs": [
+            "You may request access, rectification, erasure, restriction, objection, and portability where applicable, and lodge a complaint with a supervisory authority.",
+            "To exercise rights, email the contact address on this page."
+          ]
+        },
+        {
+          "title": "6. Children",
+          "paragraphs": [
+            "Profipaws is not directed at children under 16 without parental consent where required. We may delete accounts that appear to breach this rule."
+          ]
+        },
+        {
+          "title": "7. Security and transfers",
+          "paragraphs": [
+            "We apply reasonable security measures (encryption in transit, access controls). No system is perfectly secure.",
+            "International transfers via cloud providers use safeguards required by applicable law where relevant."
+          ]
+        }
+      ]
+    },
+    "cookies": {
+      "title": "Cookie policy",
+      "intro": "This policy describes cookies and similar technologies used by Profipaws.",
+      "sections": [
+        {
+          "title": "1. What we use",
+          "paragraphs": [
+            "Cookies or storage needed for authentication and session security.",
+            "On-device preferences: language and theme.",
+            "We do not set advertising cookies or marketing analytics cookies for ads."
+          ]
+        },
+        {
+          "title": "2. Why they are necessary",
+          "paragraphs": [
+            "Without these technical technologies we could not sign you in, remember language/theme, or protect your session. They are essential to the service."
+          ]
+        },
+        {
+          "title": "3. Third parties",
+          "paragraphs": [
+            "Google sign-in and Stripe checkout may set their own cookies under their policies. Please review those on their official sites."
+          ]
+        },
+        {
+          "title": "4. How to manage them",
+          "paragraphs": [
+            "You can clear site data in your browser settings. Removing local storage or session cookies will require signing in again."
+          ]
+        }
+      ]
+    },
+    "notice": {
+      "title": "Legal notice",
+      "intro": "General information about the operator and use of the Profipaws website and services.",
+      "sections": [
+        {
+          "title": "1. Identification",
+          "paragraphs": [
+            "Service operator: Profipaws.",
+            "Website: https://profipaws.vercel.app",
+            "Contact: hola@profipaws.com",
+            "If you need further identifying details for a formal claim, email us and we will provide the available controller information."
+          ]
+        },
+        {
+          "title": "2. Purpose",
+          "paragraphs": [
+            "The site describes Profipaws and provides access to the app, demo, and full-access checkout."
+          ]
+        },
+        {
+          "title": "3. Intellectual property",
+          "paragraphs": [
+            "Profipaws brand, design, text, and software are protected. You may not copy or exploit them without permission, except as allowed by law."
+          ]
+        },
+        {
+          "title": "4. Content responsibility",
+          "paragraphs": [
+            "We aim for accurate information, but errors may occur. Each pet’s clinical history depends on what users record."
+          ]
+        },
+        {
+          "title": "5. Links",
+          "paragraphs": [
+            "We may link to third parties (Google, Stripe, etc.). Their sites and practices are outside our control."
+          ]
+        }
+      ]
+    },
+    "refunds": {
+      "title": "Refund policy",
+      "intro": "Profipaws sells one-time digital access. This policy explains when a refund may be requested.",
+      "sections": [
+        {
+          "title": "1. General rule",
+          "paragraphs": [
+            "Once full access is activated on your account, the digital service is considered delivered. Refunds are therefore not automatic."
+          ]
+        },
+        {
+          "title": "2. Cases we will help with",
+          "paragraphs": [
+            "Duplicate charge or a technical error that prevents activation after a valid payment.",
+            "Severe ongoing inability to use the service caused by Profipaws, if we cannot fix it within a reasonable time."
+          ]
+        },
+        {
+          "title": "3. How to request",
+          "paragraphs": [
+            "Email hola@profipaws.com from your account address with payment date, Google email used, and a short description of the issue.",
+            "We will review and reply. If a refund is approved, it is processed via Stripe to the original payment method when possible."
+          ]
+        },
+        {
+          "title": "4. Demo",
+          "paragraphs": [
+            "The demo is free and does not create a charge or refund right."
+          ]
+        },
+        {
+          "title": "5. Consumer rights",
+          "paragraphs": [
+            "If consumer law gives you a mandatory withdrawal or warranty right, that right prevails over this policy where it applies."
+          ]
+        }
+      ]
+    }
   }
 }

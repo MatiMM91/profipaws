@@ -384,7 +384,11 @@
     "leftCheckoutBodyEmail": "Entrou com {{email}}. O acesso completo só se ativa após o pagamento. Pode pagar abaixo, ou terminar a sessão para voltar ao início ou experimentar a demo.",
     "signOutHome": "Terminar sessão e ir ao início",
     "signOutDemo": "Terminar sessão e experimentar a demo",
-    "switchAccount": "Usar outro e-mail"
+    "switchAccount": "Usar outro e-mail",
+    "checkoutLegalBefore": "Ao pagar aceita os",
+    "checkoutLegalAnd": "e a",
+    "checkoutLegalTerms": "Termos",
+    "checkoutLegalPrivacy": "Privacidade"
   },
   "common": {
     "save": "Guardar",
@@ -408,5 +412,207 @@
     "removeConfirm": "Remover o acesso desta pessoa?",
     "error": "Não foi possível partilhar",
     "invited": "Se esse e-mail tiver uma conta Profipaws, já pode ver este animal."
+  },
+  "legal": {
+    "updated": "Última atualização: 4 de novembro de 2026",
+    "contact": "Contacto: hola@profipaws.com",
+    "back": "Voltar ao início",
+    "footerNav": "Ligações legais",
+    "footerTerms": "Termos",
+    "footerPrivacy": "Privacidade",
+    "footerCookies": "Cookies",
+    "footerNotice": "Aviso legal",
+    "footerRefunds": "Reembolsos",
+    "cookieBannerTitle": "Cookies técnicas",
+    "cookieBannerBody": "Usamos cookies e armazenamento local essenciais para iniciar sessão, lembrar idioma e tema, e manter a sessão segura. Não usamos cookies publicitárias.",
+    "cookieAccept": "Compreendi",
+    "cookieMore": "Política de cookies",
+    "terms": {
+      "title": "Termos e condições",
+      "intro": "Estes termos regulam o uso da Profipaws (site e apps associadas). Ao criar conta, pagar o acesso ou usar a demo, aceita este documento.",
+      "sections": [
+        {
+          "title": "1. O que é a Profipaws",
+          "paragraphs": [
+            "A Profipaws é um serviço digital para organizar o historial de saúde de animais de estimação: vacinas, peso, calendário, documentos e acesso temporário para veterinários ou família.",
+            "A Profipaws não substitui cuidados veterinários nem emite diagnósticos. A informação é introduzida por si ou por quem autorizar."
+          ]
+        },
+        {
+          "title": "2. Conta e acesso",
+          "paragraphs": [
+            "O acesso completo obtém-se com um pagamento único. Também pode explorar uma demo temporária com dados de exemplo; a demo não é uma conta pessoal e pode reiniciar-se.",
+            "O início de sessão usa normalmente o Google. É responsável pela segurança da sua conta Google e pela atividade na Profipaws."
+          ]
+        },
+        {
+          "title": "3. Demo",
+          "paragraphs": [
+            "A demo serve apenas para experimentar o produto. Os dados de exemplo podem ser apagados ou reiniciados. Não guarde historial real na demo."
+          ]
+        },
+        {
+          "title": "4. Pagamentos",
+          "paragraphs": [
+            "O preço do acesso completo é mostrado antes do pagamento. Os cobranças são processadas pela Stripe. Após um pagamento válido, ativamos o acesso na sua conta."
+          ]
+        },
+        {
+          "title": "5. Utilização aceitável",
+          "paragraphs": [
+            "Não pode usar a Profipaws para atividades ilegais, abusivas, que violem direitos de terceiros, nem para aceder a dados de outros utilizadores sem autorização."
+          ]
+        },
+        {
+          "title": "6. Conteúdos e dados",
+          "paragraphs": [
+            "Mantém a titularidade da informação que carrega. Concede-nos uma licença limitada para a alojar e tratar apenas para prestar o serviço."
+          ]
+        },
+        {
+          "title": "7. Disponibilidade",
+          "paragraphs": [
+            "Procuramos um serviço estável, mas pode haver interrupções. Podemos melhorar ou alterar funções quando for relevante."
+          ]
+        },
+        {
+          "title": "8. Responsabilidade",
+          "paragraphs": [
+            "Na medida permitida pela lei, a Profipaws não responde por danos indiretos ou decisões tomadas apenas com base na informação guardada na app. Os direitos imperativos dos consumidores prevalecem."
+          ]
+        },
+        {
+          "title": "9. Cancelamento",
+          "paragraphs": [
+            "Pode deixar de usar o serviço e pedir a eliminação da conta. Podemos suspender contas que violem estes termos."
+          ]
+        },
+        {
+          "title": "10. Lei aplicável",
+          "paragraphs": [
+            "Salvo norma imperativa em contrário, estes termos interpretam-se segundo a legislação espanhola e europeia aplicável a consumidores e serviços digitais."
+          ]
+        }
+      ]
+    },
+    "privacy": {
+      "title": "Política de privacidade",
+      "intro": "Esta política explica que dados pessoais tratamos na Profipaws, para quê, com quem e que direitos tem. O responsável é o titular do serviço Profipaws (contacto abaixo).",
+      "sections": [
+        {
+          "title": "1. Dados que tratamos",
+          "paragraphs": [
+            "Conta: email, nome, identificador Google e foto de perfil se o Google a fornecer.",
+            "Dados de animais e saúde animal que introduz.",
+            "Dados técnicos de sessão e preferências.",
+            "Pagamentos: tratados pela Stripe; recebemos o estado do pagamento para ativar o acesso."
+          ]
+        },
+        {
+          "title": "2. Finalidades",
+          "paragraphs": [
+            "Prestar o serviço, processar o pagamento único, enviar lembretes de calendário quando ativos, e cumprir obrigações legais."
+          ]
+        },
+        {
+          "title": "3. Terceiros",
+          "paragraphs": [
+            "Google, Stripe, fornecedores de alojamento (p.ex. Railway e Vercel) e, se configurado, o fornecedor de email."
+          ]
+        },
+        {
+          "title": "4. Conservação e direitos",
+          "paragraphs": [
+            "Conservamos os dados enquanto a conta existir ou for necessário. Pode pedir acesso, retificação, apagamento e outros direitos GDPR/RGPD escrevendo para o contacto desta página."
+          ]
+        },
+        {
+          "title": "5. Menores e segurança",
+          "paragraphs": [
+            "O serviço não se destina a menores de 16 anos sem consentimento parental quando exigido. Aplicamos medidas razoáveis de segurança."
+          ]
+        }
+      ]
+    },
+    "cookies": {
+      "title": "Política de cookies",
+      "intro": "Esta política descreve o uso de cookies e tecnologias semelhantes na Profipaws.",
+      "sections": [
+        {
+          "title": "1. O que usamos",
+          "paragraphs": [
+            "Cookies/armazenamento essenciais para autenticação e sessão, e preferências de idioma/tema. Não usamos cookies publicitárias."
+          ]
+        },
+        {
+          "title": "2. Porque são necessárias",
+          "paragraphs": [
+            "Sem estas tecnologias técnicas não seria possível iniciar sessão nem proteger a sessão de forma adequada."
+          ]
+        },
+        {
+          "title": "3. Terceiros e gestão",
+          "paragraphs": [
+            "Google e Stripe podem definir cookies próprias. Pode limpar dados do site nas definições do navegador."
+          ]
+        }
+      ]
+    },
+    "notice": {
+      "title": "Aviso legal",
+      "intro": "Informação geral sobre o titular e as condições de uso do site e serviços Profipaws.",
+      "sections": [
+        {
+          "title": "1. Identificação",
+          "paragraphs": [
+            "Titular do serviço: Profipaws.",
+            "Site: https://profipaws.vercel.app",
+            "Contacto: hola@profipaws.com"
+          ]
+        },
+        {
+          "title": "2. Objeto e propriedade intelectual",
+          "paragraphs": [
+            "O site apresenta a Profipaws e permite aceder à app, demo e pagamento. Marca, design e software estão protegidos."
+          ]
+        },
+        {
+          "title": "3. Responsabilidade e ligações",
+          "paragraphs": [
+            "O historial clínico depende do que o utilizador regista. Ligações a terceiros regem-se pelas suas próprias condições."
+          ]
+        }
+      ]
+    },
+    "refunds": {
+      "title": "Política de reembolsos",
+      "intro": "A Profipaws oferece acesso digital de pagamento único. Esta política clarifica quando pode pedir reembolso.",
+      "sections": [
+        {
+          "title": "1. Regra geral",
+          "paragraphs": [
+            "Após ativar o acesso completo na conta, o serviço digital considera-se prestado. Os reembolsos não são automáticos."
+          ]
+        },
+        {
+          "title": "2. Casos em que ajudamos",
+          "paragraphs": [
+            "Cobrança duplicada ou erro técnico que impeça a ativação após pagamento válido, ou impossibilidade grave de uso imputável à Profipaws se não for resolvida em prazo razoável."
+          ]
+        },
+        {
+          "title": "3. Como pedir",
+          "paragraphs": [
+            "Escreva para hola@profipaws.com a partir do email da conta com data do pagamento e descrição do problema."
+          ]
+        },
+        {
+          "title": "4. Demo e direitos do consumidor",
+          "paragraphs": [
+            "A demo é gratuita. Se a lei de consumo lhe reconhecer direitos imperativos, esses direitos prevalecem."
+          ]
+        }
+      ]
+    }
   }
 }
