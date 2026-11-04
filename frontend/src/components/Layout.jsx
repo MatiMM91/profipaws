@@ -4,7 +4,6 @@ import { LayoutDashboard, CreditCard, LogOut, UserRound } from 'lucide-react'
 import PreferenceControls from './PreferenceControls'
 import BrandLogo from './BrandLogo'
 import LegalNavMenu from './LegalNavMenu'
-import SiteFooter from './SiteFooter'
 import { logout as endSession } from '../auth'
 
 export default function Layout() {
@@ -59,7 +58,6 @@ export default function Layout() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
         <Outlet />
       </main>
-      <SiteFooter className="bg-white/40 dark:bg-cyan-950/40" />
     </div>
   )
 }
