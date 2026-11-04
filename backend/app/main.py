@@ -32,10 +32,6 @@ settings = get_settings()
 def _ensure_schema_updates() -> None:
     """Lightweight column upgrades until Alembic is wired."""
     with engine.begin() as conn:
-        try:
-            conn.execute(text("UPDATE pets SET photo_url = NULL WHERE photo_url IS NOT NULL"))
-        except Exception:
-            pass
         for stmt in (
             "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_filename VARCHAR(255)",
             "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS document_content_type VARCHAR(120)",
