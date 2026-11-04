@@ -32,10 +32,6 @@ export default function VetAccessQR() {
     }
   }
 
-  const qrUrl = access
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(access.qr_payload)}`
-    : null
-
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <Link to={`/pets/${id}`} className="inline-flex items-center gap-1 text-sm text-cyan-700 hover:text-cyan-900 dark:text-cyan-300 dark:hover:text-cyan-100">
@@ -60,14 +56,11 @@ export default function VetAccessQR() {
           </button>
         ) : (
           <div className="mt-6 space-y-4">
-            <p className="font-display text-5xl font-bold tracking-[0.35em] text-cyan-800 dark:text-cyan-200">
-              {access.pin}
-            </p>
-            {qrUrl && (
+            {access.qr_image && (
               <img
-                src={qrUrl}
+                src={access.qr_image}
                 alt={t('vet.scanCodeAlt')}
-                className="mx-auto rounded-xl border border-cyan-100 dark:border-cyan-800"
+                className="mx-auto rounded-xl border border-cyan-100 bg-white p-2 dark:border-cyan-800"
                 width={220}
                 height={220}
               />

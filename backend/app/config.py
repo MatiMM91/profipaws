@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 days
 
     # Google OAuth
+    # Local stub `dev:email` is rejected unless this is true and APP_ENV is development.
+    allow_dev_google_login: bool = False
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/api/auth/google/callback"

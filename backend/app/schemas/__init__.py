@@ -147,6 +147,7 @@ class AccessPinResponse(BaseModel):
     pin: str
     expires_at: datetime
     qr_payload: str
+    qr_image: str | None = None
 
 
 class PetShareCreate(BaseModel):

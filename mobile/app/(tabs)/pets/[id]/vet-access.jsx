@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Text, View } from 'react-native'
+import { View } from 'react-native'
 import { useLocalSearchParams } from 'expo-router'
 import { useTranslation } from 'react-i18next'
 import { Clock, KeyRound, QrCode } from 'lucide-react-native'
@@ -62,17 +62,6 @@ export default function VetAccessScreen() {
             />
           ) : (
             <View style={{ alignItems: 'center', gap: 18, width: '100%' }}>
-              <Text
-                style={{
-                  fontFamily: 'DMSans_700Bold',
-                  fontSize: 44,
-                  letterSpacing: 10,
-                  color: colors.text,
-                }}
-              >
-                {access.pin}
-              </Text>
-
               {access.qr_payload ? (
                 <View
                   style={{

@@ -80,10 +80,6 @@ def generate_api_key() -> tuple[str, str, str]:
     return raw, prefix, hash_api_key(raw)
 
 
-def generate_access_pin() -> str:
-    return f"{secrets.randbelow(1_000_000):06d}"
-
-
 def get_clinic_from_api_key(
     x_api_key: Optional[str] = Header(default=None, alias="X-API-Key"),
     db: Session = Depends(get_db),

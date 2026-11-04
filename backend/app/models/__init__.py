@@ -116,7 +116,7 @@ class Pet(Base):
     photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     weight_kg: Mapped[float | None] = mapped_column(Float, nullable=True)
     allergies: Mapped[str | None] = mapped_column(Text, nullable=True)
-    access_pin: Mapped[str | None] = mapped_column(String(6), nullable=True, index=True)
+    access_pin: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     access_pin_expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
@@ -363,4 +363,14 @@ class ClinicAccessEvent(Base):
     )
     pet_id: Mapped[int] = mapped_column(ForeignKey("pets.id", ondelete="CASCADE"), index=True)
     action: Mapped[str] = mapped_column(String(32), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class StripeWebhookEvent(Base):
+    """Stripe event ids already applied, so a replay cannot grant access twice."""
+
+    __tablename__ = "stripe_webhook_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    event_id: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

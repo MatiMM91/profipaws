@@ -1,5 +1,6 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 import stripe
 from app.config import get_settings
@@ -9,6 +10,7 @@ from app.models import (
     Subscription,
     SubscriptionTier,
     SubscriptionStatus,
+    StripeWebhookEvent,
 )
 from app.schemas import (
     SubscriptionOut,
@@ -150,6 +152,68 @@ def change_billing_interval(
     )
 
 
+def _customer_id(session: dict) -> str | None:
+    customer = session.get("customer")
+    if isinstance(customer, dict):
+        return customer.get("id")
+    return customer
+
+
+def _is_paid_lifetime(session: dict) -> bool:
+    """True only for a collected one-time charge of 20 EUR."""
+    if session.get("payment_status") != "paid":
+        return False
+    if str(session.get("currency") or "").lower() != "eur":
+        return False
+    try:
+        amount = int(session.get("amount_total"))
+    except (TypeError, ValueError):
+        return False
+    if amount != LIFETIME_AMOUNT_CENTS:
+        return False
+    mode = session.get("mode")
+    purchase = (session.get("metadata") or {}).get("purchase")
+    return mode == "payment" or purchase == LIFETIME_INTERVAL
+
+
+def _remember_event(db: Session, event_id: str | None) -> bool:
+    """Return False when this Stripe event was already applied."""
+    if not event_id:
+        return True
+    if db.query(StripeWebhookEvent.id).filter(StripeWebhookEvent.event_id == event_id).first():
+        return False
+    db.add(StripeWebhookEvent(event_id=event_id))
+    return True
+
+
+def _apply_paid_checkout(db: Session, session: dict) -> None:
+    metadata = session.get("metadata") or {}
+    raw_user_id = metadata.get("user_id")
+    try:
+        user_id = int(raw_user_id)
+    except (TypeError, ValueError):
+        return
+    sub = db.query(Subscription).filter(Subscription.user_id == user_id).first()
+    if not sub:
+        return
+    if _is_paid_lifetime(session):
+        _grant_lifetime(sub, customer_id=_customer_id(session))
+        return
+    # Legacy recurring checkout: require a collected payment and a subscription id.
+    if (
+        session.get("payment_status") == "paid"
+        and session.get("mode") == "subscription"
+        and session.get("subscription")
+    ):
+        sub.tier = SubscriptionTier.PRO
+        sub.status = SubscriptionStatus.ACTIVE
+        sub.stripe_subscription_id = session.get("subscription")
+        sub.stripe_customer_id = _customer_id(session)
+        interval = metadata.get("interval")
+        if interval in ("monthly", "yearly"):
+            sub.billing_interval = interval
+
+
 @router.post("/webhook")
 async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     """Handle Stripe one-time payment (and legacy subscription) events."""
@@ -160,29 +224,17 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
     sig = request.headers.get("stripe-signature")
     try:
         event = stripe.Webhook.construct_event(payload, sig, settings.stripe_webhook_secret)
-    except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Webhook error: {exc}") from exc
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload") from None
 
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        user_id = session.get("metadata", {}).get("user_id")
-        purchase = session.get("metadata", {}).get("purchase")
-        mode = session.get("mode")
-        if user_id:
-            sub = db.query(Subscription).filter(Subscription.user_id == int(user_id)).first()
-            if sub:
-                if mode == "payment" or purchase == LIFETIME_INTERVAL:
-                    _grant_lifetime(sub, customer_id=session.get("customer"))
-                else:
-                    # Legacy subscription checkout
-                    sub.tier = SubscriptionTier.PRO
-                    sub.status = SubscriptionStatus.ACTIVE
-                    sub.stripe_subscription_id = session.get("subscription")
-                    sub.stripe_customer_id = session.get("customer")
-                    interval = session.get("metadata", {}).get("interval")
-                    if interval in ("monthly", "yearly"):
-                        sub.billing_interval = interval
-                db.commit()
+    if settings.stripe_secret_key.startswith("sk_live_") and not event.get("livemode"):
+        return {"received": True}
+
+    if not _remember_event(db, event.get("id")):
+        return {"received": True}
+
+    if event["type"] in ("checkout.session.completed", "checkout.session.async_payment_succeeded"):
+        _apply_paid_checkout(db, event["data"]["object"])
 
     elif event["type"] in ("customer.subscription.updated", "customer.subscription.deleted"):
         subscription_obj = event["data"]["object"]
@@ -191,11 +243,7 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
             .filter(Subscription.stripe_subscription_id == subscription_obj["id"])
             .first()
         )
-        if sub:
-            # Never revoke manually granted / one-time lifetime access.
-            if sub.billing_interval == LIFETIME_INTERVAL:
-                return {"received": True}
-
+        if sub and sub.billing_interval != LIFETIME_INTERVAL:
             status_map = {
                 "active": SubscriptionStatus.ACTIVE,
                 "canceled": SubscriptionStatus.CANCELED,
@@ -213,6 +261,9 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
                 sub.tier = SubscriptionTier.FREE
                 sub.status = SubscriptionStatus.CANCELED
                 sub.billing_interval = None
-            db.commit()
 
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
     return {"received": True}

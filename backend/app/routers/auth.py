@@ -1,7 +1,10 @@
+import asyncio
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials
+from sqlalchemy import func
 from sqlalchemy.orm import Session
-import httpx
+import jwt
+from jwt import PyJWKClient
 import secrets
 import time
 from app.database import get_db
@@ -35,6 +38,9 @@ _DEMO_LAST_HIT: dict[str, float] = {}
 _HANDOFF_TTL_SEC = 180
 _SESSION_TTL_SEC = 300
 _DEMO_COOLDOWN_SEC = 4
+_GOOGLE_CERTS_URL = "https://www.googleapis.com/oauth2/v3/certs"
+_GOOGLE_ISSUERS = ["accounts.google.com", "https://accounts.google.com"]
+_google_jwks = PyJWKClient(_GOOGLE_CERTS_URL, cache_keys=True)
 
 
 def _purge_handoffs(now: float | None = None) -> None:
@@ -71,15 +77,22 @@ async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)
             detail="Usa el botón Probar demo en la web para entrar a la cuenta de prueba.",
         )
 
-    user = db.query(User).filter(User.google_id == google_user["sub"]).first()
-    if not user:
-        user = db.query(User).filter(User.email == google_user["email"]).first()
+    sub = str(google_user["sub"])
+    email = str(google_user["email"]).strip().lower()
+    user = db.query(User).filter(User.google_id == sub).first()
+    if user is None:
+        user = db.query(User).filter(func.lower(User.email) == email).first()
+        if user is not None and user.google_id and user.google_id != sub:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="This email is already linked to another Google account",
+            )
 
     if not user:
         user = User(
-            email=google_user["email"],
+            email=email,
             full_name=google_user.get("name"),
-            google_id=google_user["sub"],
+            google_id=sub,
             avatar_url=google_user.get("picture"),
         )
         db.add(user)
@@ -91,14 +104,13 @@ async def google_login(payload: GoogleAuthRequest, db: Session = Depends(get_db)
                 status=SubscriptionStatus.ACTIVE,
             )
         )
-        db.commit()
-        db.refresh(user)
-    else:
-        user.google_id = google_user["sub"]
-        user.full_name = google_user.get("name") or user.full_name
-        user.avatar_url = google_user.get("picture") or user.avatar_url
-        db.commit()
-        db.refresh(user)
+    elif not user.google_id:
+        user.google_id = sub
+
+    user.full_name = google_user.get("name") or user.full_name
+    user.avatar_url = google_user.get("picture") or user.avatar_url
+    db.commit()
+    db.refresh(user)
 
     token = create_access_token(user.id, user.email)
     return TokenResponse(access_token=token, user=UserOut.model_validate(user))
@@ -242,32 +254,60 @@ def poll_mobile_session(nonce: str, db: Session = Depends(get_db)):
     )
 
 
+def _email_is_verified(value) -> bool:
+    return value is True or str(value).lower() == "true"
+
+
+def _decode_google_id_token(id_token: str) -> dict:
+    signing_key = _google_jwks.get_signing_key_from_jwt(id_token)
+    return jwt.decode(
+        id_token,
+        signing_key.key,
+        algorithms=["RS256"],
+        audience=settings.google_client_id,
+        issuer=_GOOGLE_ISSUERS,
+    )
+
+
 async def _verify_google_token(id_token: str) -> dict:
-    """Validate Google ID token. Falls back to a dev stub when client id is unset."""
+    """Validate a Google ID token against Google's certificates."""
     if not settings.google_client_id:
-        # Dev mode stub — DO NOT use in production
-        if id_token.startswith("dev:"):
-            email = id_token.split(":", 1)[1]
+        if settings.app_env == "production":
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Google sign-in is not configured",
+            )
+        if (
+            settings.allow_dev_google_login
+            and settings.app_env == "development"
+            and id_token.startswith("dev:")
+        ):
+            email = id_token.split(":", 1)[1].strip().lower()
+            if not email or "@" not in email:
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
             return {
                 "sub": f"dev-{email}",
                 "email": email,
+                "email_verified": True,
                 "name": email.split("@")[0].title(),
                 "picture": None,
             }
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="GOOGLE_CLIENT_ID not configured. Use id_token='dev:you@email.com' for local testing.",
+            detail="Google sign-in is not configured",
         )
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            "https://oauth2.googleapis.com/tokeninfo",
-            params={"id_token": id_token},
-        )
-    if resp.status_code != 200:
+    try:
+        data = await asyncio.to_thread(_decode_google_id_token, id_token)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token") from None
+
+    if not _email_is_verified(data.get("email_verified")):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Google email is not verified")
+    email = str(data.get("email") or "").strip().lower()
+    sub = data.get("sub")
+    if not email or not sub or "@" not in email:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
-
-    data = resp.json()
-    if data.get("aud") != settings.google_client_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token audience mismatch")
+    data["email"] = email
+    data["sub"] = str(sub)
     return data

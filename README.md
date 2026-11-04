@@ -168,20 +168,14 @@ Exportación estandarizada: formato `profipaws.passport.v1` (JSON).
 
 ### Acceso en consulta (sin cuenta)
 
-El dueño genera un PIN de 6 dígitos / QR:
+El dueño genera un enlace temporal. El secreto se devuelve una sola vez y en la base solo se guarda su hash:
 
 ```http
 POST /api/pets/{id}/access-pin
 Authorization: Bearer <jwt>
 ```
 
-El veterinario lee el expediente:
-
-```http
-GET /api/pets/access/{pin}
-```
-
-El PIN caduca en 2 horas.
+El veterinario abre `qr_payload` (o escanea el QR). Caduca en 2 horas. Un código corto o agotado responde 404.
 
 ## Endpoints principales (dueños)
 

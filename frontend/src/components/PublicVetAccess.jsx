@@ -181,7 +181,7 @@ export default function PublicVetAccess() {
             </Section>
 
             <p className="text-center text-xs text-cyan-600 dark:text-cyan-400">
-              {t('vetAccess.footer', { pin, time: new Date().toLocaleString(locale) })}
+              {t('vetAccess.footer', { time: new Date().toLocaleString(locale) })}
             </p>
           </div>
         )}

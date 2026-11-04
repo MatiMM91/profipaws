@@ -27,7 +27,7 @@
     "featureClinical": "Clinical record",
     "featureClinicalDesc": "Vaccines, surgeries, exams, and documents in one place.",
     "featureVet": "Vet access",
-    "featureVetDesc": "A 6-digit code or a scannable code at the clinic — no account needed for the vet.",
+    "featureVetDesc": "A temporary link or QR for the visit — no account needed for the vet.",
     "featureB2b": "Clinic connection",
     "featureB2bDesc": "Clinics can view and update the history using the pet's microchip."
   },
@@ -252,7 +252,7 @@
   "vet": {
     "back": "Back to profile",
     "title": "Veterinary access",
-    "subtitle": "Create a 6-digit code or a scannable code for the vet. Expires in 2 hours and needs no account.",
+    "subtitle": "Create a temporary link or QR for the vet. Expires in 2 hours and needs no account.",
     "generate": "Create access code",
     "generating": "Creating…",
     "expires": "Expires",

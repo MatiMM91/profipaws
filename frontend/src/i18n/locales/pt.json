@@ -37,7 +37,7 @@
     "featureClinical": "Prontuário clínico",
     "featureClinicalDesc": "Vacinas, cirurgias, exames e documentos num só lugar.",
     "featureVet": "Acesso veterinário",
-    "featureVetDesc": "Um código de 6 dígitos ou um para digitalizar na consulta, sem o veterinário criar conta.",
+    "featureVetDesc": "Um link temporário ou um QR para a consulta, sem o veterinário criar conta.",
     "featureB2b": "Ligação com clínicas",
     "featureB2bDesc": "As clínicas podem consultar e atualizar o histórico usando o chip do animal.",
     "ownersTitle": "Tudo o essencial para o tutor",
@@ -304,7 +304,7 @@
   "vet": {
     "back": "Voltar ao perfil",
     "title": "Acesso veterinário",
-    "subtitle": "Crie um código de 6 dígitos ou um QR. Ao digitalizá-lo abre o processo no navegador. Expira em 2 horas e não exige conta.",
+    "subtitle": "Crie um link temporário ou um QR. Ao digitalizá-lo abre o processo no navegador. Expira em 2 horas e não exige conta.",
     "generate": "Criar código de acesso",
     "generating": "A criar…",
     "expires": "Caduca",
@@ -328,7 +328,7 @@
     "consultations": "Acompanhamento",
     "openDocument": "Abrir ficheiro",
     "empty": "Sem registos.",
-    "footer": "PIN {{pin}} · visto {{time}}"
+    "footer": "Visto {{time}}"
   },
   "pricing": {
     "title": "Acesso completo",

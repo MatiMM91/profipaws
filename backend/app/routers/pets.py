@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, date
 from urllib.parse import quote
-from fastapi import APIRouter, Depends, HTTPException, status, Response, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Response, File, UploadFile
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import (
@@ -53,7 +53,14 @@ from app.schemas import (
     PetExportOut,
 )
 from app.config import get_settings
-from app.services.auth import get_current_user, generate_access_pin
+from app.services.auth import get_current_user
+from app.services.vet_access import (
+    enforce_vet_access_rate_limit,
+    issue_vet_access_token,
+    pet_by_vet_token,
+    qr_data_url,
+    record_vet_access_failure,
+)
 from app.services.billing import require_pro
 from app.services.pdf_export import build_pet_passport_pdf, build_vaccine_pass_pdf
 from app.services.pet_access import (
@@ -234,31 +241,32 @@ def _ensure_legacy_weight_entry(db: Session, pet: Pet) -> None:
 
 
 
-def _pet_by_valid_pin(db: Session, pin: str) -> Pet:
-    pet = db.query(Pet).filter(Pet.access_pin == pin).first()
-    if (
-        not pet
-        or not pet.access_pin_expires_at
-        or pet.access_pin_expires_at < datetime.utcnow()
-    ):
-        raise HTTPException(status_code=404, detail="Invalid or expired PIN")
-    return pet
-
-
 @router.get("/access/{pin}", response_model=PetExportOut)
-def access_by_pin(pin: str, db: Session = Depends(get_db)):
-    """Public vet access via temporary PIN (no account required)."""
-    return _export_pet(db, _pet_by_valid_pin(db, pin))
+def access_by_pin(pin: str, request: Request, db: Session = Depends(get_db)):
+    """Public vet access via a temporary unguessable link (no account required)."""
+    enforce_vet_access_rate_limit(request)
+    try:
+        pet = pet_by_vet_token(db, pin)
+    except HTTPException:
+        record_vet_access_failure(request)
+        raise
+    return _export_pet(db, pet)
 
 
 @router.get("/access/{pin}/records/{record_id}/document")
 def access_record_document_by_pin(
     pin: str,
     record_id: int,
+    request: Request,
     db: Session = Depends(get_db),
 ):
-    """Public: open an exam attachment while the temporary PIN is valid."""
-    pet = _pet_by_valid_pin(db, pin)
+    """Public: download an exam attachment while the temporary link is valid."""
+    enforce_vet_access_rate_limit(request)
+    try:
+        pet = pet_by_vet_token(db, pin)
+    except HTTPException:
+        record_vet_access_failure(request)
+        raise
     record = (
         db.query(MedicalRecord)
         .filter(MedicalRecord.id == record_id, MedicalRecord.pet_id == pet.id)
@@ -269,13 +277,12 @@ def access_record_document_by_pin(
 
     filename = record.document_filename or "examen"
     media = record.document_content_type or "application/octet-stream"
-    inline = media.startswith("image/") or media == "application/pdf"
-    disposition = "inline" if inline else "attachment"
     return Response(
         content=record.document_data,
         media_type=media,
         headers={
-            "Content-Disposition": f"{disposition}; filename*=UTF-8''{quote(filename)}",
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename)}",
+            "X-Content-Type-Options": "nosniff",
         },
     )
 
@@ -396,19 +403,21 @@ def create_access_pin(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Generate a temporary 6-digit PIN / QR payload for veterinary consultation access."""
+    """Issue a temporary vet link. The secret is returned once and stored only as a hash."""
     pet = _get_owned_pet(db, pet_id, current_user)
-    pin = generate_access_pin()
+    token, digest = issue_vet_access_token()
     expires = datetime.utcnow() + timedelta(hours=2)
-    pet.access_pin = pin
+    pet.access_pin = digest
     pet.access_pin_expires_at = expires
     db.commit()
     # HTTPS URL so phone cameras / browsers open the dossier directly (not a custom scheme).
     base = (settings.frontend_url or "").rstrip("/") or "https://profipaws.vercel.app"
+    payload = f"{base}/vet/{token}"
     return AccessPinResponse(
-        pin=pin,
+        pin=token,
         expires_at=expires,
-        qr_payload=f"{base}/vet/{pin}",
+        qr_payload=payload,
+        qr_image=qr_data_url(payload),
     )
 
 

@@ -19,6 +19,7 @@ from app.models import (  # noqa: F401 — ensure models are registered
     ClinicApiKey,
     ClinicPetGrant,
     ClinicAccessEvent,
+    StripeWebhookEvent,
     WeightEntry,
 )
 from app.routers import auth, pets, subscriptions, external, alerts
@@ -47,6 +48,9 @@ def _ensure_schema_updates() -> None:
             "ALTER TABLE medical_records ADD COLUMN IF NOT EXISTS clinic_api_key_id INTEGER REFERENCES clinic_api_keys(id) ON DELETE SET NULL",
             "CREATE INDEX IF NOT EXISTS ix_vaccines_clinic_api_key_id ON vaccines (clinic_api_key_id)",
             "CREATE INDEX IF NOT EXISTS ix_medical_records_clinic_api_key_id ON medical_records (clinic_api_key_id)",
+            "ALTER TABLE pets ALTER COLUMN access_pin TYPE VARCHAR(64)",
+            "UPDATE pets SET access_pin = NULL, access_pin_expires_at = NULL WHERE access_pin IS NOT NULL AND char_length(access_pin) < 64",
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_pets_access_pin ON pets (access_pin) WHERE access_pin IS NOT NULL",
         ):
             try:
                 conn.execute(text(stmt))
