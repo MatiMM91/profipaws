@@ -848,7 +848,7 @@ export default function PetProfile() {
             </ul>
           )}
           <p className="mt-2 text-[11px] text-cyan-600/80 dark:text-cyan-400/80">
-            {isPro ? t('pet.alertsHintPro') : t('pet.alertsHintFree')}{' '}
+            {t('pet.alertsHint')}{' '}
             {!isPro && (
               <Link to="/pricing" className="font-medium underline-offset-2 hover:underline">
                 {t('pet.upgradeForPro')}
